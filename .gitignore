@@ -263,3 +263,13 @@ src/xml/lib/
 *.dep
 *.map
 work
+
+!configure.exe
+!Makefile.unix
+!Makefile.win32
+!Makefile.win32-g++
+!makefile.cpp
+!makefile.cpp
+!makefile.h
+!makefiledeps.cpp
+!makefiledeps.h
