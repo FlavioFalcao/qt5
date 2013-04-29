@@ -273,3 +273,5 @@ work
 !makefile.h
 !makefiledeps.cpp
 !makefiledeps.h
+!gnuwin32/bin/*
+qtbase/include/*
