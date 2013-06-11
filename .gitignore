@@ -275,3 +275,5 @@ work
 !makefiledeps.h
 !gnuwin32/bin/*
 qtbase/include/*
+qtwebkit
+*.pch
