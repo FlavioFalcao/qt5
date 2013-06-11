@@ -33,6 +33,12 @@ DEFINES += ENABLE_DEBUGGER_SUPPORT
 # this is needed by crankshaft ( http://code.google.com/p/v8/issues/detail?id=1271 )
 DEFINES += ENABLE_VMSTATE_TRACKING ENABLE_LOGGING_AND_PROFILING
 
+# Set NOMINMAX, so that the minmax macros are not getting set for the msvc
+win*:DEFINES += NOMINMAX
+
+# Windows CE does not set the WIN32 macro, which is needed for compiling
+wince:DEFINES += WIN32
+
 CONFIG(debug, debug|release) {
     DEFINES += DEBUG V8_ENABLE_CHECKS OBJECT_PRINT ENABLE_DISASSEMBLER
 } else {
@@ -59,6 +65,7 @@ SOURCES += \
     $$V8SRC/checks.cc \
     $$V8SRC/circular-queue.cc \
     $$V8SRC/code-stubs.cc \
+    $$V8SRC/code-stubs-hydrogen.cc \
     $$V8SRC/codegen.cc \
     $$V8SRC/compilation-cache.cc \
     $$V8SRC/compiler.cc \
@@ -76,6 +83,7 @@ SOURCES += \
     $$V8SRC/diy-fp.cc \
     $$V8SRC/dtoa.cc \
     $$V8SRC/elements.cc \
+    $$V8SRC/elements-kind.cc \
     $$V8SRC/execution.cc \
     $$V8SRC/factory.cc \
     $$V8SRC/flags.cc \
@@ -89,11 +97,11 @@ SOURCES += \
     $$V8SRC/handles.cc \
     $$V8SRC/heap-profiler.cc \
     $$V8SRC/heap.cc \
+    $$V8SRC/heap-snapshot-generator.cc \
     $$V8SRC/hydrogen.cc \
     $$V8SRC/hydrogen-instructions.cc \
     $$V8SRC/ic.cc \
     $$V8SRC/incremental-marking.cc \
-    $$V8SRC/inspector.cc \
     $$V8SRC/interface.cc \
     $$V8SRC/interpreter-irregexp.cc \
     $$V8SRC/isolate.cc \
@@ -101,15 +109,16 @@ SOURCES += \
     $$V8SRC/lithium-allocator.cc \
     $$V8SRC/lithium.cc \
     $$V8SRC/liveedit.cc \
-    $$V8SRC/liveobjectlist.cc \
     $$V8SRC/log-utils.cc \
     $$V8SRC/log.cc \
     $$V8SRC/mark-compact.cc \
+    $$V8SRC/marking-thread.cc \
     $$V8SRC/messages.cc \
     $$V8SRC/objects.cc \
     $$V8SRC/objects-printer.cc \
     $$V8SRC/objects-visiting.cc \
     $$V8SRC/once.cc \
+    $$V8SRC/optimizing-compiler-thread.cc \
     $$V8SRC/parser.cc \
     $$V8SRC/preparser.cc \
     $$V8SRC/preparse-data.cc \
@@ -133,7 +142,9 @@ SOURCES += \
     $$V8SRC/string-stream.cc \
     $$V8SRC/strtod.cc \
     $$V8SRC/stub-cache.cc \
+    $$V8SRC/sweeper-thread.cc \
     $$V8SRC/token.cc \
+    $$V8SRC/transitions.cc \
     $$V8SRC/type-info.cc \
     $$V8SRC/unicode.cc \
     $$V8SRC/utils.cc \
@@ -146,8 +157,9 @@ SOURCES += \
     $$V8SRC/version.cc \
     $$V8SRC/store-buffer.cc \
     $$V8SRC/zone.cc \
+    $$V8SRC/extensions/externalize-string-extension.cc \
     $$V8SRC/extensions/gc-extension.cc \
-    $$V8SRC/extensions/externalize-string-extension.cc
+    $$V8SRC/extensions/statistics-extension.cc
 
 equals(V8_TARGET_ARCH, arm) {
 DEFINES += V8_TARGET_ARCH_ARM
@@ -263,7 +275,8 @@ win32 {
 SOURCES += \
     $$V8SRC/platform-win32.cc \
     $$V8SRC/win32-math.cc
-LIBS += -lws2_32 -lwinmm
+wince*:LIBS += -lws2 -lmmtimer
+else:LIBS += -lws2_32 -lwinmm
 win32-msvc*: QMAKE_CXXFLAGS += -wd4100 -wd 4291 -wd4351 -wd4355 -wd4800
 win32-msvc*:arch_i386: DEFINES += _USE_32BIT_TIME_T
 }

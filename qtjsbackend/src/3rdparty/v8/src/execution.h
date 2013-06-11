@@ -41,8 +41,8 @@ enum InterruptFlag {
   DEBUGCOMMAND = 1 << 2,
   PREEMPT = 1 << 3,
   TERMINATE = 1 << 4,
-  RUNTIME_PROFILER_TICK = 1 << 5,
-  GC_REQUEST = 1 << 6
+  GC_REQUEST = 1 << 5,
+  CODE_READY = 1 << 6
 };
 
 
@@ -100,7 +100,7 @@ class Execution : public AllStatic {
                                 bool* caught_exception);
 
   // ECMA-262 9.2
-  static Handle<Object> ToBoolean(Handle<Object> obj);
+  static Handle<Object> ToBoolean(Isolate* isolate, Handle<Object> obj);
 
   // ECMA-262 9.3
   static Handle<Object> ToNumber(Handle<Object> obj, bool* exc);
@@ -201,8 +201,8 @@ class StackGuard {
   void Interrupt();
   bool IsTerminateExecution();
   void TerminateExecution();
-  bool IsRuntimeProfilerTick();
-  void RequestRuntimeProfilerTick();
+  bool IsCodeReadyEvent();
+  void RequestCodeReadyEvent();
 #ifdef ENABLE_DEBUGGER_SUPPORT
   bool IsDebugBreak();
   void DebugBreak();

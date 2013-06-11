@@ -74,7 +74,7 @@ namespace internal {
 #define V8_HOST_ARCH_IA32 1
 #define V8_HOST_ARCH_32_BIT 1
 #define V8_HOST_CAN_READ_UNALIGNED 1
-#elif defined(__ARMEL__)
+#elif defined(__ARMEL__) || defined(_M_ARM)
 #define V8_HOST_ARCH_ARM 1
 #define V8_HOST_ARCH_32_BIT 1
 // Some CPU-OS combinations allow unaligned access on ARM. We assume
@@ -128,27 +128,12 @@ namespace internal {
 // Setting USE_SIMULATOR explicitly from the build script will force
 // the use of a simulated environment.
 #if !defined(USE_SIMULATOR)
-#if (defined(V8_TARGET_ARCH_ARM) && !defined(V8_HOST_ARCH_ARM))
+#if (defined(V8_TARGET_ARCH_ARM) && !defined(V8_HOST_ARCH_ARM) && !defined(_WIN32_WCE))
 #define USE_SIMULATOR 1
 #endif
 #if (defined(V8_TARGET_ARCH_MIPS) && !defined(V8_HOST_ARCH_MIPS))
 #define USE_SIMULATOR 1
 #endif
-#endif
-
-// Define unaligned read for the target architectures supporting it.
-#if defined(V8_TARGET_ARCH_X64) || defined(V8_TARGET_ARCH_IA32)
-#define V8_TARGET_CAN_READ_UNALIGNED 1
-#elif V8_TARGET_ARCH_ARM
-// Some CPU-OS combinations allow unaligned access on ARM. We assume
-// that unaligned accesses are not allowed unless the build system
-// defines the CAN_USE_UNALIGNED_ACCESSES macro to be non-zero.
-#if CAN_USE_UNALIGNED_ACCESSES
-#define V8_TARGET_CAN_READ_UNALIGNED 1
-#endif
-#elif V8_TARGET_ARCH_MIPS
-#else
-#error Target architecture is not supported by v8
 #endif
 
 // Support for alternative bool type. This is only enabled if the code is
@@ -203,6 +188,7 @@ typedef byte* Address;
 
 #define V8PRIxPTR V8_PTR_PREFIX "x"
 #define V8PRIdPTR V8_PTR_PREFIX "d"
+#define V8PRIuPTR V8_PTR_PREFIX "u"
 
 // Fix for Mac OS X defining uintptr_t as "unsigned long":
 #if defined(__APPLE__) && defined(__MACH__)
@@ -267,15 +253,13 @@ const int kBinary32ExponentShift = 23;
 // other bits set.
 const uint64_t kQuietNaNMask = static_cast<uint64_t>(0xfff) << 51;
 
-// ASCII/UTF-16 constants
+// Latin1/UTF-16 constants
 // Code-point values in Unicode 4.0 are 21 bits wide.
 // Code units in UTF-16 are 16 bits wide.
 typedef uint16_t uc16;
 typedef int32_t uc32;
-const int kASCIISize    = kCharSize;
+const int kOneByteSize    = kCharSize;
 const int kUC16Size     = sizeof(uc16);      // NOLINT
-const uc32 kMaxAsciiCharCode = 0x7f;
-const uint32_t kMaxAsciiCharCodeU = 0x7fu;
 
 
 // The expression OFFSET_OF(type, field) computes the byte-offset
@@ -359,6 +343,20 @@ F FUNCTION_CAST(Address addr) {
 #else
 #define MUST_USE_RESULT
 #endif
+
+
+// Define DISABLE_ASAN macros.
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define DISABLE_ASAN __attribute__((no_address_safety_analysis))
+#endif
+#endif
+
+
+#ifndef DISABLE_ASAN
+#define DISABLE_ASAN
+#endif
+
 
 // -----------------------------------------------------------------------------
 // Forward declarations for frequently used classes

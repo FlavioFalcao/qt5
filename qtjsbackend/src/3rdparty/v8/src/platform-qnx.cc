@@ -125,12 +125,19 @@ static bool CPUInfoContainsString(const char * search_string) {
 
 bool OS::ArmCpuHasFeature(CpuFeature feature) {
   switch (feature) {
+    case VFP2:
     case VFP3:
       // All shipping devices currently support this and QNX has no easy way to
       // determine this at runtime.
       return true;
     case ARMv7:
       return (SYSPAGE_ENTRY(cpuinfo)->flags & ARM_CPU_FLAG_V7) != 0;
+    case SUDIV:
+      return CPUInfoContainsString("idiva");
+    case VFP32DREGS:
+      // We could even return true here, shipping devices have all
+      // 32 double-precision registers afaik.
+      return !CPUInfoContainsString("d16");
     default:
       UNREACHABLE();
   }
@@ -138,49 +145,50 @@ bool OS::ArmCpuHasFeature(CpuFeature feature) {
   return false;
 }
 
-
-// Simple helper function to detect whether the C code is compiled with
-// option -mfloat-abi=hard. The register d0 is loaded with 1.0 and the register
-// pair r0, r1 is loaded with 0.0. If -mfloat-abi=hard is pased to GCC then
-// calling this will return 1.0 and otherwise 0.0.
-static void ArmUsingHardFloatHelper() {
-  asm("mov r0, #0");
-#if defined(__VFP_FP__) && !defined(__SOFTFP__)
-  // Load 0x3ff00000 into r1 using instructions available in both ARM
-  // and Thumb mode.
-  asm("mov r1, #3");
-  asm("mov r2, #255");
-  asm("lsl r1, r1, #8");
-  asm("orr r1, r1, r2");
-  asm("lsl r1, r1, #20");
-  // For vmov d0, r0, r1 use ARM mode.
-#ifdef __thumb__
-  asm volatile(
-    "@   Enter ARM Mode  \n\t"
-    "    adr r3, 1f      \n\t"
-    "    bx  r3          \n\t"
-    "    .ALIGN 4        \n\t"
-    "    .ARM            \n"
-    "1:  vmov d0, r0, r1 \n\t"
-    "@   Enter THUMB Mode\n\t"
-    "    adr r3, 2f+1    \n\t"
-    "    bx  r3          \n\t"
-    "    .THUMB          \n"
-    "2:                  \n\t");
-#else
-  asm("vmov d0, r0, r1");
-#endif  // __thumb__
-#endif  // defined(__VFP_FP__) && !defined(__SOFTFP__)
-  asm("mov r1, #0");
+CpuImplementer OS::GetCpuImplementer() {
+  // We do NOT return QUALCOMM_IMPLEMENTER, even though /proc/cpuinfo
+  // has "CPU implementer : 0x51" in it, as that leads to a runtime
+  // error on the first JS function call.
+  return UNKNOWN_IMPLEMENTER;
 }
-
 
 bool OS::ArmUsingHardFloat() {
-  // Cast helper function from returning void to returning double.
-  typedef double (*F)();
-  F f = FUNCTION_CAST<F>(FUNCTION_ADDR(ArmUsingHardFloatHelper));
-  return f() == 1.0;
+  // GCC versions 4.6 and above define __ARM_PCS or __ARM_PCS_VFP to specify
+  // the Floating Point ABI used (PCS stands for Procedure Call Standard).
+  // We use these as well as a couple of other defines to statically determine
+  // what FP ABI used.
+  // GCC versions 4.4 and below don't support hard-fp.
+  // GCC versions 4.5 may support hard-fp without defining __ARM_PCS or
+  // __ARM_PCS_VFP.
+
+#define GCC_VERSION (__GNUC__ * 10000                                          \
+                     + __GNUC_MINOR__ * 100                                    \
+                     + __GNUC_PATCHLEVEL__)
+#if GCC_VERSION >= 40600
+#if defined(__ARM_PCS_VFP)
+  return true;
+#else
+  return false;
+#endif
+
+#elif GCC_VERSION < 40500
+  return false;
+
+#else
+#if defined(__ARM_PCS_VFP)
+  return true;
+#elif defined(__ARM_PCS) || defined(__SOFTFP) || !defined(__VFP_FP__)
+  return false;
+#else
+#error "Your version of GCC does not report the FP ABI compiled for."          \
+       "Please report it on this issue"                                        \
+       "http://code.google.com/p/v8/issues/detail?id=2140"
+
+#endif
+#endif
+#undef GCC_VERSION
 }
+
 #endif  // def __arm__
 
 
@@ -285,6 +293,11 @@ void OS::Free(void* address, const size_t size) {
 void OS::Sleep(int milliseconds) {
   unsigned int ms = static_cast<unsigned int>(milliseconds);
   usleep(1000 * ms);
+}
+
+
+int OS::NumberOfCores() {
+  return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 
@@ -408,10 +421,10 @@ void OS::LogSharedLibraryAddresses() {
     if (mapinfo->flags & MAP_ELF) {
       map.info.vaddr = mapinfo->vaddr;
       if (devctl(proc_fd, DCMD_PROC_MAPDEBUG, &map, sizeof(map), 0) != EOK)
-	    continue;
+        continue;
 
-	  LOG(isolate, SharedLibraryEvent(map.info.path, mapinfo->vaddr, mapinfo->vaddr + mapinfo->size));
-	}
+      LOG(isolate, SharedLibraryEvent(map.info.path, mapinfo->vaddr, mapinfo->vaddr + mapinfo->size));
+    }
   }
   free(mapinfos);
   close(proc_fd);
@@ -598,6 +611,10 @@ bool VirtualMemory::UncommitRegion(void* base, size_t size) {
 
 bool VirtualMemory::ReleaseRegion(void* base, size_t size) {
   return munmap(base, size) == 0;
+}
+
+bool VirtualMemory::HasLazyCommits() {
+  return false;
 }
 
 
@@ -867,11 +884,6 @@ class Sampler::PlatformData : public Malloced {
 
 class SignalSender : public Thread {
  public:
-  enum SleepInterval {
-    HALF_INTERVAL,
-    FULL_INTERVAL
-  };
-
   static const int kSignalSenderStackSize = 32 * KB;
 
   explicit SignalSender(int interval)
@@ -927,43 +939,16 @@ class SignalSender : public Thread {
     SamplerRegistry::State state;
     while ((state = SamplerRegistry::GetState()) !=
            SamplerRegistry::HAS_NO_SAMPLERS) {
-      bool cpu_profiling_enabled =
-          (state == SamplerRegistry::HAS_CPU_PROFILING_SAMPLERS);
-      bool runtime_profiler_enabled = RuntimeProfiler::IsEnabled();
-      if (cpu_profiling_enabled && !signal_handler_installed_) {
-        InstallSignalHandler();
-      } else if (!cpu_profiling_enabled && signal_handler_installed_) {
-        RestoreSignalHandler();
-      }
       // When CPU profiling is enabled both JavaScript and C++ code is
       // profiled. We must not suspend.
-      if (!cpu_profiling_enabled) {
-        if (rate_limiter_.SuspendIfNecessary()) continue;
-      }
-      if (cpu_profiling_enabled && runtime_profiler_enabled) {
-        if (!SamplerRegistry::IterateActiveSamplers(&DoCpuProfile, this)) {
-          return;
-        }
-        Sleep(HALF_INTERVAL);
-        if (!SamplerRegistry::IterateActiveSamplers(&DoRuntimeProfile, NULL)) {
-          return;
-        }
-        Sleep(HALF_INTERVAL);
+      if (state == SamplerRegistry::HAS_CPU_PROFILING_SAMPLERS) {
+        if (!signal_handler_installed_) InstallSignalHandler();
+        SamplerRegistry::IterateActiveSamplers(&DoCpuProfile, this);
       } else {
-        if (cpu_profiling_enabled) {
-          if (!SamplerRegistry::IterateActiveSamplers(&DoCpuProfile,
-                                                      this)) {
-            return;
-          }
-        }
-        if (runtime_profiler_enabled) {
-          if (!SamplerRegistry::IterateActiveSamplers(&DoRuntimeProfile,
-                                                      NULL)) {
-            return;
-          }
-        }
-        Sleep(FULL_INTERVAL);
+        if (signal_handler_installed_) RestoreSignalHandler();
+          if (RuntimeProfiler::WaitForSomeIsolateToEnterJS()) continue;
       }
+      Sleep();  // TODO(svenpanne) Figure out if OS:Sleep(interval_) is enough.
     }
   }
 
@@ -973,21 +958,15 @@ class SignalSender : public Thread {
     sender->SendProfilingSignal(sampler->platform_data()->vm_tid());
   }
 
-  static void DoRuntimeProfile(Sampler* sampler, void* ignored) {
-    if (!sampler->isolate()->IsInitialized()) return;
-    sampler->isolate()->runtime_profiler()->NotifyTick();
-  }
-
   void SendProfilingSignal(int tid) {
     if (!signal_handler_installed_) return;
     pthread_kill(tid, SIGPROF);
   }
 
-  void Sleep(SleepInterval full_or_half) {
+  void Sleep() {
     // Convert ms to us and subtract 100 us to compensate delays
     // occuring during signal delivery.
     useconds_t interval = interval_ * 1000 - 100;
-    if (full_or_half == HALF_INTERVAL) interval /= 2;
     int result = usleep(interval);
 #ifdef DEBUG
     if (result != 0 && errno != EINTR) {
@@ -1003,7 +982,6 @@ class SignalSender : public Thread {
 
   const int vm_tgid_;
   const int interval_;
-  RuntimeProfilerRateLimiter rate_limiter_;
 
   // Protects the process wide state below.
   static Mutex* mutex_;
@@ -1020,6 +998,9 @@ SignalSender* SignalSender::instance_ = NULL;
 struct sigaction SignalSender::old_signal_handler_;
 bool SignalSender::signal_handler_installed_ = false;
 
+void OS::DumpBacktrace() {
+  // Currently unsupported.
+}
 
 void OS::SetUp() {
   // Seed the random number generator. We preserve microsecond resolution.
@@ -1082,6 +1063,23 @@ void Sampler::Stop() {
   ASSERT(IsActive());
   SignalSender::RemoveActiveSampler(this);
   SetActive(false);
+}
+
+
+bool Sampler::CanSampleOnProfilerEventsProcessorThread() {
+  return false;
+}
+
+
+void Sampler::DoSample() {
+}
+
+
+void Sampler::StartProfiling() {
+}
+
+
+void Sampler::StopProfiling() {
 }
 
 

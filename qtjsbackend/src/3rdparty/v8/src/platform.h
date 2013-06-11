@@ -71,6 +71,24 @@ int signbit(double x);
 
 int strncasecmp(const char* s1, const char* s2, int n);
 
+inline int lrint(double flt) {
+  int intgr;
+#if defined(V8_TARGET_ARCH_IA32)
+  __asm {
+    fld flt
+    fistp intgr
+  };
+#else
+  intgr = static_cast<int>(flt + 0.5);
+  if ((intgr & 1) != 0 && intgr - flt == 0.5) {
+    // If the number is halfway between two integers, round to the even one.
+    intgr--;
+  }
+#endif
+  return intgr;
+}
+
+
 #endif  // _MSC_VER
 
 // Random is missing on both Visual Studio and MinGW.
@@ -89,7 +107,11 @@ namespace internal {
 
 // Use AtomicWord for a machine-sized pointer. It is assumed that
 // reads and writes of naturally aligned values of this type are atomic.
+#if defined(__OpenBSD__) && defined(__i386__)
+typedef Atomic32 AtomicWord;
+#else
 typedef intptr_t AtomicWord;
+#endif
 
 class Semaphore;
 class Mutex;
@@ -97,12 +119,16 @@ class Mutex;
 double ceiling(double x);
 double modulo(double x, double y);
 
-// Custom implementation of sin, cos, tan and log.
+// Custom implementation of math functions.
 double fast_sin(double input);
 double fast_cos(double input);
 double fast_tan(double input);
 double fast_log(double input);
+double fast_exp(double input);
 double fast_sqrt(double input);
+// The custom exp implementation needs 16KB of lookup data; initialize it
+// on demand.
+void lazily_initialize_fast_exp();
 
 // Forward declarations.
 class Socket;
@@ -213,11 +239,16 @@ class OS {
   // Sleep for a number of milliseconds.
   static void Sleep(const int milliseconds);
 
+  static int NumberOfCores();
+
   // Abort the current process.
   static void Abort();
 
   // Debug break.
   static void DebugBreak();
+
+  // Dump C++ current stack trace (only functional on Linux).
+  static void DumpBacktrace();
 
   // Walk the stack.
   static const int kStackWalkError = -1;
@@ -286,6 +317,9 @@ class OS {
   // Returns the double constant NAN
   static double nan_value();
 
+  // Support runtime detection of Cpu implementer
+  static CpuImplementer GetCpuImplementer();
+
   // Support runtime detection of VFP3 on ARM CPUs.
   static bool ArmCpuHasFeature(CpuFeature feature);
 
@@ -316,6 +350,8 @@ class OS {
   }
   static const int kMinComplexMemCopy = 256;
 #endif  // V8_TARGET_ARCH_IA32
+
+  static int GetCurrentProcessId();
 
  private:
   static const int msPerSecond = 1000;
@@ -404,6 +440,11 @@ class VirtualMemory {
   // Must be called with a base pointer that has been returned by ReserveRegion
   // and the same size it was reserved with.
   static bool ReleaseRegion(void* base, size_t size);
+
+  // Returns true if OS performs lazy commits, i.e. the memory allocation call
+  // defers actual physical memory allocation till the first memory access.
+  // Otherwise returns false.
+  static bool HasLazyCommits();
 
  private:
   void* address_;  // Start address of the virtual memory.
@@ -725,10 +766,17 @@ class Sampler {
   void Start();
   void Stop();
 
-  // Is the sampler used for profiling?
-  bool IsProfiling() const { return NoBarrier_Load(&profiling_) > 0; }
-  void IncreaseProfilingDepth() { NoBarrier_AtomicIncrement(&profiling_, 1); }
-  void DecreaseProfilingDepth() { NoBarrier_AtomicIncrement(&profiling_, -1); }
+  // Whether the sampling thread should use this Sampler for CPU profiling?
+  bool IsProfiling() const {
+    return NoBarrier_Load(&profiling_) > 0 &&
+        !NoBarrier_Load(&has_processing_thread_);
+  }
+  void IncreaseProfilingDepth() {
+    if (NoBarrier_AtomicIncrement(&profiling_, 1) == 1) StartProfiling();
+  }
+  void DecreaseProfilingDepth() {
+    if (!NoBarrier_AtomicIncrement(&profiling_, -1)) StopProfiling();
+  }
 
   // Whether the sampler is running (that is, consumes resources).
   bool IsActive() const { return NoBarrier_Load(&active_); }
@@ -744,6 +792,14 @@ class Sampler {
 
   PlatformData* platform_data() { return data_; }
 
+  // If true next sample must be initiated on the profiler event processor
+  // thread right after latest sample is processed.
+  static bool CanSampleOnProfilerEventsProcessorThread();
+  void DoSample();
+  void SetHasProcessingThread(bool value) {
+    NoBarrier_Store(&has_processing_thread_, value);
+  }
+
  protected:
   virtual void DoSampleStack(TickSample* sample) = 0;
 
@@ -751,9 +807,15 @@ class Sampler {
   void SetActive(bool value) { NoBarrier_Store(&active_, value); }
   void IncSamplesTaken() { if (++samples_taken_ < 0) samples_taken_ = 0; }
 
+  // Perform platform-specific initialization before DoSample() may be invoked.
+  void StartProfiling();
+  // Perform platform-specific cleanup after profiling.
+  void StopProfiling();
+
   Isolate* isolate_;
   const int interval_;
   Atomic32 profiling_;
+  Atomic32 has_processing_thread_;
   Atomic32 active_;
   PlatformData* data_;  // Platform specific data.
   int samples_taken_;  // Counts stack samples taken.

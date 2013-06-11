@@ -38,6 +38,11 @@
 #include <sys/types.h>
 #include <stdlib.h>
 
+#if defined(__GLIBC__)
+#include <execinfo.h>
+#include <cxxabi.h>
+#endif
+
 // Ubuntu Dapper requires memory pages to be marked as
 // executable. Otherwise, OS raises an exception when executing code
 // in that page.
@@ -52,6 +57,13 @@
 #include <strings.h>    // index
 #include <errno.h>
 #include <stdarg.h>
+
+// GLibc on ARM defines mcontext_t has a typedef for 'struct sigcontext'.
+// Old versions of the C library <signal.h> didn't define the type.
+#if defined(__ANDROID__) && !defined(__BIONIC_HAVE_UCONTEXT_T) && \
+    defined(__arm__) && !defined(__BIONIC_HAVE_STRUCT_SIGCONTEXT)
+#include <asm/sigcontext.h>
+#endif
 
 #undef MAP_TYPE
 
@@ -132,14 +144,27 @@ bool OS::ArmCpuHasFeature(CpuFeature feature) {
   // facility is universally available on the ARM architectures,
   // so it's up to individual OSes to provide such.
   switch (feature) {
+    case VFP2:
+      search_string = "vfp";
+      break;
     case VFP3:
       search_string = "vfpv3";
       break;
     case ARMv7:
       search_string = "ARMv7";
       break;
+    case SUDIV:
+      search_string = "idiva";
+      break;
+    case VFP32DREGS:
+      // This case is handled specially below.
+      break;
     default:
       UNREACHABLE();
+  }
+
+  if (feature == VFP32DREGS) {
+    return ArmCpuHasFeature(VFP3) && !CPUInfoContainsString("d16");
   }
 
   if (CPUInfoContainsString(search_string)) {
@@ -161,48 +186,61 @@ bool OS::ArmCpuHasFeature(CpuFeature feature) {
 }
 
 
-// Simple helper function to detect whether the C code is compiled with
-// option -mfloat-abi=hard. The register d0 is loaded with 1.0 and the register
-// pair r0, r1 is loaded with 0.0. If -mfloat-abi=hard is pased to GCC then
-// calling this will return 1.0 and otherwise 0.0.
-static void ArmUsingHardFloatHelper() {
-  asm("mov r0, #0":::"r0");
-#if defined(__VFP_FP__) && !defined(__SOFTFP__)
-  // Load 0x3ff00000 into r1 using instructions available in both ARM
-  // and Thumb mode.
-  asm("mov r1, #3":::"r1");
-  asm("mov r2, #255":::"r2");
-  asm("lsl r1, r1, #8":::"r1");
-  asm("orr r1, r1, r2":::"r1");
-  asm("lsl r1, r1, #20":::"r1");
-  // For vmov d0, r0, r1 use ARM mode.
-#ifdef __thumb__
-  asm volatile(
-    "@   Enter ARM Mode  \n\t"
-    "    adr r3, 1f      \n\t"
-    "    bx  r3          \n\t"
-    "    .ALIGN 4        \n\t"
-    "    .ARM            \n"
-    "1:  vmov d0, r0, r1 \n\t"
-    "@   Enter THUMB Mode\n\t"
-    "    adr r3, 2f+1    \n\t"
-    "    bx  r3          \n\t"
-    "    .THUMB          \n"
-    "2:                  \n\t":::"r3");
-#else
-  asm("vmov d0, r0, r1");
-#endif  // __thumb__
-#endif  // defined(__VFP_FP__) && !defined(__SOFTFP__)
-  asm("mov r1, #0":::"r1");
+CpuImplementer OS::GetCpuImplementer() {
+  static bool use_cached_value = false;
+  static CpuImplementer cached_value = UNKNOWN_IMPLEMENTER;
+  if (use_cached_value) {
+    return cached_value;
+  }
+  if (CPUInfoContainsString("CPU implementer\t: 0x41")) {
+    cached_value = ARM_IMPLEMENTER;
+  } else if (CPUInfoContainsString("CPU implementer\t: 0x51")) {
+    cached_value = QUALCOMM_IMPLEMENTER;
+  } else {
+    cached_value = UNKNOWN_IMPLEMENTER;
+  }
+  use_cached_value = true;
+  return cached_value;
 }
 
 
 bool OS::ArmUsingHardFloat() {
-  // Cast helper function from returning void to returning double.
-  typedef double (*F)();
-  F f = FUNCTION_CAST<F>(FUNCTION_ADDR(ArmUsingHardFloatHelper));
-  return f() == 1.0;
+  // GCC versions 4.6 and above define __ARM_PCS or __ARM_PCS_VFP to specify
+  // the Floating Point ABI used (PCS stands for Procedure Call Standard).
+  // We use these as well as a couple of other defines to statically determine
+  // what FP ABI used.
+  // GCC versions 4.4 and below don't support hard-fp.
+  // GCC versions 4.5 may support hard-fp without defining __ARM_PCS or
+  // __ARM_PCS_VFP.
+
+#define GCC_VERSION (__GNUC__ * 10000                                          \
+                     + __GNUC_MINOR__ * 100                                    \
+                     + __GNUC_PATCHLEVEL__)
+#if GCC_VERSION >= 40600
+#if defined(__ARM_PCS_VFP)
+  return true;
+#else
+  return false;
+#endif
+
+#elif GCC_VERSION < 40500
+  return false;
+
+#else
+#if defined(__ARM_PCS_VFP)
+  return true;
+#elif defined(__ARM_PCS) || defined(__SOFTFP) || !defined(__VFP_FP__)
+  return false;
+#else
+#error "Your version of GCC does not report the FP ABI compiled for."          \
+       "Please report it on this issue"                                        \
+       "http://code.google.com/p/v8/issues/detail?id=2140"
+
+#endif
+#endif
+#undef GCC_VERSION
 }
+
 #endif  // def __arm__
 
 
@@ -365,6 +403,11 @@ void OS::Sleep(int milliseconds) {
 }
 
 
+int OS::NumberOfCores() {
+  return sysconf(_SC_NPROCESSORS_ONLN);
+}
+
+
 void OS::Abort() {
   // Redirect to std abort to signal abnormal program termination.
   if (FLAG_break_on_abort) {
@@ -385,6 +428,37 @@ void OS::DebugBreak() {
   asm("break");
 #else
   asm("int $3");
+#endif
+}
+
+
+void OS::DumpBacktrace() {
+#if defined(__GLIBC__)
+  void* trace[100];
+  int size = backtrace(trace, ARRAY_SIZE(trace));
+  char** symbols = backtrace_symbols(trace, size);
+  fprintf(stderr, "\n==== C stack trace ===============================\n\n");
+  if (size == 0) {
+    fprintf(stderr, "(empty)\n");
+  } else if (symbols == NULL) {
+    fprintf(stderr, "(no symbols)\n");
+  } else {
+    for (int i = 1; i < size; ++i) {
+      fprintf(stderr, "%2d: ", i);
+      char mangled[201];
+      if (sscanf(symbols[i], "%*[^(]%*[(]%200[^)+]", mangled) == 1) {  // NOLINT
+        int status;
+        size_t length;
+        char* demangled = abi::__cxa_demangle(mangled, NULL, &length, &status);
+        fprintf(stderr, "%s\n", demangled ? demangled : mangled);
+        free(demangled);
+      } else {
+        fprintf(stderr, "??\n");
+      }
+    }
+  }
+  fflush(stderr);
+  free(symbols);
 #endif
 }
 
@@ -473,19 +547,20 @@ void OS::LogSharedLibraryAddresses() {
       // the beginning of the filename or the end of the line.
       do {
         c = getc(fp);
-      } while ((c != EOF) && (c != '\n') && (c != '/'));
+      } while ((c != EOF) && (c != '\n') && (c != '/') && (c != '['));
       if (c == EOF) break;  // EOF: Was unexpected, just exit.
 
       // Process the filename if found.
-      if (c == '/') {
-        ungetc(c, fp);  // Push the '/' back into the stream to be read below.
+      if ((c == '/') || (c == '[')) {
+        // Push the '/' or '[' back into the stream to be read below.
+        ungetc(c, fp);
 
         // Read to the end of the line. Exit if the read fails.
         if (fgets(lib_name, kLibNameLen, fp) == NULL) break;
 
         // Drop the newline character read by fgets. We do not need to check
         // for a zero-length string because we know that we at least read the
-        // '/' character.
+        // '/' or '[' character.
         lib_name[strlen(lib_name) - 1] = '\0';
       } else {
         // No library name found, just record the raw address range.
@@ -507,9 +582,6 @@ void OS::LogSharedLibraryAddresses() {
 }
 
 
-static const char kGCFakeMmap[] = "/tmp/__v8_gc__";
-
-
 void OS::SignalCodeMovingGC() {
   // Support for ll_prof.py.
   //
@@ -520,7 +592,7 @@ void OS::SignalCodeMovingGC() {
   // by the kernel and allows us to synchronize V8 code log and the
   // kernel log.
   int size = sysconf(_SC_PAGESIZE);
-  FILE* f = fopen(kGCFakeMmap, "w+");
+  FILE* f = fopen(FLAG_gc_fake_mmap, "w+");
   void* addr = mmap(OS::GetRandomMmapAddr(),
                     size,
                     PROT_READ | PROT_EXEC,
@@ -696,6 +768,11 @@ bool VirtualMemory::UncommitRegion(void* base, size_t size) {
 
 bool VirtualMemory::ReleaseRegion(void* base, size_t size) {
   return munmap(base, size) == 0;
+}
+
+
+bool VirtualMemory::HasLazyCommits() {
+  return true;
 }
 
 
@@ -909,32 +986,30 @@ Semaphore* OS::CreateSemaphore(int count) {
 }
 
 
-#if !defined(__GLIBC__) && (defined(__arm__) || defined(__thumb__))
-// Android runs a fairly new Linux kernel, so signal info is there,
-// but the C library doesn't have the structs defined.
+#if defined(__ANDROID__) && !defined(__BIONIC_HAVE_UCONTEXT_T)
 
-struct sigcontext {
-  uint32_t trap_no;
-  uint32_t error_code;
-  uint32_t oldmask;
-  uint32_t gregs[16];
-  uint32_t arm_cpsr;
-  uint32_t fault_address;
-};
-typedef uint32_t __sigset_t;
+// Not all versions of Android's C library provide ucontext_t.
+// Detect this and provide custom but compatible definitions. Note that these
+// follow the GLibc naming convention to access register values from
+// mcontext_t.
+//
+// See http://code.google.com/p/android/issues/detail?id=34784
+
+#if defined(__arm__)
+
 typedef struct sigcontext mcontext_t;
+
 typedef struct ucontext {
   uint32_t uc_flags;
   struct ucontext* uc_link;
   stack_t uc_stack;
   mcontext_t uc_mcontext;
-  __sigset_t uc_sigmask;
+  // Other fields are not used by V8, don't define them here.
 } ucontext_t;
-enum ArmRegisters {R15 = 15, R13 = 13, R11 = 11};
 
-#elif !defined(__GLIBC__) && defined(__mips__)
+#elif defined(__mips__)
 // MIPS version of sigcontext, for Android bionic.
-struct sigcontext {
+typedef struct {
   uint32_t regmask;
   uint32_t status;
   uint64_t pc;
@@ -953,44 +1028,44 @@ struct sigcontext {
   uint32_t lo2;
   uint32_t hi3;
   uint32_t lo3;
-};
-typedef uint32_t __sigset_t;
-typedef struct sigcontext mcontext_t;
+} mcontext_t;
+
 typedef struct ucontext {
   uint32_t uc_flags;
   struct ucontext* uc_link;
   stack_t uc_stack;
   mcontext_t uc_mcontext;
-  __sigset_t uc_sigmask;
+  // Other fields are not used by V8, don't define them here.
 } ucontext_t;
 
-#elif !defined(__GLIBC__) && defined(__i386__)
+#elif defined(__i386__)
 // x86 version for Android.
-struct sigcontext {
+typedef struct {
   uint32_t gregs[19];
   void* fpregs;
   uint32_t oldmask;
   uint32_t cr2;
-};
+} mcontext_t;
 
-typedef uint32_t __sigset_t;
-typedef struct sigcontext mcontext_t;
+typedef uint32_t kernel_sigset_t[2];  // x86 kernel uses 64-bit signal masks
 typedef struct ucontext {
   uint32_t uc_flags;
   struct ucontext* uc_link;
   stack_t uc_stack;
   mcontext_t uc_mcontext;
-  __sigset_t uc_sigmask;
+  // Other fields are not used by V8, don't define them here.
 } ucontext_t;
 enum { REG_EBP = 6, REG_ESP = 7, REG_EIP = 14 };
 #endif
 
+#endif  // __ANDROID__ && !defined(__BIONIC_HAVE_UCONTEXT_T)
 
 static int GetThreadID() {
-  // Glibc doesn't provide a wrapper for gettid(2).
-#if defined(ANDROID)
-  return syscall(__NR_gettid);
+#if defined(__ANDROID__)
+  // Android's C library provides gettid(2).
+  return gettid();
 #else
+  // Glibc doesn't provide a wrapper for gettid(2).
   return syscall(SYS_gettid);
 #endif
 }
@@ -1029,8 +1104,10 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
   sample->sp = reinterpret_cast<Address>(mcontext.gregs[REG_RSP]);
   sample->fp = reinterpret_cast<Address>(mcontext.gregs[REG_RBP]);
 #elif V8_HOST_ARCH_ARM
-// An undefined macro evaluates to 0, so this applies to Android's Bionic also.
-#if (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 3))
+#if defined(__GLIBC__) && !defined(__UCLIBC__) && \
+    (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 3))
+  // Old GLibc ARM versions used a gregs[] array to access the register
+  // values from mcontext_t.
   sample->pc = reinterpret_cast<Address>(mcontext.gregs[R15]);
   sample->sp = reinterpret_cast<Address>(mcontext.gregs[R13]);
   sample->fp = reinterpret_cast<Address>(mcontext.gregs[R11]);
@@ -1038,7 +1115,8 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
   sample->pc = reinterpret_cast<Address>(mcontext.arm_pc);
   sample->sp = reinterpret_cast<Address>(mcontext.arm_sp);
   sample->fp = reinterpret_cast<Address>(mcontext.arm_fp);
-#endif  // (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 3))
+#endif  // defined(__GLIBC__) && !defined(__UCLIBC__) &&
+        // (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 3))
 #elif V8_HOST_ARCH_MIPS
   sample->pc = reinterpret_cast<Address>(mcontext.pc);
   sample->sp = reinterpret_cast<Address>(mcontext.gregs[29]);
@@ -1049,34 +1127,27 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
 }
 
 
-class Sampler::PlatformData : public Malloced {
+class CpuProfilerSignalHandler {
  public:
-  PlatformData() : vm_tid_(GetThreadID()) {}
-
-  int vm_tid() const { return vm_tid_; }
-
- private:
-  const int vm_tid_;
-};
-
-
-class SignalSender : public Thread {
- public:
-  enum SleepInterval {
-    HALF_INTERVAL,
-    FULL_INTERVAL
-  };
-
-  static const int kSignalSenderStackSize = 64 * KB;
-
-  explicit SignalSender(int interval)
-      : Thread(Thread::Options("SignalSender", kSignalSenderStackSize)),
-        vm_tgid_(getpid()),
-        interval_(interval) {}
-
   static void SetUp() { if (!mutex_) mutex_ = OS::CreateMutex(); }
   static void TearDown() { delete mutex_; }
 
+  static bool RegisterProfilingSampler() {
+    ScopedLock lock(mutex_);
+    if (!profiling_samplers_count_) InstallSignalHandler();
+    ++profiling_samplers_count_;
+    return signal_handler_installed_;
+  }
+
+  static void UnregisterProfilingSampler() {
+    ScopedLock lock(mutex_);
+    ASSERT(profiling_samplers_count_ > 0);
+    if (!profiling_samplers_count_) return;
+    if (profiling_samplers_count_ == 1) RestoreSignalHandler();
+    --profiling_samplers_count_;
+  }
+
+ private:
   static void InstallSignalHandler() {
     struct sigaction sa;
     sa.sa_sigaction = ProfilerSignalHandler;
@@ -1092,6 +1163,61 @@ class SignalSender : public Thread {
       signal_handler_installed_ = false;
     }
   }
+
+  // Protects the process wide state below.
+  static Mutex* mutex_;
+  static int profiling_samplers_count_;
+  static bool signal_handler_installed_;
+  static struct sigaction old_signal_handler_;
+};
+
+
+Mutex* CpuProfilerSignalHandler::mutex_ = NULL;
+int CpuProfilerSignalHandler::profiling_samplers_count_ = 0;
+bool CpuProfilerSignalHandler::signal_handler_installed_ = false;
+struct sigaction CpuProfilerSignalHandler::old_signal_handler_;
+
+
+class Sampler::PlatformData : public Malloced {
+ public:
+  PlatformData()
+      : vm_tgid_(getpid()),
+        vm_tid_(GetThreadID()),
+        signal_handler_installed_(false) {}
+
+  void set_signal_handler_installed(bool value) {
+    signal_handler_installed_ = value;
+  }
+
+  void SendProfilingSignal() {
+    if (!signal_handler_installed_) return;
+    // Glibc doesn't provide a wrapper for tgkill(2).
+#if defined(ANDROID)
+    syscall(__NR_tgkill, vm_tgid_, vm_tid_, SIGPROF);
+#else
+    int result = syscall(SYS_tgkill, vm_tgid_, vm_tid_, SIGPROF);
+    USE(result);
+    ASSERT(result == 0);
+#endif
+  }
+
+ private:
+  const int vm_tgid_;
+  const int vm_tid_;
+  bool signal_handler_installed_;
+};
+
+
+class SignalSender : public Thread {
+ public:
+  static const int kSignalSenderStackSize = 64 * KB;
+
+  explicit SignalSender(int interval)
+      : Thread(Thread::Options("SignalSender", kSignalSenderStackSize)),
+        interval_(interval) {}
+
+  static void SetUp() { if (!mutex_) mutex_ = OS::CreateMutex(); }
+  static void TearDown() { delete mutex_; }
 
   static void AddActiveSampler(Sampler* sampler) {
     ScopedLock lock(mutex_);
@@ -1113,7 +1239,6 @@ class SignalSender : public Thread {
       RuntimeProfiler::StopRuntimeProfilerThreadBeforeShutdown(instance_);
       delete instance_;
       instance_ = NULL;
-      RestoreSignalHandler();
     }
   }
 
@@ -1122,72 +1247,26 @@ class SignalSender : public Thread {
     SamplerRegistry::State state;
     while ((state = SamplerRegistry::GetState()) !=
            SamplerRegistry::HAS_NO_SAMPLERS) {
-      bool cpu_profiling_enabled =
-          (state == SamplerRegistry::HAS_CPU_PROFILING_SAMPLERS);
-      bool runtime_profiler_enabled = RuntimeProfiler::IsEnabled();
-      if (cpu_profiling_enabled && !signal_handler_installed_) {
-        InstallSignalHandler();
-      } else if (!cpu_profiling_enabled && signal_handler_installed_) {
-        RestoreSignalHandler();
-      }
       // When CPU profiling is enabled both JavaScript and C++ code is
       // profiled. We must not suspend.
-      if (!cpu_profiling_enabled) {
-        if (rate_limiter_.SuspendIfNecessary()) continue;
-      }
-      if (cpu_profiling_enabled && runtime_profiler_enabled) {
-        if (!SamplerRegistry::IterateActiveSamplers(&DoCpuProfile, this)) {
-          return;
-        }
-        Sleep(HALF_INTERVAL);
-        if (!SamplerRegistry::IterateActiveSamplers(&DoRuntimeProfile, NULL)) {
-          return;
-        }
-        Sleep(HALF_INTERVAL);
+      if (state == SamplerRegistry::HAS_CPU_PROFILING_SAMPLERS) {
+        SamplerRegistry::IterateActiveSamplers(&DoCpuProfile, this);
       } else {
-        if (cpu_profiling_enabled) {
-          if (!SamplerRegistry::IterateActiveSamplers(&DoCpuProfile,
-                                                      this)) {
-            return;
-          }
-        }
-        if (runtime_profiler_enabled) {
-          if (!SamplerRegistry::IterateActiveSamplers(&DoRuntimeProfile,
-                                                      NULL)) {
-            return;
-          }
-        }
-        Sleep(FULL_INTERVAL);
+        if (RuntimeProfiler::WaitForSomeIsolateToEnterJS()) continue;
       }
+      Sleep();  // TODO(svenpanne) Figure out if OS:Sleep(interval_) is enough.
     }
   }
 
   static void DoCpuProfile(Sampler* sampler, void* raw_sender) {
     if (!sampler->IsProfiling()) return;
-    SignalSender* sender = reinterpret_cast<SignalSender*>(raw_sender);
-    sender->SendProfilingSignal(sampler->platform_data()->vm_tid());
+    sampler->DoSample();
   }
 
-  static void DoRuntimeProfile(Sampler* sampler, void* ignored) {
-    if (!sampler->isolate()->IsInitialized()) return;
-    sampler->isolate()->runtime_profiler()->NotifyTick();
-  }
-
-  void SendProfilingSignal(int tid) {
-    if (!signal_handler_installed_) return;
-    // Glibc doesn't provide a wrapper for tgkill(2).
-#if defined(ANDROID)
-    syscall(__NR_tgkill, vm_tgid_, tid, SIGPROF);
-#else
-    syscall(SYS_tgkill, vm_tgid_, tid, SIGPROF);
-#endif
-  }
-
-  void Sleep(SleepInterval full_or_half) {
+  void Sleep() {
     // Convert ms to us and subtract 100 us to compensate delays
     // occuring during signal delivery.
     useconds_t interval = interval_ * 1000 - 100;
-    if (full_or_half == HALF_INTERVAL) interval /= 2;
 #if defined(ANDROID)
     usleep(interval);
 #else
@@ -1205,14 +1284,11 @@ class SignalSender : public Thread {
 #endif  // ANDROID
   }
 
-  const int vm_tgid_;
   const int interval_;
-  RuntimeProfilerRateLimiter rate_limiter_;
 
   // Protects the process wide state below.
   static Mutex* mutex_;
   static SignalSender* instance_;
-  static bool signal_handler_installed_;
   static struct sigaction old_signal_handler_;
 
  private:
@@ -1223,7 +1299,6 @@ class SignalSender : public Thread {
 Mutex* SignalSender::mutex_ = NULL;
 SignalSender* SignalSender::instance_ = NULL;
 struct sigaction SignalSender::old_signal_handler_;
-bool SignalSender::signal_handler_installed_ = false;
 
 
 void OS::SetUp() {
@@ -1251,10 +1326,12 @@ void OS::SetUp() {
   }
 #endif
   SignalSender::SetUp();
+  CpuProfilerSignalHandler::SetUp();
 }
 
 
 void OS::TearDown() {
+  CpuProfilerSignalHandler::TearDown();
   SignalSender::TearDown();
   delete limit_mutex;
 }
@@ -1264,6 +1341,7 @@ Sampler::Sampler(Isolate* isolate, int interval)
     : isolate_(isolate),
       interval_(interval),
       profiling_(false),
+      has_processing_thread_(false),
       active_(false),
       samples_taken_(0) {
   data_ = new PlatformData;
@@ -1287,6 +1365,28 @@ void Sampler::Stop() {
   ASSERT(IsActive());
   SignalSender::RemoveActiveSampler(this);
   SetActive(false);
+}
+
+
+bool Sampler::CanSampleOnProfilerEventsProcessorThread() {
+  return true;
+}
+
+
+void Sampler::DoSample() {
+  platform_data()->SendProfilingSignal();
+}
+
+
+void Sampler::StartProfiling() {
+  platform_data()->set_signal_handler_installed(
+      CpuProfilerSignalHandler::RegisterProfilingSampler());
+}
+
+
+void Sampler::StopProfiling() {
+  CpuProfilerSignalHandler::UnregisterProfilingSampler();
+  platform_data()->set_signal_handler_installed(false);
 }
 
 

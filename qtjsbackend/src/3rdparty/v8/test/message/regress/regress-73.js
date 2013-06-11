@@ -25,9 +25,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-try {
-  throw 'a';
-} catch (e) {
-  throw 'b';
-  print('c');
-}
+try {
+  throw 'a';
+} catch (e) {
+  throw 'b';
+  print('c');
+}

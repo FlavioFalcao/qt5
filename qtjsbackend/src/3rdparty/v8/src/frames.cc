@@ -88,14 +88,6 @@ class StackHandlerIterator BASE_EMBEDDED {
 
 
 #define INITIALIZE_SINGLETON(type, field) field##_(this),
-StackFrameIterator::StackFrameIterator()
-    : isolate_(Isolate::Current()),
-      STACK_FRAME_TYPE_LIST(INITIALIZE_SINGLETON)
-      frame_(NULL), handler_(NULL),
-      thread_(isolate_->thread_local_top()),
-      fp_(NULL), sp_(NULL), advance_(&StackFrameIterator::AdvanceWithHandler) {
-  Reset();
-}
 StackFrameIterator::StackFrameIterator(Isolate* isolate)
     : isolate_(isolate),
       STACK_FRAME_TYPE_LIST(INITIALIZE_SINGLETON)
@@ -208,11 +200,6 @@ StackFrame* StackFrameIterator::SingletonFor(StackFrame::Type type) {
 
 
 // -------------------------------------------------------------------------
-
-
-StackTraceFrameIterator::StackTraceFrameIterator() {
-  if (!done() && !IsValidFrame()) Advance();
-}
 
 
 StackTraceFrameIterator::StackTraceFrameIterator(Isolate* isolate)
@@ -469,8 +456,22 @@ StackFrame::Type StackFrame::GetCallerState(State* state) const {
 }
 
 
+Address StackFrame::UnpaddedFP() const {
+#if defined(V8_TARGET_ARCH_IA32)
+  if (!is_optimized()) return fp();
+  int32_t alignment_state = Memory::int32_at(
+    fp() + JavaScriptFrameConstants::kDynamicAlignmentStateOffset);
+
+  return (alignment_state == kAlignmentPaddingPushed) ?
+    (fp() + kPointerSize) : fp();
+#else
+  return fp();
+#endif
+}
+
+
 Code* EntryFrame::unchecked_code() const {
-  return HEAP->raw_unchecked_js_entry_code();
+  return HEAP->js_entry_code();
 }
 
 
@@ -493,7 +494,7 @@ StackFrame::Type EntryFrame::GetCallerState(State* state) const {
 
 
 Code* EntryConstructFrame::unchecked_code() const {
-  return HEAP->raw_unchecked_js_construct_entry_code();
+  return HEAP->js_construct_entry_code();
 }
 
 
@@ -603,13 +604,7 @@ bool StandardFrame::IsExpressionInsideHandler(int n) const {
 }
 
 
-void OptimizedFrame::Iterate(ObjectVisitor* v) const {
-#ifdef DEBUG
-  // Make sure that optimized frames do not contain any stack handlers.
-  StackHandlerIterator it(this, top_handler());
-  ASSERT(it.done());
-#endif
-
+void StandardFrame::IterateCompiledFrame(ObjectVisitor* v) const {
   // Make sure that we're not doing "safe" stack frame iteration. We cannot
   // possibly find pointers in optimized frames in that state.
   ASSERT(!SafeStackFrameIterator::is_active(isolate()));
@@ -635,7 +630,9 @@ void OptimizedFrame::Iterate(ObjectVisitor* v) const {
 
   // Skip saved double registers.
   if (safepoint_entry.has_doubles()) {
-    parameters_base += DoubleRegister::kNumAllocatableRegisters *
+    // Number of doubles not known at snapshot time.
+    ASSERT(!Serializer::enabled());
+    parameters_base += DoubleRegister::NumAllocatableRegisters() *
         kDoubleSize / kPointerSize;
   }
 
@@ -667,14 +664,51 @@ void OptimizedFrame::Iterate(ObjectVisitor* v) const {
     }
   }
 
-  // Visit the context and the function.
-  Object** fixed_base = &Memory::Object_at(
-      fp() + JavaScriptFrameConstants::kFunctionOffset);
-  Object** fixed_limit = &Memory::Object_at(fp());
-  v->VisitPointers(fixed_base, fixed_limit);
-
   // Visit the return address in the callee and incoming arguments.
   IteratePc(v, pc_address(), code);
+
+  // Visit the context in stub frame and JavaScript frame.
+  // Visit the function in JavaScript frame.
+  Object** fixed_base = &Memory::Object_at(
+      fp() + StandardFrameConstants::kMarkerOffset);
+  Object** fixed_limit = &Memory::Object_at(fp());
+  v->VisitPointers(fixed_base, fixed_limit);
+}
+
+
+void StubFrame::Iterate(ObjectVisitor* v) const {
+  IterateCompiledFrame(v);
+}
+
+
+Code* StubFrame::unchecked_code() const {
+  return static_cast<Code*>(isolate()->heap()->FindCodeObject(pc()));
+}
+
+
+Address StubFrame::GetCallerStackPointer() const {
+  return fp() + ExitFrameConstants::kCallerSPDisplacement;
+}
+
+
+int StubFrame::GetNumberOfIncomingArguments() const {
+  return 0;
+}
+
+
+void OptimizedFrame::Iterate(ObjectVisitor* v) const {
+#ifdef DEBUG
+  // Make sure that optimized frames do not contain any stack handlers.
+  StackHandlerIterator it(this, top_handler());
+  ASSERT(it.done());
+#endif
+
+  IterateCompiledFrame(v);
+}
+
+
+void JavaScriptFrame::SetParameterValue(int index, Object* value) const {
+  Memory::Object_at(GetParameterSlot(index)) = value;
 }
 
 
@@ -737,17 +771,18 @@ void JavaScriptFrame::Summarize(List<FrameSummary>* functions) {
 }
 
 
-void JavaScriptFrame::PrintTop(FILE* file,
+void JavaScriptFrame::PrintTop(Isolate* isolate,
+                               FILE* file,
                                bool print_args,
                                bool print_line_number) {
   // constructor calls
-  HandleScope scope;
+  HandleScope scope(isolate);
   AssertNoAllocation no_allocation;
-  JavaScriptFrameIterator it;
+  JavaScriptFrameIterator it(isolate);
   while (!it.done()) {
     if (it.frame()->is_java_script()) {
       JavaScriptFrame* frame = it.frame();
-      if (frame->IsConstructor()) PrintF(file, "new ");
+      if (frame->IsConstructor()) FPrintF(file, "new ");
       // function name
       Object* maybe_fun = frame->function();
       if (maybe_fun->IsJSFunction()) {
@@ -773,12 +808,12 @@ void JavaScriptFrame::PrintTop(FILE* file,
               SmartArrayPointer<char> c_script_name =
                   script_name->ToCString(DISALLOW_NULLS,
                                          ROBUST_STRING_TRAVERSAL);
-              PrintF(file, " at %s:%d", *c_script_name, line);
+              FPrintF(file, " at %s:%d", *c_script_name, line);
             } else {
-              PrintF(file, "at <unknown>:%d", line);
+              FPrintF(file, " at <unknown>:%d", line);
             }
           } else {
-            PrintF(file, " at <unknown>:<unknown>");
+            FPrintF(file, " at <unknown>:<unknown>");
           }
         }
       } else {
@@ -789,14 +824,14 @@ void JavaScriptFrame::PrintTop(FILE* file,
         // function arguments
         // (we are intentionally only printing the actually
         // supplied parameters, not all parameters required)
-        PrintF(file, "(this=");
+        FPrintF(file, "(this=");
         frame->receiver()->ShortPrint(file);
         const int length = frame->ComputeParametersCount();
         for (int i = 0; i < length; i++) {
-          PrintF(file, ", ");
+          FPrintF(file, ", ");
           frame->GetParameter(i)->ShortPrint(file);
         }
-        PrintF(file, ")");
+        FPrintF(file, ")");
       }
       break;
     }
@@ -818,12 +853,23 @@ void FrameSummary::Print() {
 }
 
 
+JSFunction* OptimizedFrame::LiteralAt(FixedArray* literal_array,
+                                      int literal_id) {
+  if (literal_id == Translation::kSelfLiteralId) {
+    return JSFunction::cast(function());
+  }
+
+  return JSFunction::cast(literal_array->get(literal_id));
+}
+
+
 void OptimizedFrame::Summarize(List<FrameSummary>* frames) {
   ASSERT(frames->length() == 0);
   ASSERT(is_optimized());
 
   int deopt_index = Safepoint::kNoDeoptimizationIndex;
   DeoptimizationInputData* data = GetDeoptimizationData(&deopt_index);
+  FixedArray* literal_array = data->LiteralArray();
 
   // BUG(3243555): Since we don't have a lazy-deopt registered at
   // throw-statements, we can't use the translation at the call-site of
@@ -850,11 +896,9 @@ void OptimizedFrame::Summarize(List<FrameSummary>* frames) {
     opcode = static_cast<Translation::Opcode>(it.Next());
     if (opcode == Translation::JS_FRAME) {
       i--;
-      int ast_id = it.Next();
-      int function_id = it.Next();
+      BailoutId ast_id = BailoutId(it.Next());
+      JSFunction* function = LiteralAt(literal_array, it.Next());
       it.Next();  // Skip height.
-      JSFunction* function =
-          JSFunction::cast(data->LiteralArray()->get(function_id));
 
       // The translation commands are ordered and the receiver is always
       // at the first position. Since we are always at a call when we need
@@ -961,6 +1005,7 @@ void OptimizedFrame::GetFunctions(List<JSFunction*>* functions) {
 
   int deopt_index = Safepoint::kNoDeoptimizationIndex;
   DeoptimizationInputData* data = GetDeoptimizationData(&deopt_index);
+  FixedArray* literal_array = data->LiteralArray();
 
   TranslationIterator it(data->TranslationByteArray(),
                          data->TranslationIndex(deopt_index)->value());
@@ -976,10 +1021,8 @@ void OptimizedFrame::GetFunctions(List<JSFunction*>* functions) {
     if (opcode == Translation::JS_FRAME) {
       jsframe_count--;
       it.Next();  // Skip ast id.
-      int function_id = it.Next();
+      JSFunction* function = LiteralAt(literal_array, it.Next());
       it.Next();  // Skip height.
-      JSFunction* function =
-          JSFunction::cast(data->LiteralArray()->get(function_id));
       functions->Add(function);
     } else {
       // Skip over operands to advance to the next opcode.
@@ -1030,7 +1073,7 @@ void StackFrame::PrintIndex(StringStream* accumulator,
 void JavaScriptFrame::Print(StringStream* accumulator,
                             PrintMode mode,
                             int index) const {
-  HandleScope scope;
+  HandleScope scope(isolate());
   Object* receiver = this->receiver();
   Object* function = this->function();
 
@@ -1044,7 +1087,7 @@ void JavaScriptFrame::Print(StringStream* accumulator,
   // doesn't contain scope info, scope_info will return 0 for the number of
   // parameters, stack local variables, context local variables, stack slots,
   // or context slots.
-  Handle<ScopeInfo> scope_info(ScopeInfo::Empty());
+  Handle<ScopeInfo> scope_info(ScopeInfo::Empty(isolate()));
 
   if (function->IsJSFunction()) {
     Handle<SharedFunctionInfo> shared(JSFunction::cast(function)->shared());
@@ -1249,6 +1292,42 @@ void InternalFrame::Iterate(ObjectVisitor* v) const {
 }
 
 
+void StubFailureTrampolineFrame::Iterate(ObjectVisitor* v) const {
+  Object** base = &Memory::Object_at(sp());
+  Object** limit = &Memory::Object_at(fp() +
+                                      kFirstRegisterParameterFrameOffset);
+  v->VisitPointers(base, limit);
+  base = &Memory::Object_at(fp() + StandardFrameConstants::kMarkerOffset);
+  const int offset = StandardFrameConstants::kContextOffset;
+  limit = &Memory::Object_at(fp() + offset) + 1;
+  v->VisitPointers(base, limit);
+  IteratePc(v, pc_address(), LookupCode());
+}
+
+
+Address StubFailureTrampolineFrame::GetCallerStackPointer() const {
+  return fp() + StandardFrameConstants::kCallerSPOffset;
+}
+
+
+Code* StubFailureTrampolineFrame::unchecked_code() const {
+  int i = 0;
+  for (; i <= StubFailureTrampolineStub::kMaxExtraExpressionStackCount; ++i) {
+    Code* trampoline;
+    StubFailureTrampolineStub(i).FindCodeInCache(&trampoline, isolate());
+    ASSERT(trampoline != NULL);
+    Address current_pc = pc();
+    Address code_start = trampoline->instruction_start();
+    Address code_end = code_start + trampoline->instruction_size();
+    if (code_start <= current_pc && current_pc < code_end) {
+      return trampoline;
+    }
+  }
+  UNREACHABLE();
+  return NULL;
+}
+
+
 // -------------------------------------------------------------------------
 
 
@@ -1394,11 +1473,11 @@ class field##_Wrapper : public ZoneObject {                      \
 STACK_FRAME_TYPE_LIST(DEFINE_WRAPPER)
 #undef DEFINE_WRAPPER
 
-static StackFrame* AllocateFrameCopy(StackFrame* frame) {
+static StackFrame* AllocateFrameCopy(StackFrame* frame, Zone* zone) {
 #define FRAME_TYPE_CASE(type, field) \
   case StackFrame::type: { \
     field##_Wrapper* wrapper = \
-        new field##_Wrapper(*(reinterpret_cast<field*>(frame))); \
+        new(zone) field##_Wrapper(*(reinterpret_cast<field*>(frame))); \
     return &wrapper->frame_; \
   }
 
@@ -1410,11 +1489,11 @@ static StackFrame* AllocateFrameCopy(StackFrame* frame) {
   return NULL;
 }
 
-Vector<StackFrame*> CreateStackMap() {
-  ZoneList<StackFrame*> list(10);
-  for (StackFrameIterator it; !it.done(); it.Advance()) {
-    StackFrame* frame = AllocateFrameCopy(it.frame());
-    list.Add(frame);
+Vector<StackFrame*> CreateStackMap(Isolate* isolate, Zone* zone) {
+  ZoneList<StackFrame*> list(10, zone);
+  for (StackFrameIterator it(isolate); !it.done(); it.Advance()) {
+    StackFrame* frame = AllocateFrameCopy(it.frame(), zone);
+    list.Add(frame, zone);
   }
   return list.ToVector();
 }

@@ -49,16 +49,22 @@ class HeapProfiler {
   static void SetUp();
   static void TearDown();
 
-  static HeapSnapshot* TakeSnapshot(const char* name,
-                                    int type,
-                                    v8::ActivityControl* control);
-  static HeapSnapshot* TakeSnapshot(String* name,
-                                    int type,
-                                    v8::ActivityControl* control);
+  static size_t GetMemorySizeUsedByProfiler();
+
+  static HeapSnapshot* TakeSnapshot(
+      const char* name,
+      int type,
+      v8::ActivityControl* control,
+      v8::HeapProfiler::ObjectNameResolver* resolver);
+  static HeapSnapshot* TakeSnapshot(
+      String* name,
+      int type,
+      v8::ActivityControl* control,
+      v8::HeapProfiler::ObjectNameResolver* resolver);
 
   static void StartHeapObjectsTracking();
   static void StopHeapObjectsTracking();
-  static void PushHeapObjectsStats(OutputStream* stream);
+  static SnapshotObjectId PushHeapObjectsStats(OutputStream* stream);
   static int GetSnapshotsCount();
   static HeapSnapshot* GetSnapshot(int index);
   static HeapSnapshot* FindSnapshot(unsigned uid);
@@ -77,19 +83,25 @@ class HeapProfiler {
   }
 
  private:
-  HeapProfiler();
+  explicit HeapProfiler(Heap* heap);
   ~HeapProfiler();
-  HeapSnapshot* TakeSnapshotImpl(const char* name,
-                                 int type,
-                                 v8::ActivityControl* control);
-  HeapSnapshot* TakeSnapshotImpl(String* name,
-                                 int type,
-                                 v8::ActivityControl* control);
+  HeapSnapshot* TakeSnapshotImpl(
+      const char* name,
+      int type,
+      v8::ActivityControl* control,
+      v8::HeapProfiler::ObjectNameResolver* resolver);
+  HeapSnapshot* TakeSnapshotImpl(
+      String* name,
+      int type,
+      v8::ActivityControl* control,
+      v8::HeapProfiler::ObjectNameResolver* resolver);
   void ResetSnapshots();
 
   void StartHeapObjectsTrackingImpl();
   void StopHeapObjectsTrackingImpl();
-  void PushHeapObjectsStatsImpl(OutputStream* stream);
+  SnapshotObjectId PushHeapObjectsStatsImpl(OutputStream* stream);
+
+  Heap* heap() const { return snapshots_->heap(); }
 
   HeapSnapshotsCollection* snapshots_;
   unsigned next_snapshot_uid_;

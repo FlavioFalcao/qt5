@@ -248,6 +248,8 @@ class BitField {
   // bitfield without compiler warnings we have to compute 2^32 without
   // using a shift count of 32.
   static const uint32_t kMask = ((1U << shift) << size) - (1U << shift);
+  static const uint32_t kShift = shift;
+  static const uint32_t kSize = size;
 
   // Value for the field with all bits set.
   static const T kMax = static_cast<T>((1U << size) - 1);
@@ -303,7 +305,7 @@ inline uint32_t ComputeLongHash(uint64_t key) {
   hash = hash ^ (hash >> 11);
   hash = hash + (hash << 6);
   hash = hash ^ (hash >> 22);
-  return (uint32_t) hash;
+  return static_cast<uint32_t>(hash);
 }
 
 
@@ -521,9 +523,20 @@ class ScopedVector : public Vector<T> {
   DISALLOW_IMPLICIT_CONSTRUCTORS(ScopedVector);
 };
 
+#define STATIC_ASCII_VECTOR(x)                        \
+  v8::internal::Vector<const uint8_t>(reinterpret_cast<const uint8_t*>(x), \
+                                      ARRAY_SIZE(x)-1)
 
 inline Vector<const char> CStrVector(const char* data) {
   return Vector<const char>(data, StrLength(data));
+}
+
+inline Vector<const uint8_t> OneByteVector(const char* data, int length) {
+  return Vector<const uint8_t>(reinterpret_cast<const uint8_t*>(data), length);
+}
+
+inline Vector<const uint8_t> OneByteVector(const char* data) {
+  return OneByteVector(data, StrLength(data));
 }
 
 inline Vector<char> MutableCStrVector(char* data) {
@@ -764,7 +777,9 @@ class SequenceCollector : public Collector<T, growth_factor, max_growth> {
 
 // Compare ASCII/16bit chars to ASCII/16bit chars.
 template <typename lchar, typename rchar>
-inline int CompareChars(const lchar* lhs, const rchar* rhs, int chars) {
+inline int CompareCharsUnsigned(const lchar* lhs,
+                                const rchar* rhs,
+                                int chars) {
   const lchar* limit = lhs + chars;
 #ifdef V8_HOST_CAN_READ_UNALIGNED
   if (sizeof(*lhs) == sizeof(*rhs)) {
@@ -787,6 +802,33 @@ inline int CompareChars(const lchar* lhs, const rchar* rhs, int chars) {
     ++rhs;
   }
   return 0;
+}
+
+template<typename lchar, typename rchar>
+inline int CompareChars(const lchar* lhs, const rchar* rhs, int chars) {
+  ASSERT(sizeof(lchar) <= 2);
+  ASSERT(sizeof(rchar) <= 2);
+  if (sizeof(lchar) == 1) {
+    if (sizeof(rchar) == 1) {
+      return CompareCharsUnsigned(reinterpret_cast<const uint8_t*>(lhs),
+                                  reinterpret_cast<const uint8_t*>(rhs),
+                                  chars);
+    } else {
+      return CompareCharsUnsigned(reinterpret_cast<const uint8_t*>(lhs),
+                                  reinterpret_cast<const uint16_t*>(rhs),
+                                  chars);
+    }
+  } else {
+    if (sizeof(rchar) == 1) {
+      return CompareCharsUnsigned(reinterpret_cast<const uint16_t*>(lhs),
+                                  reinterpret_cast<const uint8_t*>(rhs),
+                                  chars);
+    } else {
+      return CompareCharsUnsigned(reinterpret_cast<const uint16_t*>(lhs),
+                                  reinterpret_cast<const uint16_t*>(rhs),
+                                  chars);
+    }
+  }
 }
 
 
@@ -861,7 +903,11 @@ class EmbeddedContainer {
  public:
   EmbeddedContainer() : elems_() { }
 
-  int length() { return NumElements; }
+  int length() const { return NumElements; }
+  const ElementType& operator[](int i) const {
+    ASSERT(i < length());
+    return elems_[i];
+  }
   ElementType& operator[](int i) {
     ASSERT(i < length());
     return elems_[i];
@@ -875,7 +921,12 @@ class EmbeddedContainer {
 template<typename ElementType>
 class EmbeddedContainer<ElementType, 0> {
  public:
-  int length() { return 0; }
+  int length() const { return 0; }
+  const ElementType& operator[](int i) const {
+    UNREACHABLE();
+    static ElementType t = 0;
+    return t;
+  }
   ElementType& operator[](int i) {
     UNREACHABLE();
     static ElementType t = 0;
@@ -973,11 +1024,61 @@ class EnumSet {
   T Mask(E element) const {
     // The strange typing in ASSERT is necessary to avoid stupid warnings, see:
     // http://gcc.gnu.org/bugzilla/show_bug.cgi?id=43680
-    ASSERT(element < static_cast<int>(sizeof(T) * CHAR_BIT));
+    ASSERT(static_cast<int>(element) < static_cast<int>(sizeof(T) * CHAR_BIT));
     return 1 << element;
   }
 
   T bits_;
+};
+
+
+class TypeFeedbackId {
+ public:
+  explicit TypeFeedbackId(int id) : id_(id) { }
+  int ToInt() const { return id_; }
+
+  static TypeFeedbackId None() { return TypeFeedbackId(kNoneId); }
+  bool IsNone() const { return id_ == kNoneId; }
+
+ private:
+  static const int kNoneId = -1;
+
+  int id_;
+};
+
+
+class BailoutId {
+ public:
+  explicit BailoutId(int id) : id_(id) { }
+  int ToInt() const { return id_; }
+
+  static BailoutId None() { return BailoutId(kNoneId); }
+  static BailoutId FunctionEntry() { return BailoutId(kFunctionEntryId); }
+  static BailoutId Declarations() { return BailoutId(kDeclarationsId); }
+  static BailoutId FirstUsable() { return BailoutId(kFirstUsableId); }
+  static BailoutId StubEntry() { return BailoutId(kStubEntryId); }
+
+  bool IsNone() const { return id_ == kNoneId; }
+  bool operator==(const BailoutId& other) const { return id_ == other.id_; }
+
+ private:
+  static const int kNoneId = -1;
+
+  // Using 0 could disguise errors.
+  static const int kFunctionEntryId = 2;
+
+  // This AST id identifies the point after the declarations have been visited.
+  // We need it to capture the environment effects of declarations that emit
+  // code (function declarations).
+  static const int kDeclarationsId = 3;
+
+  // Every FunctionState starts with this id.
+  static const int kFirstUsableId = 4;
+
+  // Every compiled stub starts with this id.
+  static const int kStubEntryId = 5;
+
+  int id_;
 };
 
 } }  // namespace v8::internal

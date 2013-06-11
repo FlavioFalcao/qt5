@@ -1,4 +1,4 @@
-// Copyright 2011 the V8 project authors. All rights reserved.
+// Copyright 2012 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -274,10 +274,10 @@ void StringStream::OutputToFile(FILE* out) {
   for (unsigned next; (next = position + 2048) < length_; position = next) {
     char save = buffer_[next];
     buffer_[next] = '\0';
-    internal::PrintF(out, "%s", &buffer_[position]);
+    internal::FPrintF(out, "%s", &buffer_[position]);
     buffer_[next] = save;
   }
-  internal::PrintF(out, "%s", &buffer_[position]);
+  internal::FPrintF(out, "%s", &buffer_[position]);
 }
 
 
@@ -291,7 +291,7 @@ void StringStream::ClearMentionedObjectCache() {
   isolate->set_string_stream_current_security_token(NULL);
   if (isolate->string_stream_debug_object_cache() == NULL) {
     isolate->set_string_stream_debug_object_cache(
-        new List<HeapObject*, PreallocatedStorage>(0));
+        new List<HeapObject*, PreallocatedStorageAllocationPolicy>(0));
   }
   isolate->string_stream_debug_object_cache()->Clear();
 }
@@ -311,14 +311,14 @@ bool StringStream::Put(String* str) {
 
 
 bool StringStream::Put(String* str, int start, int end) {
-  StringInputBuffer name_buffer(str);
-  name_buffer.Seek(start);
-  for (int i = start; i < end && name_buffer.has_more(); i++) {
-    int c = name_buffer.GetNext();
+  ConsStringIteratorOp op;
+  StringCharacterStream stream(str, &op, start);
+  for (int i = start; i < end && stream.HasMore(); i++) {
+    uint16_t c = stream.GetNext();
     if (c >= 127 || c < 32) {
       c = '?';
     }
-    if (!Put(c)) {
+    if (!Put(static_cast<char>(c))) {
       return false;  // Output was truncated.
     }
   }
@@ -348,9 +348,12 @@ void StringStream::PrintUsingMap(JSObject* js_object) {
     Add("<Invalid map>\n");
     return;
   }
+  int real_size = map->NumberOfOwnDescriptors();
   DescriptorArray* descs = map->instance_descriptors();
   for (int i = 0; i < descs->number_of_descriptors(); i++) {
-    if (descs->GetType(i) == FIELD) {
+    PropertyDetails details = descs->GetDetails(i);
+    if (details.descriptor_index() > real_size) continue;
+    if (details.type() == FIELD) {
       Object* key = descs->GetKey(i);
       if (key->IsString() || key->IsNumber()) {
         int len = 3;
@@ -427,7 +430,7 @@ void StringStream::PrintMentionedObjectCache() {
       PrintUsingMap(JSObject::cast(printee));
       if (printee->IsJSArray()) {
         JSArray* array = JSArray::cast(printee);
-        if (array->HasFastElements()) {
+        if (array->HasFastObjectElements()) {
           unsigned int limit = FixedArray::cast(array->elements())->length();
           unsigned int length =
             static_cast<uint32_t>(JSArray::cast(array)->length()->Number());
@@ -469,7 +472,7 @@ void StringStream::PrintSecurityTokenIfChanged(Object* f) {
       Add("(Function context is outside heap)\n");
       return;
     }
-    Object* token = context->global_context()->security_token();
+    Object* token = context->native_context()->security_token();
     if (token != isolate->string_stream_current_security_token()) {
       Add("Security context: %o\n", token);
       isolate->set_string_stream_current_security_token(token);
@@ -490,7 +493,7 @@ void StringStream::PrintFunction(Object* f, Object* receiver, Code** code) {
       // Common case: on-stack function present and resolved.
       PrintPrototype(fun, receiver);
       *code = fun->code();
-    } else if (f->IsSymbol()) {
+    } else if (f->IsInternalizedString()) {
       // Unresolved and megamorphic calls: Instead of the function
       // we have the function name on the stack.
       PrintName(f);
@@ -530,11 +533,13 @@ void StringStream::PrintFunction(Object* f, Object* receiver, Code** code) {
 void StringStream::PrintPrototype(JSFunction* fun, Object* receiver) {
   Object* name = fun->shared()->name();
   bool print_name = false;
-  Heap* heap = HEAP;
-  for (Object* p = receiver; p != heap->null_value(); p = p->GetPrototype()) {
+  Isolate* isolate = fun->GetIsolate();
+  for (Object* p = receiver;
+       p != isolate->heap()->null_value();
+       p = p->GetPrototype(isolate)) {
     if (p->IsJSObject()) {
       Object* key = JSObject::cast(p)->SlowReverseLookup(fun);
-      if (key != heap->undefined_value()) {
+      if (key != isolate->heap()->undefined_value()) {
         if (!name->IsString() ||
             !key->IsString() ||
             !String::cast(name)->Equals(String::cast(key))) {

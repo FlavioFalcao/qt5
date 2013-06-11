@@ -42,7 +42,9 @@ inline void MemoryBarrier() {
 inline Atomic32 NoBarrier_CompareAndSwap(volatile Atomic32* ptr,
                                          Atomic32 old_value,
                                          Atomic32 new_value) {
-  return _smp_cmpxchg(reinterpret_cast<volatile unsigned*>(ptr), old_value, new_value);
+  return _smp_cmpxchg(reinterpret_cast<volatile unsigned*>(ptr),
+                      old_value,
+                      new_value);
 }
 
 inline Atomic32 NoBarrier_AtomicExchange(volatile Atomic32* ptr,
@@ -56,7 +58,9 @@ inline Atomic32 NoBarrier_AtomicIncrement(volatile Atomic32* ptr,
     // Atomic exchange the old value with an incremented one.
     Atomic32 old_value = *ptr;
     Atomic32 new_value = old_value + increment;
-    if (_smp_cmpxchg(reinterpret_cast<volatile unsigned*>(ptr), old_value, new_value)) {
+    if (_smp_cmpxchg(reinterpret_cast<volatile unsigned*>(ptr),
+                     old_value,
+                     new_value)) {
       // The exchange took place as expected.
       return new_value;
     }

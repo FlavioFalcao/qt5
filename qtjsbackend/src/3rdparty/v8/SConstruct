@@ -59,7 +59,7 @@ LIBRARY_FLAGS = {
       'CPPDEFINES': ['V8_INTERPRETED_REGEXP']
     },
     'mode:debug': {
-      'CPPDEFINES': ['V8_ENABLE_CHECKS', 'OBJECT_PRINT']
+      'CPPDEFINES': ['V8_ENABLE_CHECKS', 'OBJECT_PRINT', 'VERIFY_HEAP']
     },
     'objectprint:on': {
       'CPPDEFINES':   ['OBJECT_PRINT'],
@@ -67,16 +67,9 @@ LIBRARY_FLAGS = {
     'debuggersupport:on': {
       'CPPDEFINES':   ['ENABLE_DEBUGGER_SUPPORT'],
     },
-    'inspector:on': {
-      'CPPDEFINES':   ['INSPECTOR'],
-    },
     'fasttls:off': {
       'CPPDEFINES':   ['V8_NO_FAST_TLS'],
     },
-    'liveobjectlist:on': {
-      'CPPDEFINES':   ['ENABLE_DEBUGGER_SUPPORT', 'INSPECTOR',
-                       'LIVE_OBJECT_LIST', 'OBJECT_PRINT'],
-    }
   },
   'gcc': {
     'all': {
@@ -1051,16 +1044,6 @@ SIMPLE_OPTIONS = {
     'default': 'on',
     'help': 'enable debugging of JavaScript code'
   },
-  'inspector': {
-    'values': ['on', 'off'],
-    'default': 'off',
-    'help': 'enable inspector features'
-  },
-  'liveobjectlist': {
-    'values': ['on', 'off'],
-    'default': 'off',
-    'help': 'enable live object list features in the debugger'
-  },
   'soname': {
     'values': ['on', 'off'],
     'default': 'off',
@@ -1157,6 +1140,11 @@ SIMPLE_OPTIONS = {
     'default': 'on',
     'help': 'use fpu instructions when building the snapshot [MIPS only]'
   },
+  'I_know_I_should_build_with_GYP': {
+    'values': ['yes', 'no'],
+    'default': 'no',
+    'help': 'grace period: temporarily override SCons deprecation'
+  }
 
 }
 
@@ -1257,7 +1245,35 @@ def IsLegal(env, option, values):
   return True
 
 
+def WarnAboutDeprecation():
+  print """
+    #####################################################################
+    #                                                                   #
+    #  LAST WARNING: Building V8 with SCons is deprecated.              #
+    #                                                                   #
+    #  This only works because you have overridden the kill switch.     #
+    #                                                                   #
+    #              MIGRATE TO THE GYP-BASED BUILD NOW!                  #
+    #                                                                   #
+    #  Instructions: http://code.google.com/p/v8/wiki/BuildingWithGYP.  #
+    #                                                                   #
+    #####################################################################
+  """
+
+
 def VerifyOptions(env):
+  if env['I_know_I_should_build_with_GYP'] != 'yes':
+    Abort("Building V8 with SCons is no longer supported. Please use GYP "
+          "instead; you can find instructions are at "
+          "http://code.google.com/p/v8/wiki/BuildingWithGYP.\n\n"
+          "Quitting.\n\n"
+          "For a limited grace period, you can specify "
+          "\"I_know_I_should_build_with_GYP=yes\" to override.")
+  else:
+    WarnAboutDeprecation()
+    import atexit
+    atexit.register(WarnAboutDeprecation)
+
   if not IsLegal(env, 'mode', ['debug', 'release']):
     return False
   if not IsLegal(env, 'sample', ["shell", "process", "lineprocessor"]):
@@ -1385,13 +1401,6 @@ def PostprocessOptions(options, os):
     options['msvcltcg'] = 'on'
   if (options['mipsabi'] != 'none') and (options['arch'] != 'mips') and (options['simulator'] != 'mips'):
     options['mipsabi'] = 'none'
-  if options['liveobjectlist'] == 'on':
-    if (options['debuggersupport'] != 'on') or (options['mode'] == 'release'):
-      # Print a warning that liveobjectlist will implicitly enable the debugger
-      print "Warning: forcing debuggersupport on for liveobjectlist"
-    options['debuggersupport'] = 'on'
-    options['inspector'] = 'on'
-    options['objectprint'] = 'on'
 
 
 def ParseEnvOverrides(arg, imports):
@@ -1600,18 +1609,4 @@ try:
 except:
   pass
 
-
-def WarnAboutDeprecation():
-  print """
-#######################################################
-#  WARNING: Building V8 with SCons is deprecated and  #
-#  will not work much longer. Please switch to using  #
-#  the GYP-based build now. Instructions are at       #
-#  http://code.google.com/p/v8/wiki/BuildingWithGYP.  #
-#######################################################
-  """
-
-WarnAboutDeprecation()
-import atexit
-atexit.register(WarnAboutDeprecation)
 Build()

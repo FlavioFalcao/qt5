@@ -28,6 +28,7 @@
 #ifndef V8_ELEMENTS_H_
 #define V8_ELEMENTS_H_
 
+#include "elements-kind.h"
 #include "objects.h"
 #include "heap.h"
 #include "isolate.h"
@@ -45,6 +46,10 @@ class ElementsAccessor {
   virtual ElementsKind kind() const = 0;
   const char* name() const { return name_; }
 
+  // Checks the elements of an object for consistency, asserting when a problem
+  // is found.
+  virtual void Validate(JSObject* obj) = 0;
+
   // Returns true if a holder contains an element with the specified key
   // without iterating up the prototype chain.  The caller can optionally pass
   // in the backing store to use for the check, which must be compatible with
@@ -61,6 +66,39 @@ class ElementsAccessor {
   // be compatible with the ElementsKind of the ElementsAccessor. If
   // backing_store is NULL, the holder->elements() is used as the backing store.
   MUST_USE_RESULT virtual MaybeObject* Get(
+      Object* receiver,
+      JSObject* holder,
+      uint32_t key,
+      FixedArrayBase* backing_store = NULL) = 0;
+
+  // Returns an element's attributes, or ABSENT if there is no such
+  // element. This method doesn't iterate up the prototype chain.  The caller
+  // can optionally pass in the backing store to use for the check, which must
+  // be compatible with the ElementsKind of the ElementsAccessor. If
+  // backing_store is NULL, the holder->elements() is used as the backing store.
+  MUST_USE_RESULT virtual PropertyAttributes GetAttributes(
+      Object* receiver,
+      JSObject* holder,
+      uint32_t key,
+      FixedArrayBase* backing_store = NULL) = 0;
+
+  // Returns an element's type, or NONEXISTENT if there is no such
+  // element. This method doesn't iterate up the prototype chain.  The caller
+  // can optionally pass in the backing store to use for the check, which must
+  // be compatible with the ElementsKind of the ElementsAccessor. If
+  // backing_store is NULL, the holder->elements() is used as the backing store.
+  MUST_USE_RESULT virtual PropertyType GetType(
+      Object* receiver,
+      JSObject* holder,
+      uint32_t key,
+      FixedArrayBase* backing_store = NULL) = 0;
+
+  // Returns an element's accessors, or NULL if the element does not exist or
+  // is plain. This method doesn't iterate up the prototype chain.  The caller
+  // can optionally pass in the backing store to use for the check, which must
+  // be compatible with the ElementsKind of the ElementsAccessor. If
+  // backing_store is NULL, the holder->elements() is used as the backing store.
+  MUST_USE_RESULT virtual AccessorPair* GetAccessorPair(
       Object* receiver,
       JSObject* holder,
       uint32_t key,
@@ -105,17 +143,17 @@ class ElementsAccessor {
   MUST_USE_RESULT virtual MaybeObject* CopyElements(
       JSObject* source_holder,
       uint32_t source_start,
+      ElementsKind source_kind,
       FixedArrayBase* destination,
-      ElementsKind destination_kind,
       uint32_t destination_start,
       int copy_size,
       FixedArrayBase* source = NULL) = 0;
 
   MUST_USE_RESULT MaybeObject* CopyElements(JSObject* from_holder,
                                             FixedArrayBase* to,
-                                            ElementsKind to_kind,
+                                            ElementsKind from_kind,
                                             FixedArrayBase* from = NULL) {
-    return CopyElements(from_holder, 0, to, to_kind, 0,
+    return CopyElements(from_holder, 0, from_kind, to, 0,
                         kCopyToEndAndInitializeToHole, from);
   }
 
@@ -159,15 +197,11 @@ class ElementsAccessor {
   DISALLOW_COPY_AND_ASSIGN(ElementsAccessor);
 };
 
+void CheckArrayAbuse(JSObject* obj, const char* op, uint32_t key,
+                     bool allow_appending = false);
 
-void CopyObjectToObjectElements(FixedArray* from_obj,
-                                ElementsKind from_kind,
-                                uint32_t from_start,
-                                FixedArray* to_obj,
-                                ElementsKind to_kind,
-                                uint32_t to_start,
-                                int copy_size);
-
+MUST_USE_RESULT MaybeObject* ArrayConstructInitializeElements(
+    JSArray* array, Arguments* args);
 
 } }  // namespace v8::internal
 

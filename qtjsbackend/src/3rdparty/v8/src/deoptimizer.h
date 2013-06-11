@@ -57,19 +57,41 @@ class HeapNumberMaterializationDescriptor BASE_EMBEDDED {
 };
 
 
+class ArgumentsObjectMaterializationDescriptor BASE_EMBEDDED {
+ public:
+  ArgumentsObjectMaterializationDescriptor(Address slot_address, int argc)
+      : slot_address_(slot_address), arguments_length_(argc) { }
+
+  Address slot_address() const { return slot_address_; }
+  int arguments_length() const { return arguments_length_; }
+
+ private:
+  Address slot_address_;
+  int arguments_length_;
+};
+
+
 class OptimizedFunctionVisitor BASE_EMBEDDED {
  public:
   virtual ~OptimizedFunctionVisitor() {}
 
   // Function which is called before iteration of any optimized functions
-  // from given global context.
+  // from given native context.
   virtual void EnterContext(Context* context) = 0;
 
   virtual void VisitFunction(JSFunction* function) = 0;
 
   // Function which is called after iteration of all optimized functions
-  // from given global context.
+  // from given native context.
   virtual void LeaveContext(Context* context) = 0;
+};
+
+
+class OptimizedFunctionFilter BASE_EMBEDDED {
+ public:
+  virtual ~OptimizedFunctionFilter() {}
+
+  virtual bool TakeFunction(JSFunction* function) = 0;
 };
 
 
@@ -85,7 +107,12 @@ class DeoptimizerData {
   void Iterate(ObjectVisitor* v);
 #endif
 
+  Code* FindDeoptimizingCode(Address addr);
+  void RemoveDeoptimizingCode(Code* code);
+
  private:
+  int eager_deoptimization_entry_code_entries_;
+  int lazy_deoptimization_entry_code_entries_;
   MemoryChunk* eager_deoptimization_entry_code_;
   MemoryChunk* lazy_deoptimization_entry_code_;
   Deoptimizer* current_;
@@ -117,7 +144,13 @@ class Deoptimizer : public Malloced {
     DEBUGGER
   };
 
+  static bool TraceEnabledFor(BailoutType deopt_type,
+                              StackFrame::Type frame_type);
+  static const char* MessageFor(BailoutType type);
+
   int output_count() const { return output_count_; }
+
+  Code::Kind compiled_code_kind() const { return compiled_code_->kind(); }
 
   // Number of created JS frames. Not all created frames are necessarily JS.
   int jsframe_count() const { return jsframe_count_; }
@@ -152,16 +185,22 @@ class Deoptimizer : public Malloced {
   // execution returns.
   static void DeoptimizeFunction(JSFunction* function);
 
+  // Iterate over all the functions which share the same code object
+  // and make them use unoptimized version.
+  static void ReplaceCodeForRelatedFunctions(JSFunction* function, Code* code);
+
   // Deoptimize all functions in the heap.
   static void DeoptimizeAll();
 
   static void DeoptimizeGlobalObject(JSObject* object);
 
+  static void DeoptimizeAllFunctionsWith(OptimizedFunctionFilter* filter);
+
+  static void DeoptimizeAllFunctionsForContext(
+      Context* context, OptimizedFunctionFilter* filter);
+
   static void VisitAllOptimizedFunctionsForContext(
       Context* context, OptimizedFunctionVisitor* visitor);
-
-  static void VisitAllOptimizedFunctionsForGlobalObject(
-      JSObject* object, OptimizedFunctionVisitor* visitor);
 
   static void VisitAllOptimizedFunctions(OptimizedFunctionVisitor* visitor);
 
@@ -196,7 +235,7 @@ class Deoptimizer : public Malloced {
 
   ~Deoptimizer();
 
-  void MaterializeHeapNumbers();
+  void MaterializeHeapObjects(JavaScriptFrameIterator* it);
 #ifdef ENABLE_DEBUGGER_SUPPORT
   void MaterializeHeapNumbersForDebuggerInspectableFrame(
       Address parameters_top,
@@ -208,10 +247,21 @@ class Deoptimizer : public Malloced {
 
   static void ComputeOutputFrames(Deoptimizer* deoptimizer);
 
-  static Address GetDeoptimizationEntry(int id, BailoutType type);
+
+  enum GetEntryMode {
+    CALCULATE_ENTRY_ADDRESS,
+    ENSURE_ENTRY_CODE
+  };
+
+
+  static Address GetDeoptimizationEntry(
+      Isolate* isolate,
+      int id,
+      BailoutType type,
+      GetEntryMode mode = ENSURE_ENTRY_CODE);
   static int GetDeoptimizationId(Address addr, BailoutType type);
   static int GetOutputInfo(DeoptimizationOutputData* data,
-                           unsigned node_id,
+                           BailoutId node_id,
                            SharedFunctionInfo* shared);
 
   // Code generation support.
@@ -220,6 +270,10 @@ class Deoptimizer : public Malloced {
     return OFFSET_OF(Deoptimizer, output_count_);
   }
   static int output_offset() { return OFFSET_OF(Deoptimizer, output_); }
+
+  static int has_alignment_padding_offset() {
+    return OFFSET_OF(Deoptimizer, has_alignment_padding_);
+  }
 
   static int GetDeoptimizedCodeCount(Isolate* isolate);
 
@@ -261,8 +315,15 @@ class Deoptimizer : public Malloced {
 
   int ConvertJSFrameIndexToFrameIndex(int jsframe_index);
 
+  static size_t GetMaxDeoptTableSize();
+
+  static void EnsureCodeForDeoptimizationEntry(Isolate* isolate,
+                                               BailoutType type,
+                                               int max_entry_id);
+
  private:
-  static const int kNumberOfEntries = 16384;
+  static const int kMinNumberOfEntries = 64;
+  static const int kMaxNumberOfEntries = 16384;
 
   Deoptimizer(Isolate* isolate,
               JSFunction* function,
@@ -271,6 +332,9 @@ class Deoptimizer : public Malloced {
               Address from,
               int fp_to_sp_delta,
               Code* optimized_code);
+  Code* FindOptimizedCode(JSFunction* function, Code* optimized_code);
+  void Trace();
+  void PrintFunctionName();
   void DeleteFrameDescriptions();
 
   void DoComputeOutputFrames();
@@ -280,6 +344,11 @@ class Deoptimizer : public Malloced {
                                       int frame_index);
   void DoComputeConstructStubFrame(TranslationIterator* iterator,
                                    int frame_index);
+  void DoComputeAccessorStubFrame(TranslationIterator* iterator,
+                                  int frame_index,
+                                  bool is_setter_stub_frame);
+  void DoComputeCompiledStubFrame(TranslationIterator* iterator,
+                                  int frame_index);
   void DoTranslateCommand(TranslationIterator* iterator,
                           int frame_index,
                           unsigned output_offset);
@@ -298,17 +367,21 @@ class Deoptimizer : public Malloced {
 
   Object* ComputeLiteral(int index) const;
 
+  void AddArgumentsObject(intptr_t slot_address, int argc);
+  void AddArgumentsObjectValue(intptr_t value);
   void AddDoubleValue(intptr_t slot_address, double value);
 
-  static MemoryChunk* CreateCode(BailoutType type);
   static void GenerateDeoptimizationEntries(
       MacroAssembler* masm, int count, BailoutType type);
 
   // Weak handle callback for deoptimizing code objects.
-  static void HandleWeakDeoptimizedCode(
-      v8::Persistent<v8::Value> obj, void* data);
-  static Code* FindDeoptimizingCodeFromAddress(Address addr);
-  static void RemoveDeoptimizingCode(Code* code);
+  static void HandleWeakDeoptimizedCode(v8::Isolate* isolate,
+                                        v8::Persistent<v8::Value> obj,
+                                        void* data);
+
+  // Deoptimize function assuming that function->next_function_link() points
+  // to a list that contains all functions that share the same optimized code.
+  static void DeoptimizeFunctionWithPreparedFunctionList(JSFunction* function);
 
   // Fill the input from from a JavaScript frame. This is used when
   // the debugger needs to inspect an optimized frame. For normal
@@ -317,11 +390,12 @@ class Deoptimizer : public Malloced {
 
   Isolate* isolate_;
   JSFunction* function_;
-  Code* optimized_code_;
+  Code* compiled_code_;
   unsigned bailout_id_;
   BailoutType bailout_type_;
   Address from_;
   int fp_to_sp_delta_;
+  int has_alignment_padding_;
 
   // Input frame description.
   FrameDescription* input_;
@@ -332,7 +406,11 @@ class Deoptimizer : public Malloced {
   // Array of output frame descriptions.
   FrameDescription** output_;
 
+  List<Object*> deferred_arguments_objects_values_;
+  List<ArgumentsObjectMaterializationDescriptor> deferred_arguments_objects_;
   List<HeapNumberMaterializationDescriptor> deferred_heap_numbers_;
+
+  bool trace_;
 
   static const int table_entry_size_;
 
@@ -484,16 +562,13 @@ class FrameDescription {
   uintptr_t frame_size_;  // Number of bytes.
   JSFunction* function_;
   intptr_t registers_[Register::kNumRegisters];
-  double double_registers_[DoubleRegister::kNumAllocatableRegisters];
+  double double_registers_[DoubleRegister::kMaxNumRegisters];
   intptr_t top_;
   intptr_t pc_;
   intptr_t fp_;
   intptr_t context_;
   StackFrame::Type type_;
   Smi* state_;
-#ifdef DEBUG
-  Code::Kind kind_;
-#endif
 
   // Continuation is the PC where the execution continues after
   // deoptimizing.
@@ -515,10 +590,10 @@ class FrameDescription {
 
 class TranslationBuffer BASE_EMBEDDED {
  public:
-  TranslationBuffer() : contents_(256) { }
+  explicit TranslationBuffer(Zone* zone) : contents_(256, zone) { }
 
   int CurrentIndex() const { return contents_.length(); }
-  void Add(int32_t value);
+  void Add(int32_t value, Zone* zone);
 
   Handle<ByteArray> CreateByteArray();
 
@@ -554,12 +629,17 @@ class Translation BASE_EMBEDDED {
     BEGIN,
     JS_FRAME,
     CONSTRUCT_STUB_FRAME,
+    GETTER_STUB_FRAME,
+    SETTER_STUB_FRAME,
     ARGUMENTS_ADAPTOR_FRAME,
+    COMPILED_STUB_FRAME,
     REGISTER,
     INT32_REGISTER,
+    UINT32_REGISTER,
     DOUBLE_REGISTER,
     STACK_SLOT,
     INT32_STACK_SLOT,
+    UINT32_STACK_SLOT,
     DOUBLE_STACK_SLOT,
     LITERAL,
     ARGUMENTS_OBJECT,
@@ -569,29 +649,38 @@ class Translation BASE_EMBEDDED {
     DUPLICATE
   };
 
-  Translation(TranslationBuffer* buffer, int frame_count, int jsframe_count)
+  Translation(TranslationBuffer* buffer, int frame_count, int jsframe_count,
+              Zone* zone)
       : buffer_(buffer),
-        index_(buffer->CurrentIndex()) {
-    buffer_->Add(BEGIN);
-    buffer_->Add(frame_count);
-    buffer_->Add(jsframe_count);
+        index_(buffer->CurrentIndex()),
+        zone_(zone) {
+    buffer_->Add(BEGIN, zone);
+    buffer_->Add(frame_count, zone);
+    buffer_->Add(jsframe_count, zone);
   }
 
   int index() const { return index_; }
 
   // Commands.
-  void BeginJSFrame(int node_id, int literal_id, unsigned height);
+  void BeginJSFrame(BailoutId node_id, int literal_id, unsigned height);
+  void BeginCompiledStubFrame();
   void BeginArgumentsAdaptorFrame(int literal_id, unsigned height);
   void BeginConstructStubFrame(int literal_id, unsigned height);
+  void BeginGetterStubFrame(int literal_id);
+  void BeginSetterStubFrame(int literal_id);
   void StoreRegister(Register reg);
   void StoreInt32Register(Register reg);
+  void StoreUint32Register(Register reg);
   void StoreDoubleRegister(DoubleRegister reg);
   void StoreStackSlot(int index);
   void StoreInt32StackSlot(int index);
+  void StoreUint32StackSlot(int index);
   void StoreDoubleStackSlot(int index);
   void StoreLiteral(int literal_id);
-  void StoreArgumentsObject();
+  void StoreArgumentsObject(bool args_known, int args_index, int args_length);
   void MarkDuplicate();
+
+  Zone* zone() const { return zone_; }
 
   static int NumberOfOperandsFor(Opcode opcode);
 
@@ -599,9 +688,13 @@ class Translation BASE_EMBEDDED {
   static const char* StringFor(Opcode opcode);
 #endif
 
+  // A literal id which refers to the JSFunction itself.
+  static const int kSelfLiteralId = -239;
+
  private:
   TranslationBuffer* buffer_;
   int index_;
+  Zone* zone_;
 };
 
 
@@ -631,6 +724,7 @@ class SlotRef BASE_EMBEDDED {
     UNKNOWN,
     TAGGED,
     INT32,
+    UINT32,
     DOUBLE,
     LITERAL
   };
@@ -641,26 +735,35 @@ class SlotRef BASE_EMBEDDED {
   SlotRef(Address addr, SlotRepresentation representation)
       : addr_(addr), representation_(representation) { }
 
-  explicit SlotRef(Object* literal)
-      : literal_(literal), representation_(LITERAL) { }
+  SlotRef(Isolate* isolate, Object* literal)
+      : literal_(literal, isolate), representation_(LITERAL) { }
 
-  Handle<Object> GetValue() {
+  Handle<Object> GetValue(Isolate* isolate) {
     switch (representation_) {
       case TAGGED:
-        return Handle<Object>(Memory::Object_at(addr_));
+        return Handle<Object>(Memory::Object_at(addr_), isolate);
 
       case INT32: {
         int value = Memory::int32_at(addr_);
         if (Smi::IsValid(value)) {
-          return Handle<Object>(Smi::FromInt(value));
+          return Handle<Object>(Smi::FromInt(value), isolate);
         } else {
-          return Isolate::Current()->factory()->NewNumberFromInt(value);
+          return isolate->factory()->NewNumberFromInt(value);
+        }
+      }
+
+      case UINT32: {
+        uint32_t value = Memory::uint32_at(addr_);
+        if (value <= static_cast<uint32_t>(Smi::kMaxValue)) {
+          return Handle<Object>(Smi::FromInt(static_cast<int>(value)), isolate);
+        } else {
+          return isolate->factory()->NewNumber(static_cast<double>(value));
         }
       }
 
       case DOUBLE: {
         double value = Memory::double_at(addr_);
-        return Isolate::Current()->factory()->NewNumber(value);
+        return isolate->factory()->NewNumber(value);
       }
 
       case LITERAL:

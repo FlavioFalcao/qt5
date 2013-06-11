@@ -1,4 +1,4 @@
-// Copyright 2011 the V8 project authors. All rights reserved.
+// Copyright 2012 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -34,33 +34,13 @@
 using namespace v8::internal;
 
 
-static inline void SimulateFullSpace(PagedSpace* space) {
-  int old_linear_size = static_cast<int>(space->limit() - space->top());
-  space->Free(space->top(), old_linear_size);
-  space->SetTop(space->limit(), space->limit());
-  space->ResetFreeList();
-  space->ClearStats();
-}
-
-
 static MaybeObject* AllocateAfterFailures() {
   static int attempts = 0;
   if (++attempts < 3) return Failure::RetryAfterGC();
   Heap* heap = Isolate::Current()->heap();
 
   // New space.
-  NewSpace* new_space = heap->new_space();
-  static const int kNewSpaceFillerSize = ByteArray::SizeFor(0);
-  while (new_space->Available() > kNewSpaceFillerSize) {
-    int available_before = static_cast<int>(new_space->Available());
-    CHECK(!heap->AllocateByteArray(0)->IsFailure());
-    if (available_before == new_space->Available()) {
-      // It seems that we are avoiding new space allocations when
-      // allocation is forced, so no need to fill up new space
-      // in order to make the test harder.
-      break;
-    }
-  }
+  SimulateFullSpace(heap->new_space());
   CHECK(!heap->AllocateByteArray(100)->IsFailure());
   CHECK(!heap->AllocateFixedArray(100, NOT_TENURED)->IsFailure());
 
@@ -75,7 +55,7 @@ static MaybeObject* AllocateAfterFailures() {
 
   // Old data space.
   SimulateFullSpace(heap->old_data_space());
-  CHECK(!heap->AllocateRawAsciiString(100, TENURED)->IsFailure());
+  CHECK(!heap->AllocateRawOneByteString(100, TENURED)->IsFailure());
 
   // Old pointer space.
   SimulateFullSpace(heap->old_pointer_space());
@@ -99,6 +79,7 @@ static MaybeObject* AllocateAfterFailures() {
   CHECK(!heap->AllocateMap(JS_OBJECT_TYPE, instance_size)->IsFailure());
 
   // Test that we can allocate in old pointer space and code space.
+  SimulateFullSpace(heap->code_space());
   CHECK(!heap->AllocateFixedArray(100, TENURED)->IsFailure());
   CHECK(!heap->CopyCode(Isolate::Current()->builtins()->builtin(
       Builtins::kIllegal))->IsFailure());
@@ -140,7 +121,7 @@ TEST(StressJS) {
   v8::HandleScope scope;
   env->Enter();
   Handle<JSFunction> function =
-      FACTORY->NewFunction(FACTORY->function_symbol(), FACTORY->null_value());
+      FACTORY->NewFunction(FACTORY->function_string(), FACTORY->null_value());
   // Force the creation of an initial map and set the code to
   // something empty.
   FACTORY->NewJSObject(function);
@@ -150,12 +131,21 @@ TEST(StressJS) {
   Handle<Map> map(function->initial_map());
   Handle<DescriptorArray> instance_descriptors(map->instance_descriptors());
   Handle<Foreign> foreign = FACTORY->NewForeign(&kDescriptor);
-  instance_descriptors = FACTORY->CopyAppendForeignDescriptor(
-      instance_descriptors,
-      FACTORY->NewStringFromAscii(Vector<const char>("get", 3)),
-      foreign,
-      static_cast<PropertyAttributes>(0));
-  map->set_instance_descriptors(*instance_descriptors);
+  Handle<String> name =
+      FACTORY->NewStringFromAscii(Vector<const char>("get", 3));
+  ASSERT(instance_descriptors->IsEmpty());
+
+  Handle<DescriptorArray> new_descriptors = FACTORY->NewDescriptorArray(0, 1);
+
+  v8::internal::DescriptorArray::WhitenessWitness witness(*new_descriptors);
+  map->set_instance_descriptors(*new_descriptors);
+
+  CallbacksDescriptor d(*name,
+                        *foreign,
+                        static_cast<PropertyAttributes>(0),
+                        v8::internal::PropertyDetails::kInitialIndex);
+  map->AppendDescriptor(&d, witness);
+
   // Add the Foo constructor the global object.
   env->Global()->Set(v8::String::New("Foo"), v8::Utils::ToLocal(function));
   // Call the accessor through JavaScript.
@@ -214,7 +204,9 @@ TEST(CodeRange) {
           (Page::kMaxNonCodeHeapObjectSize << (Pseudorandom() % 3)) +
           Pseudorandom() % 5000 + 1;
       size_t allocated = 0;
-      Address base = code_range->AllocateRawMemory(requested, &allocated);
+      Address base = code_range->AllocateRawMemory(requested,
+                                                   requested,
+                                                   &allocated);
       CHECK(base != NULL);
       blocks.Add(Block(base, static_cast<int>(allocated)));
       current_allocated += static_cast<int>(allocated);

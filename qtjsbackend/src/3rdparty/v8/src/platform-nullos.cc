@@ -1,4 +1,4 @@
-// Copyright 2006-2008 the V8 project authors. All rights reserved.
+// Copyright 2012 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -215,6 +215,11 @@ double OS::nan_value() {
 }
 
 
+CpuImplementer OS::GetCpuImplementer() {
+  UNIMPLEMENTED();
+}
+
+
 bool OS::ArmCpuHasFeature(CpuFeature feature) {
   UNIMPLEMENTED();
 }
@@ -261,6 +266,12 @@ void OS::Sleep(int milliseconds) {
 }
 
 
+int OS::NumberOfCores() {
+  UNIMPLEMENTED();
+  return 0;
+}
+
+
 void OS::Abort() {
   // Minimalistic implementation for bootstrapping.
   abort();
@@ -269,6 +280,11 @@ void OS::Abort() {
 
 void OS::DebugBreak() {
   UNIMPLEMENTED();
+}
+
+
+void OS::DumpBacktrace() {
+  // Currently unsupported.
 }
 
 
@@ -331,6 +347,12 @@ bool VirtualMemory::Uncommit(void* address, size_t size) {
 
 bool VirtualMemory::Guard(void* address) {
   UNIMPLEMENTED();
+  return false;
+}
+
+
+bool VirtualMemory::HasLazyCommits() {
+  // TODO(alph): implement for the platform.
   return false;
 }
 
@@ -499,6 +521,27 @@ void ProfileSampler::Start() {
 
 
 void ProfileSampler::Stop() {
+  UNIMPLEMENTED();
+}
+
+
+bool Sampler::CanSampleOnProfilerEventsProcessorThread() {
+  UNIMPLEMENTED();
+  return false;
+}
+
+
+void Sampler::DoSample() {
+  UNIMPLEMENTED();
+}
+
+
+void Sampler::StartProfiling() {
+  UNIMPLEMENTED();
+}
+
+
+void Sampler::StopProfiling() {
   UNIMPLEMENTED();
 }
 
