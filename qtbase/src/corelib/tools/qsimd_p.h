@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -44,8 +44,6 @@
 
 #include <qglobal.h>
 #include <qatomic.h>
-
-QT_BEGIN_HEADER
 
 /*
  * qt_module_config.prf defines the QT_COMPILER_SUPPORTS_XXX macros.
@@ -141,7 +139,8 @@ QT_BEGIN_HEADER
 #endif
 
 // other x86 intrinsics
-#if defined(QT_COMPILER_SUPPORTS_AVX) && defined(Q_CC_GNU)
+#if defined(QT_COMPILER_SUPPORTS_AVX) && defined(Q_CC_GNU) && \
+    (!defined(Q_CC_INTEL)|| __INTEL_COMPILER >= 1310 || (__GNUC__ * 100 + __GNUC_MINOR__ < 407))
 #define QT_COMPILER_SUPPORTS_X86INTRIN
 #include <x86intrin.h>
 #endif
@@ -229,7 +228,7 @@ static const uint qCompilerCpuFeatures = 0
 extern Q_CORE_EXPORT QBasicAtomicInt qt_cpu_features;
 Q_CORE_EXPORT void qDetectCpuFeatures();
 
-inline uint qCpuFeatures()
+static inline uint qCpuFeatures()
 {
     int features = qt_cpu_features.load();
     if (Q_UNLIKELY(features == 0)) {
@@ -240,7 +239,7 @@ inline uint qCpuFeatures()
     return uint(features);
 }
 
-inline uint qCpuHasFeature(CPUFeatures feature)
+static inline uint qCpuHasFeature(CPUFeatures feature)
 {
     return qCompilerCpuFeatures & feature || qCpuFeatures() & feature;
 }
@@ -250,7 +249,5 @@ inline uint qCpuHasFeature(CPUFeatures feature)
     for (; i < static_cast<int>(qMin(static_cast<quintptr>(length), ((4 - ((reinterpret_cast<quintptr>(ptr) >> 2) & 0x3)) & 0x3))); ++i)
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QSIMD_P_H

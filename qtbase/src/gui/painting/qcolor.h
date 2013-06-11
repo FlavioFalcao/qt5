@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -46,8 +46,6 @@
 #include <QtCore/qnamespace.h>
 #include <QtCore/qstringlist.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -67,6 +65,7 @@ class Q_GUI_EXPORT QColor
 {
 public:
     enum Spec { Invalid, Rgb, Hsv, Cmyk, Hsl };
+    enum NameFormat { HexRgb, HexArgb };
 
     QColor();
     QColor(Qt::GlobalColor color);
@@ -79,7 +78,9 @@ public:
 
     bool isValid() const;
 
+    // ### Qt 6: merge overloads
     QString name() const;
+    QString name(NameFormat format) const;
     void setNamedColor(const QString& name);
 
     static QStringList colorNames();
@@ -268,14 +269,12 @@ inline QColor::QColor(const QColor &acolor)
 inline bool QColor::isValid() const
 { return cspec != Invalid; }
 
-inline QColor QColor::lighter(int f) const 
+inline QColor QColor::lighter(int f) const
 { return light(f); }
 
-inline QColor QColor::darker(int f) const 
+inline QColor QColor::darker(int f) const
 { return dark(f); }
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QCOLOR_H

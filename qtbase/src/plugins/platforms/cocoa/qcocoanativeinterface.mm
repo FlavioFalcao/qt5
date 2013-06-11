@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -42,7 +42,11 @@
 #include "qcocoanativeinterface.h"
 #include "qcocoaglcontext.h"
 #include "qcocoawindow.h"
+#include "qcocoamenu.h"
 #include "qcocoamenubar.h"
+#include "qmacmime.h"
+#include "qcocoahelpers.h"
+#include "qcocoaapplication.h"
 
 #include <qbytearray.h>
 #include <qwindow.h>
@@ -58,6 +62,8 @@
 #include "qprintengine_mac_p.h"
 #include <qpa/qplatformprintersupport.h>
 #endif
+
+#include <Cocoa/Cocoa.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -79,10 +85,8 @@ void *QCocoaNativeInterface::nativeResourceForContext(const QByteArray &resource
 
 void *QCocoaNativeInterface::nativeResourceForWindow(const QByteArray &resourceString, QWindow *window)
 {
-    if (!window->handle()) {
-        qWarning("QCocoaNativeInterface::nativeResourceForWindow: Native window has not been created.");
+    if (!window->handle())
         return 0;
-    }
 
     if (resourceString == "nsopenglcontext") {
         return static_cast<QCocoaWindow *>(window->handle())->currentContext()->nsOpenGLContext();
@@ -92,6 +96,39 @@ void *QCocoaNativeInterface::nativeResourceForWindow(const QByteArray &resourceS
         return static_cast<QCocoaWindow *>(window->handle())->m_nsWindow;
     }
     return 0;
+}
+
+QPlatformNativeInterface::NativeResourceForIntegrationFunction QCocoaNativeInterface::nativeResourceFunctionForIntegration(const QByteArray &resource)
+{
+    if (resource.toLower() == "addtomimelist")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::addToMimeList);
+    if (resource.toLower() == "removefrommimelist")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::removeFromMimeList);
+    if (resource.toLower() == "registerdraggedtypes")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::registerDraggedTypes);
+    if (resource.toLower() == "setdockmenu")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::setDockMenu);
+    if (resource.toLower() == "qmenutonsmenu")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::qMenuToNSMenu);
+    if (resource.toLower() == "qmenubartonsmenu")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::qMenuBarToNSMenu);
+    if (resource.toLower() == "qimagetocgimage")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::qImageToCGImage);
+    if (resource.toLower() == "cgimagetoqimage")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::cgImageToQImage);
+    if (resource.toLower() == "setwindowcontentview")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::setWindowContentView);
+    if (resource.toLower() == "registertouchwindow")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::registerTouchWindow);
+    if (resource.toLower() == "setembeddedinforeignview")
+        return NativeResourceForIntegrationFunction(QCocoaNativeInterface::setEmbeddedInForeignView);
+
+    return 0;
+}
+
+void QCocoaNativeInterface::beep()
+{
+    NSBeep();
 }
 
 QPlatformPrinterSupport *QCocoaNativeInterface::createPlatformPrinterSupport()
@@ -140,6 +177,79 @@ void *QCocoaNativeInterface::nsOpenGLContextForContext(QOpenGLContext* context)
         }
     }
     return 0;
+}
+
+void QCocoaNativeInterface::addToMimeList(void *macPasteboardMime)
+{
+    qt_mac_addToGlobalMimeList(reinterpret_cast<QMacPasteboardMime *>(macPasteboardMime));
+}
+
+void QCocoaNativeInterface::removeFromMimeList(void *macPasteboardMime)
+{
+    qt_mac_removeFromGlobalMimeList(reinterpret_cast<QMacPasteboardMime *>(macPasteboardMime));
+}
+
+void QCocoaNativeInterface::registerDraggedTypes(const QStringList &types)
+{
+    qt_mac_registerDraggedTypes(types);
+}
+
+void QCocoaNativeInterface::setDockMenu(QPlatformMenu *platformMenu)
+{
+    QCocoaMenu *cocoaPlatformMenu = static_cast<QCocoaMenu *>(platformMenu);
+    NSMenu *menu = cocoaPlatformMenu->nsMenu();
+    [NSApp QT_MANGLE_NAMESPACE(qt_setDockMenu): menu];
+}
+
+void *QCocoaNativeInterface::qMenuToNSMenu(QPlatformMenu *platformMenu)
+{
+    QCocoaMenu *cocoaPlatformMenu = static_cast<QCocoaMenu *>(platformMenu);
+    NSMenu *menu = cocoaPlatformMenu->nsMenu();
+    return reinterpret_cast<void *>(menu);
+}
+
+void *QCocoaNativeInterface::qMenuBarToNSMenu(QPlatformMenuBar *platformMenuBar)
+{
+    QCocoaMenuBar *cocoaPlatformMenuBar = static_cast<QCocoaMenuBar *>(platformMenuBar);
+    NSMenu *menu = cocoaPlatformMenuBar->nsMenu();
+    return reinterpret_cast<void *>(menu);
+}
+
+CGImageRef QCocoaNativeInterface::qImageToCGImage(const QImage &image)
+{
+    return qt_mac_toCGImage(image, false, 0);
+}
+
+QImage QCocoaNativeInterface::cgImageToQImage(CGImageRef image)
+{
+    return qt_mac_toQImage(image);
+}
+
+void QCocoaNativeInterface::setWindowContentView(QPlatformWindow *window, void *contentView)
+{
+    QCocoaWindow *cocoaPlatformWindow = static_cast<QCocoaWindow *>(window);
+    cocoaPlatformWindow->setContentView(reinterpret_cast<NSView *>(contentView));
+}
+
+void QCocoaNativeInterface::setEmbeddedInForeignView(QPlatformWindow *window, bool embedded)
+{
+    QCocoaWindow *cocoaPlatformWindow = static_cast<QCocoaWindow *>(window);
+    cocoaPlatformWindow->setEmbeddedInForeignView(embedded);
+}
+
+void QCocoaNativeInterface::registerTouchWindow(QWindow *window,  bool enable)
+{
+    if (!window)
+        return;
+
+    // Make sure the QCocoaWindow is created when enabling. Disabling might
+    // happen on window destruction, don't (re)create the QCocoaWindow then.
+    if (enable)
+        window->create();
+
+    QCocoaWindow *cocoaWindow = static_cast<QCocoaWindow *>(window->handle());
+    if (cocoaWindow)
+        cocoaWindow->registerTouch(enable);
 }
 
 QT_END_NAMESPACE

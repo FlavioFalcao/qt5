@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -47,8 +47,6 @@
 #include <QtCore/qlist.h>
 #include <QtGui/qpixmap.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -64,6 +62,10 @@ public:
     QIcon();
     QIcon(const QPixmap &pixmap);
     QIcon(const QIcon &other);
+#ifdef Q_COMPILER_RVALUE_REFS
+    QIcon(QIcon &&other)
+        :d(0) { qSwap(d, other.d); }
+#endif
     explicit QIcon(const QString &fileName); // file or resource name
     explicit QIcon(QIconEngine *engine);
     ~QIcon();
@@ -81,8 +83,10 @@ public:
         { return pixmap(QSize(w, h), mode, state); }
     inline QPixmap pixmap(int extent, Mode mode = Normal, State state = Off) const
         { return pixmap(QSize(extent, extent), mode, state); }
+    QPixmap pixmap(QWindow *window, const QSize &size, Mode mode = Normal, State state = Off) const;
 
     QSize actualSize(const QSize &size, Mode mode = Normal, State state = Off) const;
+    QSize actualSize(QWindow *window, const QSize &size, Mode mode = Normal, State state = Off) const;
 
     QString name() const;
 
@@ -139,7 +143,5 @@ Q_GUI_EXPORT QDebug operator<<(QDebug dbg, const QIcon &);
 #endif
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QICON_H

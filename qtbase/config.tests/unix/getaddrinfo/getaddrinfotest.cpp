@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the config.tests of the Qt Toolkit.
@@ -59,6 +59,6 @@ int main()
     if (getaddrinfo("foo", 0, 0, &res) == 0)
         freeaddrinfo(res);
     gai_strerror(0);
-    
+
     return 0;
 }

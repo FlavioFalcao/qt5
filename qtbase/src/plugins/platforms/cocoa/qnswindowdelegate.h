@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -46,26 +46,6 @@
 
 #include "qcocoawindow.h"
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_5
-@protocol NSWindowDelegate <NSObject>
-//- (NSSize)windowWillResize:(NSWindow *)window toSize:(NSSize)proposedFrameSize;
-//- (void)windowDidMiniaturize:(NSNotification*)notification;
-- (void)windowDidResize:(NSNotification *)notification;
-- (void)windowWillClose:(NSNotification *)notification;
-//- (NSRect)windowWillUseStandardFrame:(NSWindow *)window defaultFrame:(NSRect)defaultFrame;
-- (void)windowDidMove:(NSNotification *)notification;
-//- (BOOL)windowShouldClose:(id)window;
-//- (void)windowDidDeminiaturize:(NSNotification *)notification;
-//- (void)windowDidBecomeMain:(NSNotification*)notification;
-//- (void)windowDidResignMain:(NSNotification*)notification;
-//- (void)windowDidBecomeKey:(NSNotification*)notification;
-//- (void)windowDidResignKey:(NSNotification*)notification;
-//- (BOOL)window:(NSWindow *)window shouldPopUpDocumentPathMenu:(NSMenu *)menu;
-//- (BOOL)window:(NSWindow *)window shouldDragDocumentWithEvent:(NSEvent *)event from:(NSPoint)dragImageLocation withPasteboard:(NSPasteboard *)pasteboard;
-//- (BOOL)windowShouldZoom:(NSWindow *)window toFrame:(NSRect)newFrame;
-@end
-#endif
-
 @interface QNSWindowDelegate : NSObject <NSWindowDelegate>
 {
     QCocoaWindow *m_cocoaWindow;
@@ -75,7 +55,8 @@
 
 - (void)windowDidResize:(NSNotification *)notification;
 - (void)windowDidMove:(NSNotification *)notification;
-- (void)windowWillClose:(NSNotification *)notification;
+- (void)windowWillMove:(NSNotification *)notification;
+- (BOOL)windowShouldClose:(NSNotification *)notification;
 
 @end
 

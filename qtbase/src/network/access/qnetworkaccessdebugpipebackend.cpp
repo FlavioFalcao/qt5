@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -42,6 +42,7 @@
 #include "qnetworkaccessdebugpipebackend_p.h"
 #include "QtCore/qdatastream.h"
 #include <QCoreApplication>
+#include <QStringList>
 #include <QUrlQuery>
 #include "private/qnoncontiguousbytedevice_p.h"
 
@@ -53,6 +54,11 @@ enum {
     ReadBufferSize = 16384,
     WriteBufferSize = ReadBufferSize
 };
+
+QStringList QNetworkAccessDebugPipeBackendFactory::supportedSchemes() const
+{
+    return QStringList(QStringLiteral("debugpipe"));
+}
 
 QNetworkAccessBackend *
 QNetworkAccessDebugPipeBackendFactory::create(QNetworkAccessManager::Operation op,
@@ -143,7 +149,7 @@ void QNetworkAccessDebugPipeBackend::pushFromSocketToDownstream()
 
         buffer.resize(ReadBufferSize);
         qint64 haveRead = socket.read(buffer.data(), ReadBufferSize);
-        
+
         if (haveRead == -1) {
             hasDownloadFinished = true;
             // this ensures a good last downloadProgress is emitted

@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -181,6 +181,8 @@ public:
                           const QStyleOptionViewItem &option, QBitArray *drawn,
                           int firstVisualRow, int lastVisualRow, int firstVisualColumn, int lastVisualColumn);
     void drawCell(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index);
+    int widthHintForIndex(const QModelIndex &index, int hint, const QStyleOptionViewItem &option) const;
+    int heightHintForIndex(const QModelIndex &index, int hint, const QStyleOptionViewItem &option) const;
 
     bool showGrid;
     Qt::PenStyle gridStyle;

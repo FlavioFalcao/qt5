@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the qmake application of the Qt Toolkit.
@@ -112,10 +112,8 @@ public:
                    QMakeHandler *handler);
     ~QMakeEvaluator();
 
-#ifdef QT_BUILD_QMAKE
     void setExtraVars(const ProValueMap &extraVars) { m_extraVars = extraVars; }
     void setExtraConfigs(const ProStringList &extraConfigs) { m_extraConfigs = extraConfigs; }
-#endif
     void setOutputDir(const QString &outputDir) { m_outputDir = outputDir; }
 
     ProStringList values(const ProKey &variableName) const;
@@ -219,7 +217,7 @@ public:
     bool isActiveConfig(const QString &config, bool regex = false);
 
     void populateDeps(
-            const ProStringList &deps, const ProString &prefix,
+            const ProStringList &deps, const ProString &prefix, const ProStringList &suffixes,
             QHash<ProKey, QSet<ProKey> > &dependencies,
             ProValueMap &dependees, ProStringList &rootSet) const;
 
@@ -268,10 +266,8 @@ public:
     QStack<Location> m_locationStack; // All execution location changes
     QStack<ProFile *> m_profileStack; // Includes only
 
-#ifdef QT_BUILD_QMAKE
     ProValueMap m_extraVars;
     ProStringList m_extraConfigs;
-#endif
     QString m_outputDir;
 
     int m_listCount;

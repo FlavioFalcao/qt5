@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -39,9 +39,13 @@
 **
 ****************************************************************************/
 
+#include <QtCore/qglobal.h>
+
+#ifndef QT_NO_ACCESSIBILITY
 #ifndef QACCESSIBLE_H
 #define QACCESSIBLE_H
 
+#include <QtCore/qdebug.h>
 #include <QtCore/qglobal.h>
 #include <QtCore/qobject.h>
 #include <QtCore/qrect.h>
@@ -53,23 +57,18 @@
 
 #include <stdlib.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
-
 
 class QAccessibleInterface;
 class QAccessibleEvent;
 class QWindow;
+class QTextCursor;
 
 // We need to inherit QObject to expose the enums to QML.
 class Q_GUI_EXPORT QAccessible
-#ifndef Q_QDOC
-        :public QObject
-#endif
 {
-    Q_OBJECT
-    Q_ENUMS(Role Event State)
+    Q_GADGET
+    Q_ENUMS(Role Event)
 public:
 
     enum Event {
@@ -284,10 +283,10 @@ public:
         Canvas         = 0x00000035,
         Animation      = 0x00000036,
         Equation       = 0x00000037,
-        ButtonDropDown = 0x00000038,
+        ButtonDropDown = 0x00000038, // The object represents a button that expands a grid.
         ButtonMenu     = 0x00000039,
         ButtonDropGrid = 0x0000003A,
-        Whitespace     = 0x0000003B,
+        Whitespace     = 0x0000003B, // The object represents blank space between other objects.
         PageTabList    = 0x0000003C,
         Clock          = 0x0000003D,
         Splitter       = 0x0000003E,
@@ -330,9 +329,20 @@ public:
         TableCellInterface
     };
 
+    enum TextBoundaryType {
+        CharBoundary,
+        WordBoundary,
+        SentenceBoundary,
+        ParagraphBoundary,
+        LineBoundary,
+        NoBoundary
+    };
+
     typedef QAccessibleInterface*(*InterfaceFactory)(const QString &key, QObject*);
     typedef void(*UpdateHandler)(QAccessibleEvent *event);
     typedef void(*RootObjectHandler)(QObject*);
+
+    typedef unsigned Id;
 
     static void installFactory(InterfaceFactory);
     static void removeFactory(InterfaceFactory);
@@ -340,6 +350,12 @@ public:
     static RootObjectHandler installRootObjectHandler(RootObjectHandler);
 
     static QAccessibleInterface *queryAccessibleInterface(QObject *);
+    static Id uniqueId(QAccessibleInterface *iface);
+    static QAccessibleInterface *accessibleInterface(Id uniqueId);
+    static Id registerAccessibleInterface(QAccessibleInterface *iface);
+    static void deleteAccessibleInterface(Id uniqueId);
+
+
 #if QT_DEPRECATED_SINCE(5, 0)
     QT_DEPRECATED static inline void updateAccessibility(QObject *object, int child, Event reason);
 #endif
@@ -350,6 +366,8 @@ public:
 
     static void cleanup();
 
+    static QPair< int, int > qAccessibleTextBoundaryHelper(const QTextCursor &cursor, TextBoundaryType boundaryType);
+
 private:
     static UpdateHandler updateHandler;
     static RootObjectHandler rootObjectHandler;
@@ -359,6 +377,8 @@ private:
       it is not supposed to be instantiated.
     */
     QAccessible() {}
+
+    friend class QAccessibleCache;
 };
 
 Q_GUI_EXPORT bool operator==(const QAccessible::State &first, const QAccessible::State &second);
@@ -376,8 +396,10 @@ class QAccessibleTableCellInterface;
 
 class Q_GUI_EXPORT QAccessibleInterface
 {
+protected:
+    virtual ~QAccessibleInterface();
+
 public:
-    virtual ~QAccessibleInterface() {}
     // check for valid pointers
     virtual bool isValid() const = 0;
     virtual QObject *object() const = 0;
@@ -430,7 +452,9 @@ public:
 
     virtual void *interface_cast(QAccessible::InterfaceType)
     { return 0; }
-private:
+
+protected:
+    friend class QAccessibleCache;
 };
 
 class Q_GUI_EXPORT QAccessibleEvent
@@ -678,6 +702,5 @@ inline void QAccessible::updateAccessibility(QObject *object, int child, Event r
 
 QT_END_NAMESPACE
 
-QT_END_HEADER
-
 #endif // QACCESSIBLE_H
+#endif //!QT_NO_ACCESSIBILITY

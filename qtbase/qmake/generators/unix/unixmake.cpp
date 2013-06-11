@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the qmake application of the Qt Toolkit.
@@ -142,6 +142,7 @@ UnixMakefileGenerator::init()
     project->values("QMAKE_L_FLAG")
             << (project->isActiveConfig("rvct_linker") ? "--userlibpath "
               : project->isActiveConfig("armcc_linker") ? "-L--userlibpath="
+              : project->isActiveConfig("ti_linker") ? "--search_path="
               : "-L");
     ProStringList ldadd;
     if(!project->isEmpty("QMAKE_LIBDIR")) {
@@ -255,10 +256,10 @@ UnixMakefileGenerator::init()
 
         const ProKey runComp("QMAKE_RUN_" + compiler);
         if(project->isEmpty(runComp))
-            project->values(runComp).append("$(" + compiler + ") " + compile_flag + " -o $obj $src");
+            project->values(runComp).append("$(" + compiler + ") " + compile_flag + " " + var("QMAKE_CC_O_FLAG") + "$obj $src");
         const ProKey runCompImp("QMAKE_RUN_" + compiler + "_IMP");
         if(project->isEmpty(runCompImp))
-            project->values(runCompImp).append("$(" + compiler + ") " + compile_flag + " -o \"$@\" \"$<\"");
+            project->values(runCompImp).append("$(" + compiler + ") " + compile_flag + " " + var("QMAKE_CC_O_FLAG") + "\"$@\" \"$<\"");
     }
 
     if(project->isActiveConfig("macx") && !project->isEmpty("TARGET") && !project->isActiveConfig("compile_libtool") &&
@@ -490,10 +491,12 @@ UnixMakefileGenerator::findLibraries()
                 } else if(opt.startsWith("-l")) {
                     if (project->isActiveConfig("rvct_linker") || project->isActiveConfig("armcc_linker")) {
                         (*it) = "lib" + opt.mid(2) + ".so";
+                    } else if (project->isActiveConfig("ti_linker")) {
+                        (*it) = opt.mid(2);
                     } else {
                         stub = opt.mid(2);
                     }
-                } else if (target_mode == TARG_MACX_MODE && opt.startsWith("-framework")) {
+                } else if (target_mode == TARG_MAC_MODE && opt.startsWith("-framework")) {
                     if (opt.length() == 10)
                         ++it;
                     // Skip
@@ -607,11 +610,11 @@ UnixMakefileGenerator::processPrlFiles()
                             break;
                         }
                     }
-                } else if (target_mode == TARG_MACX_MODE && opt.startsWith("-F")) {
+                } else if (target_mode == TARG_MAC_MODE && opt.startsWith("-F")) {
                     QMakeLocalFileName f(opt.right(opt.length()-2));
                     if(!frameworkdirs.contains(f))
                         frameworkdirs.insert(fwidx++, f);
-                } else if (target_mode == TARG_MACX_MODE && opt.startsWith("-framework")) {
+                } else if (target_mode == TARG_MAC_MODE && opt.startsWith("-framework")) {
                     if(opt.length() > 11)
                         opt = opt.mid(11);
                     else
@@ -650,7 +653,7 @@ UnixMakefileGenerator::processPrlFiles()
                 ProKey arch("default");
                 ProString opt = l.at(lit).trimmed();
                 if(opt.startsWith("-")) {
-                    if (target_mode == TARG_MACX_MODE && opt.startsWith("-Xarch")) {
+                    if (target_mode == TARG_MAC_MODE && opt.startsWith("-Xarch")) {
                         if (opt.length() > 7) {
                             arch = opt.mid(7).toKey();
                             opt = l.at(++lit);
@@ -658,7 +661,7 @@ UnixMakefileGenerator::processPrlFiles()
                     }
 
                     if (opt.startsWith(libArg) ||
-                       (target_mode == TARG_MACX_MODE && opt.startsWith("-F"))) {
+                       (target_mode == TARG_MAC_MODE && opt.startsWith("-F"))) {
                         if(!lflags[arch].contains(opt))
                             lflags[arch].append(opt);
                     } else if(opt.startsWith("-l") || opt == "-pthread") {
@@ -666,12 +669,12 @@ UnixMakefileGenerator::processPrlFiles()
                         if (lflags[arch].contains(opt))
                             lflags[arch].removeAll(opt);
                         lflags[arch].append(opt);
-                    } else if (target_mode == TARG_MACX_MODE && opt.startsWith("-framework")) {
+                    } else if (target_mode == TARG_MAC_MODE && opt.startsWith("-framework")) {
                         if(opt.length() > 11)
                             opt = opt.mid(11);
                         else {
                             opt = l.at(++lit);
-                            if (target_mode == TARG_MACX_MODE && opt.startsWith("-Xarch"))
+                            if (target_mode == TARG_MAC_MODE && opt.startsWith("-Xarch"))
                                 opt = l.at(++lit); // The user has done the right thing and prefixed each part
                         }
                         bool found = false;
@@ -833,7 +836,7 @@ UnixMakefileGenerator::defaultInstall(const QString &t)
             uninst.append("-$(DEL_FILE) \"" + dst_targ + "\"");
         if(!links.isEmpty()) {
             for(int i = 0; i < links.size(); ++i) {
-                if (target_mode == TARG_UNIX_MODE || target_mode == TARG_MACX_MODE) {
+                if (target_mode == TARG_UNIX_MODE || target_mode == TARG_MAC_MODE) {
                     QString link = Option::fixPathToTargetOS(destdir + links[i], false);
                     int lslash = link.lastIndexOf(Option::dir_sep);
                     if(lslash != -1)
@@ -868,32 +871,15 @@ UnixMakefileGenerator::defaultInstall(const QString &t)
                 if(!uninst.isEmpty())
                     uninst.append("\n\t");
                 uninst.append("-$(DEL_FILE) \"" + dst_meta + "\"");
-                const ProKey replace_rule("QMAKE_" + type.toUpper() + "_INSTALL_REPLACE");
                 const QString dst_meta_dir = fileInfo(dst_meta).path();
                 if(!dst_meta_dir.isEmpty()) {
                     if(!ret.isEmpty())
                         ret += "\n\t";
                     ret += mkdir_p_asstring(dst_meta_dir, true);
                 }
-                QString install_meta = "$(INSTALL_FILE) \"" + src_meta + "\" \"" + dst_meta + "\"";
-                if(project->isEmpty(replace_rule) || project->isActiveConfig("no_sed_meta_install")) {
-                    if(!ret.isEmpty())
-                        ret += "\n\t";
-                    ret += "-" + install_meta;
-                } else {
-                    if(!ret.isEmpty())
-                        ret += "\n\t";
-                    ret += "-$(SED)";
-                    const ProStringList &replace_rules = project->values(replace_rule);
-                    for(int r = 0; r < replace_rules.size(); ++r) {
-                        const ProString &match = project->first(ProKey(replace_rules.at(r) + ".match")),
-                                    &replace = project->first(ProKey(replace_rules.at(r) + ".replace"));
-                        if(!match.isEmpty() /*&& match != replace*/)
-                            ret += " -e \"s," + match + "," + replace + ",g\"";
-                    }
-                    ret += " \"" + src_meta + "\" >\"" + dst_meta + "\"";
-                    //ret += " || " + install_meta;
-                }
+                if (!ret.isEmpty())
+                    ret += "\n\t";
+                ret += installMetaFile(ProKey("QMAKE_" + type.toUpper() + "_INSTALL_REPLACE"), src_meta, dst_meta);
             }
         }
     }

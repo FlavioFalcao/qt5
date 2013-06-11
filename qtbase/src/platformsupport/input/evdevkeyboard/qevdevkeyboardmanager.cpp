@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -57,7 +57,13 @@ QEvdevKeyboardManager::QEvdevKeyboardManager(const QString &key, const QString &
 {
     Q_UNUSED(key);
 
-    QStringList args = specification.split(QLatin1Char(':'));
+
+    QString spec = QString::fromLocal8Bit(qgetenv("QT_QPA_EVDEV_KEYBOARD_PARAMETERS"));
+
+    if (spec.isEmpty())
+        spec = specification;
+
+    QStringList args = spec.split(QLatin1Char(':'));
     QStringList devices;
 
     foreach (const QString &arg, args) {

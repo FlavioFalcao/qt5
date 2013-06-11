@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -49,7 +49,7 @@ int main(int argv, char **args)
 
     QTcpSocket socket;
     socket.connectToHost("localhost", 1025);
-    
+
 //! [0]
     int numRead = 0, numReadTotal = 0;
     char buffer[50];
@@ -58,12 +58,12 @@ int main(int argv, char **args)
 	numRead  = socket.read(buffer, 50);
 
 	// do whatever with array
-	
+
 	numReadTotal += numRead;
-	if (numRead == 0 && !socket.waitForReadyRead()) 
+        if (numRead == 0 && !socket.waitForReadyRead())
 	    break;
     }
 //! [0]
-    
+
     return app.exec();
 }

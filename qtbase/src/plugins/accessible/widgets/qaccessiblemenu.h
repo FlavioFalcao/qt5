@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -42,7 +42,8 @@
 #ifndef QACCESSIBLEMENU_H
 #define QACCESSIBLEMENU_H
 
-#include <QtWidgets/qaccessiblewidget.h>
+#include <QtWidgets/private/qaccessiblewidget_p.h>
+#include <QtCore/qpointer.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -120,7 +121,7 @@ protected:
     QAction *action() const;
 private:
     QAction *m_action;
-    QWidget *m_owner; // can hold either QMenu or the QMenuBar that contains the action
+    QPointer<QWidget> m_owner; // can hold either QMenu or the QMenuBar that contains the action
 };
 
 #endif // QT_NO_MENU

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -39,6 +39,20 @@
 **
 ****************************************************************************/
 
+/****************************************************************************
+**
+** In addition, as a special exception, the copyright holders listed above give
+** permission to link the code of its release of Qt with the OpenSSL project's
+** "OpenSSL" library (or modified versions of the "OpenSSL" library that use the
+** same license as the original version), and distribute the linked executables.
+**
+** You must comply with the GNU General Public License version 2 in all
+** respects for all of the code used other than the "OpenSSL" code.  If you
+** modify this file, you may extend this exception to your version of the file,
+** but you are not obligated to do so.  If you do not wish to do so, delete
+** this exception statement from your version of this file.
+**
+****************************************************************************/
 
 #include "qsslsocket_openssl_symbols_p.h"
 
@@ -53,7 +67,7 @@
 #if defined(Q_OS_UNIX)
 #include <QtCore/qdir.h>
 #endif
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID_NO_SDK)
 #include <link.h>
 #endif
 
@@ -231,6 +245,10 @@ DEFINEFUNC3(void, SSL_set_bio, SSL *a, a, BIO *b, b, BIO *c, c, return, DUMMYARG
 DEFINEFUNC(void, SSL_set_accept_state, SSL *a, a, return, DUMMYARG)
 DEFINEFUNC(void, SSL_set_connect_state, SSL *a, a, return, DUMMYARG)
 DEFINEFUNC(int, SSL_shutdown, SSL *a, a, return -1, return)
+DEFINEFUNC2(int, SSL_set_session, SSL* to, to, SSL_SESSION *session, session, return -1, return)
+DEFINEFUNC(void, SSL_SESSION_free, SSL_SESSION *ses, ses, return, DUMMYARG)
+DEFINEFUNC(SSL_SESSION*, SSL_get1_session, SSL *ssl, ssl, return 0, return)
+DEFINEFUNC(SSL_SESSION*, SSL_get_session, const SSL *ssl, ssl, return 0, return)
 #if OPENSSL_VERSION_NUMBER >= 0x10000000L
 #ifndef OPENSSL_NO_SSL2
 DEFINEFUNC(const SSL_METHOD *, SSLv2_client_method, DUMMYARG, DUMMYARG, return 0, return)
@@ -310,6 +328,8 @@ DEFINEFUNC(void, OPENSSL_add_all_algorithms_conf, void, DUMMYARG, return, DUMMYA
 DEFINEFUNC3(int, SSL_CTX_load_verify_locations, SSL_CTX *ctx, ctx, const char *CAfile, CAfile, const char *CApath, CApath, return 0, return)
 DEFINEFUNC(long, SSLeay, void, DUMMYARG, return 0, return)
 DEFINEFUNC(const char *, SSLeay_version, int a, a, return 0, return)
+DEFINEFUNC2(int, i2d_SSL_SESSION, SSL_SESSION *in, in, unsigned char **pp, pp, return 0, return)
+DEFINEFUNC3(SSL_SESSION *, d2i_SSL_SESSION, SSL_SESSION **a, a, const unsigned char **pp, pp, long length, length, return 0, return)
 
 #define RESOLVEFUNC(func) \
     if (!(_q_##func = _q_PTR_##func(libs.first->resolve(#func)))     \
@@ -365,7 +385,7 @@ static bool libGreaterThan(const QString &lhs, const QString &rhs)
     return true;
 }
 
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID_NO_SDK)
 static int dlIterateCallback(struct dl_phdr_info *info, size_t size, void *data)
 {
     if (size < sizeof (info->dlpi_addr) + sizeof (info->dlpi_name))
@@ -396,7 +416,9 @@ static QStringList libraryPathList()
     paths << QLatin1String("/lib64") << QLatin1String("/usr/lib64") << QLatin1String("/usr/local/lib64");
     paths << QLatin1String("/lib32") << QLatin1String("/usr/lib32") << QLatin1String("/usr/local/lib32");
 
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_ANDROID_NO_SDK)
+    paths << QLatin1String("/system/lib");
+#elif defined(Q_OS_LINUX)
     // discover paths of already loaded libraries
     QSet<QString> loadedPaths;
     dl_iterate_phdr(dlIterateCallback, &loadedPaths);
@@ -443,28 +465,46 @@ static QStringList findAllLibCrypto()
 # endif
 
 #ifdef Q_OS_WIN
+static bool tryToLoadOpenSslWin32Library(QLatin1String ssleay32LibName, QLatin1String libeay32LibName, QPair<QSystemLibrary*, QSystemLibrary*> &pair)
+{
+    pair.first = 0;
+    pair.second = 0;
+
+    QSystemLibrary *ssleay32 = new QSystemLibrary(ssleay32LibName);
+    if (!ssleay32->load(false)) {
+        delete ssleay32;
+        return FALSE;
+    }
+
+    QSystemLibrary *libeay32 = new QSystemLibrary(libeay32LibName);
+    if (!libeay32->load(false)) {
+        delete ssleay32;
+        delete libeay32;
+        return FALSE;
+    }
+
+    pair.first = ssleay32;
+    pair.second = libeay32;
+    return TRUE;
+}
+
 static QPair<QSystemLibrary*, QSystemLibrary*> loadOpenSslWin32()
 {
     QPair<QSystemLibrary*,QSystemLibrary*> pair;
     pair.first = 0;
     pair.second = 0;
 
-    QSystemLibrary *ssleay32 = new QSystemLibrary(QLatin1String("ssleay32"));
-    if (!ssleay32->load(false)) {
-        // Cannot find ssleay32.dll
-        delete ssleay32;
-        return pair;
+    // When OpenSSL is built using MSVC then the libraries are named 'ssleay32.dll' and 'libeay32'dll'.
+    // When OpenSSL is built using GCC then different library names are used (depending on the OpenSSL version)
+    // The oldest version of a GCC-based OpenSSL which can be detected by the code below is 0.9.8g (released in 2007)
+    if (!tryToLoadOpenSslWin32Library(QLatin1String("ssleay32"), QLatin1String("libeay32"), pair)) {
+        if (!tryToLoadOpenSslWin32Library(QLatin1String("libssl-10"), QLatin1String("libcrypto-10"), pair)) {
+            if (!tryToLoadOpenSslWin32Library(QLatin1String("libssl-8"), QLatin1String("libcrypto-8"), pair)) {
+                tryToLoadOpenSslWin32Library(QLatin1String("libssl-7"), QLatin1String("libcrypto-7"), pair);
+            }
+        }
     }
 
-    QSystemLibrary *libeay32 = new QSystemLibrary(QLatin1String("libeay32"));
-    if (!libeay32->load(false)) {
-        delete ssleay32;
-        delete libeay32;
-        return pair;
-    }
-
-    pair.first = ssleay32;
-    pair.second = libeay32;
     return pair;
 }
 #else
@@ -685,6 +725,10 @@ bool q_resolveOpenSslSymbols()
     RESOLVEFUNC(SSL_set_bio)
     RESOLVEFUNC(SSL_set_connect_state)
     RESOLVEFUNC(SSL_shutdown)
+    RESOLVEFUNC(SSL_set_session)
+    RESOLVEFUNC(SSL_SESSION_free)
+    RESOLVEFUNC(SSL_get1_session)
+    RESOLVEFUNC(SSL_get_session)
     RESOLVEFUNC(SSL_write)
 #ifndef OPENSSL_NO_SSL2
     RESOLVEFUNC(SSLv2_client_method)
@@ -755,6 +799,8 @@ bool q_resolveOpenSslSymbols()
     RESOLVEFUNC(SSL_CTX_load_verify_locations)
     RESOLVEFUNC(SSLeay)
     RESOLVEFUNC(SSLeay_version)
+    RESOLVEFUNC(i2d_SSL_SESSION)
+    RESOLVEFUNC(d2i_SSL_SESSION)
 
     symbolsResolved = true;
     delete libs.first;

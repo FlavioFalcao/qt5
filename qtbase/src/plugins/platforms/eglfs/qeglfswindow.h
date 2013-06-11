@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -65,10 +65,16 @@ public:
     void create();
     void destroy();
 
-private:
-    WId m_winid;
+    virtual void invalidateSurface();
+    virtual void resetSurface();
+
+protected:
     EGLSurface m_surface;
     EGLNativeWindowType m_window;
+
+private:
+    WId m_winid;
+    EGLConfig m_config;
     QSurfaceFormat m_format;
 };
 QT_END_NAMESPACE

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -68,6 +68,7 @@ QStringList Generator::imageDirs;
 QStringList Generator::imageFiles;
 QMap<QString, QStringList> Generator::imgFileExts;
 QString Generator::outDir_;
+QString Generator::outSubdir_;
 QSet<QString> Generator::outputFormats;
 QHash<QString, QString> Generator::outputPrefixes;
 QString Generator::project;
@@ -96,6 +97,7 @@ QStringList Generator::styleDirs;
 QStringList Generator::styleFiles;
 bool Generator::debugging_ = false;
 bool Generator::noLinkErrors_ = false;
+bool Generator::redirectDocumentationToDevNull_ = false;
 Generator::Passes Generator::qdocPass_ = Both;
 
 void Generator::setDebugSegfaultFlag(bool b)
@@ -267,7 +269,8 @@ void Generator::beginSubPage(const InnerNode* node, const QString& fileName)
     path += fileName;
     Generator::debugSegfault("Writing: " + path);
     outFileNames.insert(fileName,fileName);
-    QFile* outFile = new QFile(path);
+
+    QFile* outFile = new QFile(redirectDocumentationToDevNull_ ? QStringLiteral("/dev/null") : path);
     if (!outFile->open(QFile::WriteOnly))
         node->location().fatal(tr("Cannot open output file '%1'").arg(outFile->fileName()));
     QTextStream* out = new QTextStream(outFile);
@@ -360,7 +363,7 @@ QString Generator::fileBase(const Node *node) const
         QChar c = base.at(i);
         uint u = c.unicode();
         if (u >= 'A' && u <= 'Z')
-            u -= 'A' - 'a';
+            u += 'a' - 'A';
         if ((u >= 'a' &&  u <= 'z') || (u >= '0' && u <= '9')) {
             res += QLatin1Char(u);
             begun = true;
@@ -476,13 +479,7 @@ QString Generator::fullDocumentLocation(const Node *node, bool subdir)
     switch (node->type()) {
     case Node::Class:
     case Node::Namespace:
-        if (parentNode && !parentNode->name().isEmpty()) {
-            parentName.remove(QLatin1Char('.') + currentGenerator()->fileExtension());
-            parentName +=  QLatin1Char('-')
-                    + fileBase(node).toLower() + QLatin1Char('.') + currentGenerator()->fileExtension();
-        } else {
-            parentName = fileBase(node) + QLatin1Char('.') + currentGenerator()->fileExtension();
-        }
+        parentName = fileBase(node) + QLatin1Char('.') + currentGenerator()->fileExtension();
         break;
     case Node::Function:
     {
@@ -659,7 +656,7 @@ void Generator::generateBody(const Node *node, CodeMarker *marker)
         }
     }
     if (node->doc().isEmpty()) {
-        if (!quiet && !node->isReimp()) { // ### might be unnecessary
+        if (!node->isWrapper() && !quiet && !node->isReimp()) { // ### might be unnecessary
             node->location().warning(tr("No documentation for '%1'").arg(node->plainFullName()));
         }
     }
@@ -1478,12 +1475,16 @@ QString Generator::indent(int level, const QString& markedCode)
 void Generator::initialize(const Config &config)
 {
     outputFormats = config.getOutputFormats();
+    redirectDocumentationToDevNull_ = config.getBool(CONFIG_REDIRECTDOCUMENTATIONTODEVNULL);
     if (!outputFormats.isEmpty()) {
         outDir_ = config.getOutputDir();
-
-        if (outDir_.isEmpty())
+        if (outDir_.isEmpty()) {
             config.lastLocation().fatal(tr("No output directory specified in "
                                            "configuration file or on the command line"));
+        }
+        else {
+            outSubdir_ = outDir_.mid(outDir_.lastIndexOf('/') + 1);
+        }
 
         QDir dirInfo;
         if (dirInfo.exists(outDir_)) {
@@ -1628,8 +1629,12 @@ void Generator::augmentImageDirs(QSet<QString>& moreImageDirs)
     }
 }
 
-void Generator::initializeGenerator(const Config & /* config */)
+/*!
+  Sets the generator's pointer to the Config instance.
+ */
+void Generator::initializeGenerator(const Config& config)
 {
+    config_ = &config;
 }
 
 bool Generator::matchAhead(const Atom *atom, Atom::Type expectedAtomType)

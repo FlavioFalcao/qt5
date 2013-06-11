@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -78,7 +78,7 @@ extern void Q_GUI_EXPORT qNormalizeRadii(const QRect &br, const QSize *radii,
                             QSize *tlr, QSize *trr, QSize *blr, QSize *brr);
 
 QT_END_NAMESPACE
-        
+
 #endif //QT_NO_CSSPARSER
 
 #endif // QCSSUTIL_P_H

@@ -4,10 +4,12 @@ HEADERS +=      kernel/qsql.h \
                 kernel/qsqlfield.h \
                 kernel/qsqlrecord.h \
                 kernel/qsqldriver.h \
+                kernel/qsqldriver_p.h \
                 kernel/qsqlnulldriver_p.h \
                 kernel/qsqldriverplugin.h \
                 kernel/qsqlerror.h \
                 kernel/qsqlresult.h \
+                kernel/qsqlresult_p.h \
                 kernel/qsqlcachedresult_p.h \
                 kernel/qsqlindex.h
 

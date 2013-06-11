@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -266,8 +266,8 @@ QSequentialAnimationGroup::~QSequentialAnimationGroup()
 
 /*!
     Adds a pause of \a msecs to this animation group.
-    The pause is considered as a special type of animation, thus 
-    \l{QAnimationGroup::animationCount()}{animationCount} will be 
+    The pause is considered as a special type of animation, thus
+    \l{QAnimationGroup::animationCount()}{animationCount} will be
     increased by one.
 
     \sa insertPause(), QAnimationGroup::addAnimation()

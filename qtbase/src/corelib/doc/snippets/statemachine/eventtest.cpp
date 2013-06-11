@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -55,11 +55,11 @@ protected:
             if (wrappedEvent->type() == QEvent::KeyPress) {
                 QKeyEvent *keyEvent = static_cast<QKeyEvent *>(wrappedEvent);
                 // Do your event test
-            }       
+            }
         }
         return false;
     }
-//![0]      
+//![0]
 
     void onTransition(QEvent *event)
     {

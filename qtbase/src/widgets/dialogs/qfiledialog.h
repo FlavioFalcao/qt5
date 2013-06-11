@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -44,9 +44,8 @@
 
 #include <QtCore/qdir.h>
 #include <QtCore/qstring.h>
+#include <QtCore/qurl.h>
 #include <QtWidgets/qdialog.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -60,7 +59,6 @@ class QFileIconProvider;
 class QFileDialogPrivate;
 class QAbstractItemDelegate;
 class QAbstractProxyModel;
-class QUrl;
 
 class Q_WIDGETS_EXPORT QFileDialog : public QDialog
 {
@@ -86,13 +84,14 @@ public:
 
     enum Option
     {
-        ShowDirsOnly          = 0x00000001,
-        DontResolveSymlinks   = 0x00000002,
-        DontConfirmOverwrite  = 0x00000004,
-        DontUseSheet          = 0x00000008,
-        DontUseNativeDialog   = 0x00000010,
-        ReadOnly              = 0x00000020,
-        HideNameFilterDetails = 0x00000040
+        ShowDirsOnly                = 0x00000001,
+        DontResolveSymlinks         = 0x00000002,
+        DontConfirmOverwrite        = 0x00000004,
+        DontUseSheet                = 0x00000008,
+        DontUseNativeDialog         = 0x00000010,
+        ReadOnly                    = 0x00000020,
+        HideNameFilterDetails       = 0x00000040,
+        DontUseCustomDirectoryIcons = 0x00000080
     };
     Q_DECLARE_FLAGS(Options, Option)
 
@@ -197,6 +196,14 @@ public:
                                    QString *selectedFilter = 0,
                                    Options options = 0);
 
+    static QUrl getOpenFileUrl(QWidget *parent = 0,
+                               const QString &caption = QString(),
+                               const QUrl &dir = QUrl(),
+                               const QString &filter = QString(),
+                               QString *selectedFilter = 0,
+                               Options options = 0,
+                               const QStringList &supportedSchemes = QStringList());
+
     static QString getSaveFileName(QWidget *parent = 0,
                                    const QString &caption = QString(),
                                    const QString &dir = QString(),
@@ -204,10 +211,24 @@ public:
                                    QString *selectedFilter = 0,
                                    Options options = 0);
 
+    static QUrl getSaveFileUrl(QWidget *parent = 0,
+                               const QString &caption = QString(),
+                               const QUrl &dir = QUrl(),
+                               const QString &filter = QString(),
+                               QString *selectedFilter = 0,
+                               Options options = 0,
+                               const QStringList &supportedSchemes = QStringList());
+
     static QString getExistingDirectory(QWidget *parent = 0,
                                         const QString &caption = QString(),
                                         const QString &dir = QString(),
                                         Options options = ShowDirsOnly);
+
+    static QUrl getExistingDirectoryUrl(QWidget *parent = 0,
+                                        const QString &caption = QString(),
+                                        const QUrl &dir = QUrl(),
+                                        Options options = ShowDirsOnly,
+                                        const QStringList &supportedSchemes = QStringList());
 
     static QStringList getOpenFileNames(QWidget *parent = 0,
                                         const QString &caption = QString(),
@@ -215,6 +236,14 @@ public:
                                         const QString &filter = QString(),
                                         QString *selectedFilter = 0,
                                         Options options = 0);
+
+    static QList<QUrl> getOpenFileUrls(QWidget *parent = 0,
+                                       const QString &caption = QString(),
+                                       const QUrl &dir = QUrl(),
+                                       const QString &filter = QString(),
+                                       QString *selectedFilter = 0,
+                                       Options options = 0,
+                                       const QStringList &supportedSchemes = QStringList());
 
 
 protected:
@@ -242,6 +271,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void _q_updateOkButton())
     Q_PRIVATE_SLOT(d_func(), void _q_currentChanged(const QModelIndex &index))
     Q_PRIVATE_SLOT(d_func(), void _q_enterDirectory(const QModelIndex &index))
+    Q_PRIVATE_SLOT(d_func(), void _q_nativeEnterDirectory(const QString&))
     Q_PRIVATE_SLOT(d_func(), void _q_goToDirectory(const QString &path))
     Q_PRIVATE_SLOT(d_func(), void _q_useNameFilter(int index))
     Q_PRIVATE_SLOT(d_func(), void _q_selectionChanged())
@@ -263,7 +293,5 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QFileDialog::Options)
 #endif // QT_NO_FILEDIALOG
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QFILEDIALOG_H

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -57,11 +57,13 @@
 #  define __IMAGECAPTURE__
 #endif
 
-#if defined(QT_BUILD_QMAKE) || defined(QT_BOOTSTRAPPED)
+#if defined(QT_BOOTSTRAPPED)
 #include <ApplicationServices/ApplicationServices.h>
 #else
 #include <CoreFoundation/CoreFoundation.h>
 #endif
+
+#include "qglobal.h"
 
 #ifndef Q_OS_IOS
 #include <CoreServices/CoreServices.h>
@@ -72,6 +74,12 @@
 #endif
 
 #include "qstring.h"
+
+#if defined( __OBJC__) && defined(QT_NAMESPACE)
+#define QT_NAMESPACE_ALIAS_OBJC_CLASS(__KLASS__) @compatibility_alias __KLASS__ QT_MANGLE_NAMESPACE(__KLASS__)
+#else
+#define QT_NAMESPACE_ALIAS_OBJC_CLASS(__KLASS__)
+#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -106,6 +114,7 @@ public:
 	return *this;
     }
     inline T *operator&() { return &type; }
+    template <typename X> X as() const { return reinterpret_cast<X>(type); }
     static QCFType constructFromGet(const T &t)
     {
         CFRetain(t);
@@ -135,15 +144,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-#if (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_5)
-#ifndef __LP64__
-	typedef float CGFloat;
-        typedef int NSInteger;
-        typedef unsigned int NSUInteger;
-	#define SRefCon SInt32
-	#define URefCon UInt32
-#endif
-#endif
 
 #endif // QCORE_MAC_P_H

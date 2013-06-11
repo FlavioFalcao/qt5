@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -44,8 +44,6 @@
 
 #include <QtCore/qbytearray.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -63,6 +61,7 @@ public:
     QBitArray(const QBitArray &other) : d(other.d) {}
     inline QBitArray &operator=(const QBitArray &other) { d = other.d; return *this; }
 #ifdef Q_COMPILER_RVALUE_REFS
+    inline QBitArray(QBitArray &&other) : d(std::move(other.d)) {}
     inline QBitArray &operator=(QBitArray &&other)
     { qSwap(d, other.d); return *this; }
 #endif
@@ -175,7 +174,5 @@ Q_CORE_EXPORT QDebug operator<<(QDebug, const QBitArray &);
 Q_DECLARE_SHARED(QBitArray)
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QBITARRAY_H

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -396,7 +396,8 @@ QLibrary::LoadHints QPluginLoader::loadHints() const
     \relates QPluginLoader
     \since 5.0
 
-    Registers the given \a plugin with the plugin loader.
+    Registers the \a plugin specified with the plugin loader, and is used
+    by Q_IMPORT_PLUGIN().
 */
 void Q_CORE_EXPORT qRegisterStaticPluginFunction(QStaticPlugin plugin)
 {

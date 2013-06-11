@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -49,7 +49,8 @@ QT_BEGIN_NAMESPACE
 
 const QSsl::SslOptions QSslConfigurationPrivate::defaultSslOptions = QSsl::SslOptionDisableEmptyFragments
                                                                     |QSsl::SslOptionDisableLegacyRenegotiation
-                                                                    |QSsl::SslOptionDisableCompression;
+                                                                    |QSsl::SslOptionDisableCompression
+                                                                    |QSsl::SslOptionDisableSessionPersistence;
 
 /*!
     \class QSslConfiguration
@@ -173,7 +174,7 @@ bool QSslConfiguration::operator==(const QSslConfiguration &other) const
         return true;
     return d->peerCertificate == other.d->peerCertificate &&
         d->peerCertificateChain == other.d->peerCertificateChain &&
-        d->localCertificate == other.d->localCertificate &&
+        d->localCertificateChain == other.d->localCertificateChain &&
         d->privateKey == other.d->privateKey &&
         d->sessionCipher == other.d->sessionCipher &&
         d->ciphers == other.d->ciphers &&
@@ -181,7 +182,10 @@ bool QSslConfiguration::operator==(const QSslConfiguration &other) const
         d->protocol == other.d->protocol &&
         d->peerVerifyMode == other.d->peerVerifyMode &&
         d->peerVerifyDepth == other.d->peerVerifyDepth &&
-        d->sslOptions == other.d->sslOptions;
+        d->allowRootCertOnDemandLoading == other.d->allowRootCertOnDemandLoading &&
+        d->sslOptions == other.d->sslOptions &&
+        d->sslSession == other.d->sslSession &&
+        d->sslSessionTicketLifeTimeHint == other.d->sslSessionTicketLifeTimeHint;
 }
 
 /*!
@@ -208,13 +212,16 @@ bool QSslConfiguration::isNull() const
     return (d->protocol == QSsl::SecureProtocols &&
             d->peerVerifyMode == QSslSocket::AutoVerifyPeer &&
             d->peerVerifyDepth == 0 &&
+            d->allowRootCertOnDemandLoading == true &&
             d->caCertificates.count() == 0 &&
             d->ciphers.count() == 0 &&
-            d->localCertificate.isNull() &&
+            d->localCertificateChain.isEmpty() &&
             d->privateKey.isNull() &&
             d->peerCertificate.isNull() &&
             d->peerCertificateChain.count() == 0 &&
-            d->sslOptions == QSslConfigurationPrivate::defaultSslOptions);
+            d->sslOptions == QSslConfigurationPrivate::defaultSslOptions &&
+            d->sslSession.isNull() &&
+            d->sslSessionTicketLifeTimeHint == -1);
 }
 
 /*!
@@ -311,6 +318,45 @@ void QSslConfiguration::setPeerVerifyDepth(int depth)
 }
 
 /*!
+    Returns the certificate chain to be presented to the peer during
+    the SSL handshake process.
+
+    \sa localCertificate()
+    \since 5.1
+*/
+QList<QSslCertificate> QSslConfiguration::localCertificateChain() const
+{
+    return d->localCertificateChain;
+}
+
+/*!
+    Sets the certificate chain to be presented to the peer during the
+    SSL handshake to be \a localChain.
+
+    Setting the certificate chain once the connection has been
+    established has no effect.
+
+    A certificate is the means of identification used in the SSL
+    process. The local certificate is used by the remote end to verify
+    the local user's identity against its list of Certification
+    Authorities. In most cases, such as in HTTP web browsing, only
+    servers identify to the clients, so the client does not send a
+    certificate.
+
+    Unlike QSslConfiguration::setLocalCertificate() this method allows
+    you to specify any intermediate certificates required in order to
+    validate your certificate. The first item in the list must be the
+    leaf certificate.
+
+    \sa localCertificateChain()
+    \since 5.1
+ */
+void QSslConfiguration::setLocalCertificateChain(const QList<QSslCertificate> &localChain)
+{
+    d->localCertificateChain = localChain;
+}
+
+/*!
     Returns the certificate to be presented to the peer during the SSL
     handshake process.
 
@@ -318,7 +364,9 @@ void QSslConfiguration::setPeerVerifyDepth(int depth)
 */
 QSslCertificate QSslConfiguration::localCertificate() const
 {
-    return d->localCertificate;
+    if (d->localCertificateChain.isEmpty())
+        return QSslCertificate();
+    return d->localCertificateChain[0];
 }
 
 /*!
@@ -339,7 +387,8 @@ QSslCertificate QSslConfiguration::localCertificate() const
 */
 void QSslConfiguration::setLocalCertificate(const QSslCertificate &certificate)
 {
-    d->localCertificate = certificate;
+    d->localCertificateChain = QList<QSslCertificate>();
+    d->localCertificateChain += certificate;
 }
 
 /*!
@@ -519,6 +568,7 @@ QList<QSslCertificate> QSslConfiguration::caCertificates() const
 void QSslConfiguration::setCaCertificates(const QList<QSslCertificate> &certificates)
 {
     d->caCertificates = certificates;
+    d->allowRootCertOnDemandLoading = false;
 }
 
 /*!
@@ -546,6 +596,60 @@ void QSslConfiguration::setSslOption(QSsl::SslOption option, bool on)
 bool QSslConfiguration::testSslOption(QSsl::SslOption option) const
 {
     return d->sslOptions & option;
+}
+
+/*!
+  \since 5.2
+
+  If QSsl::SslOptionDisableSessionPersistence was turned off, this
+  function returns the session used in the SSL handshake in ASN.1
+  format, suitable to e.g. be persisted to disk. If no session was
+  used or QSsl::SslOptionDisableSessionPersistence was not turned off,
+  this function returns an empty QByteArray.
+
+  \b{Note:} When persisting the session to disk or similar, be
+  careful not to expose the session to a potential attacker, as
+  knowledge of the session allows for eavesdropping on data
+  encrypted with the session parameters.
+
+  \sa setSession(), QSsl::SslOptionDisableSessionPersistence, setSslOption()
+ */
+QByteArray QSslConfiguration::session() const
+{
+    return d->sslSession;
+}
+
+/*!
+  \since 5.2
+
+  Sets the session to be used in an SSL handshake.
+  QSsl::SslOptionDisableSessionPersistence must be turned off
+  for this to work, and \a session must be in ASN.1 format
+  as returned by session().
+
+  \sa session(), QSsl::SslOptionDisableSessionPersistence, setSslOption()
+ */
+void QSslConfiguration::setSession(const QByteArray &session)
+{
+    d->sslSession = session;
+}
+
+/*!
+  \since 5.2
+
+  If QSsl::SslOptionDisableSessionPersistence was turned off, this
+  function returns the session ticket life time hint sent by the
+  server (which might be 0).
+  If the server did not send a session ticket (e.g. when
+  resuming a session or when the server does not support it) or
+  QSsl::SslOptionDisableSessionPersistence was not turned off,
+  this function returns -1.
+
+  \sa session(), QSsl::SslOptionDisableSessionPersistence, setSslOption()
+ */
+int QSslConfiguration::sessionTicketLifeTimeHint() const
+{
+    return d->sslSessionTicketLifeTimeHint;
 }
 
 /*!
@@ -580,5 +684,11 @@ void QSslConfiguration::setDefaultConfiguration(const QSslConfiguration &configu
 {
     QSslConfigurationPrivate::setDefaultConfiguration(configuration);
 }
+
+/*! \internal
+*/
+bool QSslConfigurationPrivate::peerSessionWasShared(const QSslConfiguration &configuration) {
+        return configuration.d->peerSessionShared;
+    }
 
 QT_END_NAMESPACE

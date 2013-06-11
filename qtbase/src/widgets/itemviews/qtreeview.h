@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -43,8 +43,6 @@
 #define QTREEVIEW_H
 
 #include <QtWidgets/qabstractitemview.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -146,6 +144,8 @@ public:
     void dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles = QVector<int>());
     void selectAll();
 
+    QSize viewportSizeHint() const;
+
 Q_SIGNALS:
     void expanded(const QModelIndex &index);
     void collapsed(const QModelIndex &index);
@@ -234,7 +234,5 @@ private:
 #endif // QT_NO_TREEVIEW
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QTREEVIEW_H

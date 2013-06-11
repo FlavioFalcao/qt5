@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -57,8 +57,6 @@
 #include <QtCore/qfile.h>
 #include <QtGui/qvector2d.h>
 #include <QtGui/qtouchdevice.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -907,8 +905,16 @@ private:
     Qt::ScreenOrientation m_orientation;
 };
 
-QT_END_NAMESPACE
+class Q_GUI_EXPORT QApplicationStateChangeEvent : public QEvent
+{
+public:
+    explicit QApplicationStateChangeEvent(Qt::ApplicationState state);
+    Qt::ApplicationState applicationState() const;
 
-QT_END_HEADER
+private:
+    Qt::ApplicationState m_applicationState;
+};
+
+QT_END_NAMESPACE
 
 #endif // QEVENT_H

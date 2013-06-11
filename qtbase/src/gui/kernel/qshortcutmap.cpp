@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -317,12 +317,15 @@ QKeySequence::SequenceMatch QShortcutMap::state()
 /*! \internal
     Uses ShortcutOverride event to see if any widgets want to override
     the event. If not, uses nextState(QKeyEvent) to check for a grabbed
-    Shortcut, and dispatchEvent() is found an identical.
+    Shortcut, and dispatchEvent() is found and identical.
     \sa nextState, dispatchEvent
 */
 bool QShortcutMap::tryShortcutEvent(QObject *o, QKeyEvent *e)
 {
     Q_D(QShortcutMap);
+
+    if (e->key() == Qt::Key_unknown)
+        return false;
 
     bool wasAccepted = e->isAccepted();
     bool wasSpontaneous = e->spont;

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -433,7 +433,7 @@ bool QImageIOHandler::supportsOption(ImageOption option) const
     the sequence number of the current image in the animation. If
     this function is called before any image is read(), -1 is
     returned. The number of the first image in the sequence is 0.
-    
+
     If the image format does not support animation, 0 is returned.
 
     \sa read()

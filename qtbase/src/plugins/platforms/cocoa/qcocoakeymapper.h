@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -99,7 +99,6 @@ private:
         const UCKeyboardLayout *unicode;
         void *other;
     } keyboard_layout_format;
-    KeyboardLayoutRef currentKeyboardLayout;
     KeyboardLayoutKind keyboard_kind;
     UInt32 keyboard_dead;
     KeyboardLayoutItem *keyLayout[256];

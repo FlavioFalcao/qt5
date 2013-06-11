@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -66,7 +66,7 @@ public:
     QList<QWidget *> createdWidgets;
     uint defaultWidgetInUse : 1;
     uint autoCreated : 1; // created by QToolBar::addWidget and the like
-    
+
     inline void _q_widgetDestroyed(QObject *o) {
         createdWidgets.removeAll(static_cast<QWidget *>(o));
     }

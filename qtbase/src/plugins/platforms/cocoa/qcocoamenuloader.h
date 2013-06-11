@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -79,7 +79,7 @@
 - (NSMenuItem *)aboutMenuItem;
 - (NSMenuItem *)aboutQtMenuItem;
 - (NSMenuItem *)hideMenuItem;
-- (NSMenuItem *)appSpecificMenuItem;
+- (NSMenuItem *)appSpecificMenuItem:(NSInteger)tag;
 - (IBAction)terminate:(id)sender;
 - (IBAction)orderFrontStandardAboutPanel:(id)sender;
 - (IBAction)hideOtherApplications:(id)sender;
@@ -92,9 +92,11 @@
 - (NSArray *)mergeable;
 @end
 
+QT_NAMESPACE_ALIAS_OBJC_CLASS(QCocoaMenuLoader);
+
 QT_BEGIN_NAMESPACE
 
-void qt_mac_loadMenuNib(QT_MANGLE_NAMESPACE(QCocoaMenuLoader) *qtMenuLoader);
+void qt_mac_loadMenuNib(QCocoaMenuLoader *qtMenuLoader);
 
 QT_END_NAMESPACE
 

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -63,7 +63,7 @@ public slots:
     void populateAccessibilityScene();
     void updateAccessibilitySceneItemFlags();
     void populateAccessibilityTreeScene();
-    void handleUpdate(QObject *object, QAccessible::Event reason);
+    void handleUpdate(QAccessibleEvent *event);
     void setSelected(QObject *object);
 
     void changeScale(int scale);

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -158,7 +158,7 @@ void QProcessPrivate::startProcess()
     if (!pid)
         return;
 
-    if (threadData->eventDispatcher) {
+    if (threadData->hasEventDispatcher()) {
         processFinishedNotifier = new QWinEventNotifier(pid->hProcess, q);
         QObject::connect(processFinishedNotifier, SIGNAL(activated(HANDLE)), q, SLOT(_q_processDied()));
         processFinishedNotifier->setEnabled(true);
@@ -231,6 +231,11 @@ bool QProcessPrivate::waitForStarted(int)
     processError = QProcess::Timedout;
     q->setErrorString(QProcess::tr("Process operation timed out"));
     return false;
+}
+
+bool QProcessPrivate::drainOutputPipes()
+{
+    return true;
 }
 
 bool QProcessPrivate::waitForReadyRead(int msecs)

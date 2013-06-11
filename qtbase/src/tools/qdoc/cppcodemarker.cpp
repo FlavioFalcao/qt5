@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -142,8 +142,8 @@ QString CppCodeMarker::markedUpSynopsis(const Node *node,
         name = linkTag(node, name);
     name = "<@name>" + name + "</@name>";
 
-    if (style == Detailed && !node->parent()->name().isEmpty() &&
-            node->type() != Node::Property)
+    if ((style == Detailed) && !node->parent()->name().isEmpty() &&
+        (node->type() != Node::Property) && !node->isQmlNode())
         name.prepend(taggedNode(node->parent()) + "::");
 
     switch (node->type()) {
@@ -1165,8 +1165,8 @@ QList<Section> CppCodeMarker::qmlSections(const QmlClassNode* qmlClassNode, Syno
                     }
                     ++c;
                 }
-                if (qcn->qmlBase() != 0) {
-                    qcn = static_cast<const QmlClassNode*>(qcn->qmlBase());
+                if (qcn->qmlBaseNode() != 0) {
+                    qcn = static_cast<const QmlClassNode*>(qcn->qmlBaseNode());
                     if (!qcn->isAbstract())
                         qcn = 0;
                 }
@@ -1241,8 +1241,8 @@ QList<Section> CppCodeMarker::qmlSections(const QmlClassNode* qmlClassNode, Syno
                     }
                     ++c;
                 }
-                if (qcn->qmlBase() != 0) {
-                    qcn = static_cast<const QmlClassNode*>(qcn->qmlBase());
+                if (qcn->qmlBaseNode() != 0) {
+                    qcn = static_cast<const QmlClassNode*>(qcn->qmlBaseNode());
                     if (!qcn->isAbstract())
                         qcn = 0;
                 }
@@ -1258,10 +1258,24 @@ QList<Section> CppCodeMarker::qmlSections(const QmlClassNode* qmlClassNode, Syno
             append(sections,qmlattachedmethods);
         }
         else {
+            /*
+              This is where the list of all members including inherited
+              members is prepared.
+             */
+            ClassMap* classMap = 0;
             FastSection all(qmlClassNode,QString(),QString(),"member","members");
-
             const QmlClassNode* current = qmlClassNode;
             while (current != 0) {
+                /*
+                  If the QML type is abstract, do not create
+                  a new entry in the list for it. Instead,
+                  add its members to the current entry.
+                 */
+                if (!current->isAbstract()) {
+                    classMap = new ClassMap;
+                    classMap->first = current;
+                    all.classMapList_.append(classMap);
+                }
                 NodeList::ConstIterator c = current->childNodes().constBegin();
                 while (c != current->childNodes().constEnd()) {
                     if ((*c)->subType() == Node::QmlPropertyGroup) {
@@ -1269,35 +1283,31 @@ QList<Section> CppCodeMarker::qmlSections(const QmlClassNode* qmlClassNode, Syno
                         NodeList::ConstIterator p = qpgn->childNodes().constBegin();
                         while (p != qpgn->childNodes().constEnd()) {
                             if ((*p)->type() == Node::QmlProperty) {
-                                QString key = current->name() + "::" + (*p)->name();
+                                QString key = (*p)->name();
                                 key = sortName(*p, &key);
-                                if (!all.memberMap.contains(key))
-                                    all.memberMap.insert(key,*p);
-                                //insert(all,*p,style,Okay);
+                                all.memberMap.insert(key,*p);
+                                classMap->second.insert(key,*p);
                             }
                             ++p;
                         }
                     }
                     else {
-                        QString key = current->name() + "::" + (*c)->name();
+                        QString key = (*c)->name();
                         key = sortName(*c, &key);
-                        if (!all.memberMap.contains(key))
-                            all.memberMap.insert(key,*c);
-                        //insert(all,*c,style,Okay);
+                        all.memberMap.insert(key,*c);
+                        classMap->second.insert(key,*c);
                     }
                     ++c;
                 }
-                const DocNode* dn = current->qmlBase();
-                if (dn) {
-                    if (dn->subType() == Node::QmlClass)
-                        current = static_cast<const QmlClassNode*>(dn);
-                    else {
-                        dn->doc().location().warning(tr("Base class of QML class '%1' is ambgiguous").arg(current->name()));
-                        current = 0;
-                    }
+                current = current->qmlBaseNode();
+                while (current) {
+                    if (current->isAbstract())
+                        break;
+                    if (current->isInternal())
+                        current = current->qmlBaseNode();
+                    else
+                        break;
                 }
-                else
-                    current = 0;
             }
             append(sections, all, true);
         }

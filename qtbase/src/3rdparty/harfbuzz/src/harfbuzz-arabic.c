@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies)
+ * Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies)
  *
  * This is part of HarfBuzz, an OpenType Layout engine library.
  *
@@ -1114,16 +1114,22 @@ HB_Bool HB_ArabicShape(HB_ShaperItem *item)
 
     if (HB_SelectScript(item, item->item.script == HB_Script_Arabic ? arabic_features : syriac_features)) {
         HB_Bool ot_ok;
-        if (arabicSyriacOpenTypeShape(item, &ot_ok))
+        if (arabicSyriacOpenTypeShape(item, &ot_ok)) {
+            HB_FREE_STACKARRAY(shapedChars);
             return TRUE;
-        if (ot_ok)
+        }
+        if (ot_ok) {
+            HB_FREE_STACKARRAY(shapedChars);
             return FALSE;
             /* fall through to the non OT code*/
+        }
     }
 #endif
 
-    if (item->item.script != HB_Script_Arabic)
+    if (item->item.script != HB_Script_Arabic) {
+        HB_FREE_STACKARRAY(shapedChars);
         return HB_BasicShape(item);
+    }
 
     shapedString(item->string, item->stringLength, item->item.pos, item->item.length, shapedChars, &slen,
                   item->item.bidiLevel % 2,

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -64,10 +64,10 @@ void Parser::error(int rollback) {
 }
 void Parser::error(const char *msg) {
     if (msg || error_msg)
-        qWarning(ErrorFormatString "Error: %s",
+        fprintf(stderr, ErrorFormatString "Error: %s\n",
                  currentFilenames.top().constData(), symbol().lineNum, msg?msg:error_msg);
     else
-        qWarning(ErrorFormatString "Parse error at \"%s\"",
+        fprintf(stderr, ErrorFormatString "Parse error at \"%s\"\n",
                  currentFilenames.top().constData(), symbol().lineNum, symbol().lexem().data());
     exit(EXIT_FAILURE);
 }

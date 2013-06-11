@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -75,6 +75,7 @@ public:
     static QFileSystemEntry getLinkTarget(const QFileSystemEntry &link, QFileSystemMetaData &data);
     static QFileSystemEntry canonicalName(const QFileSystemEntry &entry, QFileSystemMetaData &data);
     static QFileSystemEntry absoluteName(const QFileSystemEntry &entry);
+    static QByteArray id(const QFileSystemEntry &entry);
     static QString resolveUserName(const QFileSystemEntry &entry, QFileSystemMetaData &data);
     static QString resolveGroupName(const QFileSystemEntry &entry, QFileSystemMetaData &data);
 
@@ -83,7 +84,7 @@ public:
     static QString resolveGroupName(uint groupId);
 #endif
 
-#if defined(Q_OS_MAC) && !defined(Q_OS_IOS)
+#if defined(Q_OS_MACX)
     static QString bundleName(const QFileSystemEntry &entry);
 #else
     static QString bundleName(const QFileSystemEntry &entry) { Q_UNUSED(entry) return QString(); }

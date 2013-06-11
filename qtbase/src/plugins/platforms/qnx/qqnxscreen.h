@@ -80,7 +80,7 @@ public:
     int nativeFormat() const { return (depth() == 32) ? SCREEN_FORMAT_RGBA8888 : SCREEN_FORMAT_RGB565; }
     screen_display_t nativeDisplay() const { return m_display; }
     screen_context_t nativeContext() const { return m_screenContext; }
-    const char *windowGroupName() const { return m_rootWindow->groupName().constData(); }
+    const char *windowGroupName() const { return rootWindow()->groupName().constData(); }
 
     QQnxWindow *findWindow(screen_window_t windowHandle);
 
@@ -92,13 +92,17 @@ public:
     void updateHierarchy();
 
     void onWindowPost(QQnxWindow *window);
+    void adjustOrientation();
 
-    QSharedPointer<QQnxRootWindow> rootWindow() const { return m_rootWindow; }
+    QSharedPointer<QQnxRootWindow> rootWindow() const;
+
+    QPlatformCursor *cursor() const;
 
 public Q_SLOTS:
     void setRotation(int rotation);
     void newWindowCreated(void *window);
     void windowClosed(void *window);
+    void windowGroupStateChanged(const QByteArray &id, Qt::WindowState state);
     void activateWindowGroup(const QByteArray &id);
     void deactivateWindowGroup(const QByteArray &id);
 
@@ -112,10 +116,12 @@ private:
     void addOverlayWindow(screen_window_t window);
     void removeOverlayWindow(screen_window_t window);
 
+    QWindow *topMostChildWindow() const;
+
     screen_context_t m_screenContext;
     screen_display_t m_display;
-    QSharedPointer<QQnxRootWindow> m_rootWindow;
-    bool m_primaryScreen;
+    mutable QSharedPointer<QQnxRootWindow> m_rootWindow;
+    const bool m_primaryScreen;
     bool m_posted;
 
     int m_initialRotation;
@@ -130,6 +136,8 @@ private:
 
     QList<QQnxWindow *> m_childWindows;
     QList<screen_window_t> m_overlays;
+
+    QPlatformCursor *m_cursor;
 };
 
 QT_END_NAMESPACE

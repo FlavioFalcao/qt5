@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -194,7 +194,7 @@ QString QSslCipher::keyExchangeMethod() const
 {
     return d->keyExchangeMethod;
 }
- 
+
 /*!
     Returns the cipher's authentication method as a QString.
 */

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -57,13 +57,13 @@ public:
     bool write(const QImage &image);
 
     QByteArray name() const;
-    
+
     int imageCount() const;
     bool jumpToImage(int imageNumber);
     bool jumpToNextImage();
-    
+
     static bool canRead(QIODevice *device);
-    
+
     bool supportsOption(ImageOption option) const;
     QVariant option(ImageOption option) const;
 

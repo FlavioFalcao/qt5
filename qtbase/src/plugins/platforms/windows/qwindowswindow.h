@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -67,8 +67,9 @@ class QWindowsEGLStaticContext;
 struct QWindowsGeometryHint
 {
     QWindowsGeometryHint() {}
-    explicit QWindowsGeometryHint(const QWindow *w);
+    explicit QWindowsGeometryHint(const QWindow *w, const QMargins &customMargins);
     static QMargins frame(DWORD style, DWORD exStyle);
+    static bool handleCalculateSize(const QMargins &customMargins, const MSG &msg, LRESULT *result);
 #ifndef Q_OS_WINCE //MinMax maybe define struct if not available
     void applyToMinMaxInfo(DWORD style, DWORD exStyle, MINMAXINFO *mmi) const;
     void applyToMinMaxInfo(HWND hwnd, MINMAXINFO *mmi) const;
@@ -84,11 +85,13 @@ struct QWindowsGeometryHint
 
     QSize minimumSize;
     QSize maximumSize;
+    QMargins customMargins;
 };
 
 struct QWindowCreationContext
 {
     QWindowCreationContext(const QWindow *w, const QRect &r,
+                           const QMargins &customMargins,
                            DWORD style, DWORD exStyle);
 #ifndef Q_OS_WINCE //MinMax maybe define struct if not available
     void applyToMinMaxInfo(MINMAXINFO *mmi) const
@@ -101,6 +104,7 @@ struct QWindowCreationContext
     QRect requestedGeometry;
     QRect obtainedGeometry;
     QMargins margins;
+    QMargins customMargins;  // User-defined, additional frame for WM_NCCALCSIZE
     int frameX; // Passed on to CreateWindowEx(), including frame.
     int frameY;
     int frameWidth;
@@ -127,7 +131,11 @@ public:
         FrameStrutEventsEnabled = 0x200,
         SynchronousGeometryChangeEvent = 0x400,
         WithinSetStyle = 0x800,
-        WithinDestroy = 0x1000
+        WithinDestroy = 0x1000,
+        TouchRegistered = 0x2000,
+        AlertState = 0x4000,
+        Exposed = 0x08000,
+        WithinCreate = 0x10000
     };
 
     struct WindowData
@@ -137,6 +145,7 @@ public:
         Qt::WindowFlags flags;
         QRect geometry;
         QMargins frame; // Do not use directly for windows, see FrameDirty.
+        QMargins customMargins; // User-defined, additional frame for NCCALCSIZE
         HWND hwnd;
         bool embedded;
 
@@ -154,6 +163,7 @@ public:
 
     virtual void setVisible(bool visible);
     bool isVisible() const;
+    virtual bool isExposed() const { return testFlag(Exposed); }
     virtual bool isActive() const;
     virtual bool isEmbedded(const QPlatformWindow *parentWindow) const;
     virtual QPoint mapToGlobal(const QPoint &pos) const;
@@ -190,6 +200,9 @@ public:
     void setFrameStrutEventsEnabled(bool enabled);
     bool frameStrutEventsEnabled() const { return testFlag(FrameStrutEventsEnabled); }
 
+    QMargins customMargins() const { return m_data.customMargins; }
+    void setCustomMargins(const QMargins &m);
+
 #ifdef QT_OPENGL_ES_2
     EGLSurface eglSurfaceHandle() const { return m_eglSurface;}
     EGLSurface ensureEglSurfaceHandle(const QWindowsEGLStaticContextPtr &staticContext, EGLConfig config);
@@ -206,7 +219,6 @@ public:
 
     void handleMoved();
     void handleResized(int wParam);
-    void handleShown();
     void handleHidden();
 
     static inline HWND handleOf(const QWindow *w);
@@ -215,13 +227,17 @@ public:
     static inline void *userDataOf(HWND hwnd);
     static inline void setUserDataOf(HWND hwnd, void *ud);
 
+    static bool setWindowLayered(HWND hwnd, Qt::WindowFlags flags, bool hasAlpha, qreal opacity);
+
     HDC getDC();
     void releaseDC();
 #ifndef Q_OS_WINCE // maybe available on some SDKs revisit WM_GETMINMAXINFO
     void getSizeHints(MINMAXINFO *mmi) const;
 #endif
 
+#ifndef QT_NO_CURSOR
     QWindowsWindowCursor cursor() const { return m_cursor; }
+#endif
     void setCursor(const QWindowsWindowCursor &c);
     void applyCursor();
 
@@ -241,6 +257,8 @@ public:
     void setWindowIcon(const QIcon &icon);
 
 #ifndef Q_OS_WINCE
+    void setAlertState(bool enabled);
+    bool isAlertState() const { return testFlag(AlertState); }
     void alertWindow(int durationMs = 0);
     void stopAlertWindow();
 #endif
@@ -255,19 +273,23 @@ private:
     inline bool isFullScreen_sys() const;
     inline void setWindowState_sys(Qt::WindowState newState);
     inline void setParent_sys(const QPlatformWindow *parent) const;
+    inline void updateTransientParent() const;
     void destroyWindow();
     void registerDropSite();
     void unregisterDropSite();
     void handleGeometryChange();
     void handleWindowStateChange(Qt::WindowState state);
     inline void destroyIcon();
+    void fireExpose(const QRegion &region, bool force=false);
 
     mutable WindowData m_data;
     mutable unsigned m_flags;
     HDC m_hdc;
     Qt::WindowState m_windowState;
     qreal m_opacity;
+#ifndef QT_NO_CURSOR
     QWindowsWindowCursor m_cursor;
+#endif
     QWindowsOleDropTarget *m_dropTarget;
     unsigned m_savedStyle;
     QRect m_savedFrameGeometry;
@@ -282,17 +304,6 @@ private:
     HICON m_iconSmall;
     HICON m_iconBig;
 };
-
-// Conveniences for window frames.
-inline QRect operator+(const QRect &r, const QMargins &m)
-{
-    return r.adjusted(-m.left(), -m.top(), m.right(), m.bottom());
-}
-
-inline QRect operator-(const QRect &r, const QMargins &m)
-{
-    return r.adjusted(m.left(), m.top(), -m.right(), -m.bottom());
-}
 
 // Debug
 QDebug operator<<(QDebug d, const RECT &r);
@@ -363,5 +374,7 @@ inline void QWindowsWindow::destroyIcon()
 }
 
 QT_END_NAMESPACE
+
+Q_DECLARE_METATYPE(QMargins)
 
 #endif // QWINDOWSWINDOW_H

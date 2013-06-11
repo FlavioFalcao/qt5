@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -407,7 +407,7 @@ bool QmlMarkupVisitor::visit(QQmlJS::AST::Elision *elision)
     return true;
 }
 
-bool QmlMarkupVisitor::visit(QQmlJS::AST::PropertyNameAndValueList *list)
+bool QmlMarkupVisitor::visit(QQmlJS::AST::PropertyNameAndValue *list)
 {
     QQmlJS::AST::Node::accept(list->name, this);
     addVerbatim(list->colonToken, list->colonToken);

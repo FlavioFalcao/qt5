@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -74,7 +74,10 @@ bool QPlatformServices::openDocument(const QUrl &url)
 /*!
  * \brief QPlatformServices::desktopEnvironment returns the active desktop environment.
  *
- * On Unix this function returns KDE, GNOME or UNKNOWN.
+ * On Unix this function returns the uppercase desktop environment name, such as
+ * KDE, GNOME, UNITY, XFCE, LXDE etc. or UNKNOWN if none was detected.
+ * The primary way to detect the desktop environment is the environment variable
+ * XDG_CURRENT_DESKTOP.
  */
 QByteArray QPlatformServices::desktopEnvironment() const
 {

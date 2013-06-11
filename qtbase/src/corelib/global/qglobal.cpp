@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -68,11 +68,11 @@
 #  endif
 #endif
 
-#if defined(Q_OS_VXWORKS)
+#if defined(Q_OS_VXWORKS) && defined(_WRS_KERNEL)
 #  include <envLib.h>
 #endif
 
-#if defined(Q_OS_MAC) && !defined(Q_OS_IOS)
+#if defined(Q_OS_MACX)
 #include <CoreServices/CoreServices.h>
 #endif
 
@@ -235,6 +235,12 @@ Q_CORE_EXPORT void *qMemSet(void *dest, int c, size_t n);
 
 /*!
     \fn QFlags &QFlags::operator&=(uint mask)
+
+    \overload
+*/
+
+/*!
+    \fn QFlags &QFlags::operator&=(Enum mask)
 
     \overload
 */
@@ -643,11 +649,29 @@ Q_CORE_EXPORT void *qMemSet(void *dest, int c, size_t n);
 */
 
 /*!
+    \typedef qintptr
+    \relates <QtGlobal>
+
+    Integral type for representing pointers in a signed integer (useful for
+    hashing, etc.).
+
+    Typedef for either qint32 or qint64. This type is guaranteed to
+    be the same size as a pointer on all platforms supported by Qt. On
+    a system with 32-bit pointers, qintptr is a typedef for qint32;
+    on a system with 64-bit pointers, qintptr is a typedef for
+    qint64.
+
+    Note that qintptr is signed. Use quintptr for unsigned values.
+
+    \sa qptrdiff, qint32, qint64
+*/
+
+/*!
     \typedef quintptr
     \relates <QtGlobal>
 
-    Integral type for representing a pointers (useful for hashing,
-    etc.).
+    Integral type for representing pointers in an unsigned integer (useful for
+    hashing, etc.).
 
     Typedef for either quint32 or quint64. This type is guaranteed to
     be the same size as a pointer on all platforms supported by Qt. On
@@ -828,6 +852,10 @@ Q_CORE_EXPORT void *qMemSet(void *dest, int c, size_t n);
     integer, 0xMMNNPP (MM = major, NN = minor, PP = patch). This can
     be compared with another similarly processed version id.
 
+    Example:
+
+    \snippet code/src_corelib_global_qglobal.cpp qt-version-check
+
     \sa QT_VERSION
 */
 
@@ -906,8 +934,8 @@ bool qSharedBuild() Q_DECL_NOTHROW
     \endlist
 
     Some constants are defined only on certain platforms. You can use
-    the preprocessor symbols Q_OS_WIN and Q_OS_MAC to test that
-    the application is compiled under Windows or Mac.
+    the preprocessor symbols Q_OS_WIN and Q_OS_MACX to test that
+    the application is compiled under Windows or OS X.
 
     \sa QLibraryInfo
 */
@@ -1051,10 +1079,46 @@ bool qSharedBuild() Q_DECL_NOTHROW
 */
 
 /*!
+    \macro Q_OS_MAC
+    \relates <QtGlobal>
+
+    Defined on OS X and iOS (synonym for Q_OS_DARWIN).
+ */
+
+/*!
+    \macro Q_OS_MACX
+    \relates <QtGlobal>
+
+    Defined on OS X.
+ */
+
+/*!
+    \macro Q_OS_IOS
+    \relates <QtGlobal>
+
+    Defined on iOS.
+ */
+
+/*!
+    \macro Q_OS_WIN
+    \relates <QtGlobal>
+
+    Defined on all supported versions of Windows. That is, if
+    \l Q_OS_WIN32, \l Q_OS_WIN64 or \l Q_OS_WINCE is defined.
+*/
+
+/*!
     \macro Q_OS_WIN32
     \relates <QtGlobal>
 
-    Defined on all supported versions of Windows.
+    Defined on 32-bit and 64-bit versions of Windows (not on Windows CE).
+*/
+
+/*!
+    \macro Q_OS_WIN64
+    \relates <QtGlobal>
+
+    Defined on 64-bit versions of Windows.
 */
 
 /*!
@@ -1358,13 +1422,6 @@ bool qSharedBuild() Q_DECL_NOTHROW
 */
 
 /*!
-  \macro Q_OS_MAC
-  \relates <QtGlobal>
-
-  Defined on MAC OS (synonym for Darwin).
- */
-
-/*!
     \macro Q_PROCESSOR_ALPHA
     \relates <QtGlobal>
 
@@ -1609,7 +1666,7 @@ static const unsigned int qt_one = 1;
 const int QSysInfo::ByteOrder = ((*((unsigned char *) &qt_one) == 0) ? BigEndian : LittleEndian);
 #endif
 
-#if defined(Q_OS_MAC) && !defined(Q_OS_IOS)
+#if defined(Q_OS_MACX)
 
 QT_BEGIN_INCLUDE_NAMESPACE
 #include "private/qcore_mac_p.h"
@@ -1631,7 +1688,7 @@ Q_CORE_EXPORT void qt_mac_to_pascal_string(QString s, Str255 str, TextEncoding e
 Q_CORE_EXPORT QString qt_mac_from_pascal_string(const Str255 pstr) {
     return QCFString(CFStringCreateWithPascalString(0, pstr, CFStringGetSystemEncoding()));
 }
-#endif // defined(Q_OS_MAC) && !defined(Q_OS_IOS)
+#endif // defined(Q_OS_MACX)
 
 #if defined(Q_OS_MAC)
 
@@ -1829,6 +1886,8 @@ const QSysInfo::WinVersion QSysInfo::WindowsVersion = QSysInfo::windowsVersion()
     that the current code execution cannot be reached. That is, Q_ASSUME(false)
     is equivalent to Q_UNREACHABLE().
 
+    In debug builds the condition is enforced by an assert to facilitate debugging.
+
     \note Q_LIKELY() tells the compiler that the expression is likely, but not
     the only possibility. Q_ASSUME tells the compiler that it is the only
     possibility.
@@ -1862,6 +1921,8 @@ const QSysInfo::WinVersion QSysInfo::WindowsVersion = QSysInfo::windowsVersion()
 
     By using this macro in impossible conditions, code coverage may be improved
     as dead code paths may be eliminated.
+
+    In debug builds the condition is enforced by an assert to facilitate debugging.
 
     \sa Q_ASSERT(), Q_ASSUME(), qFatal()
 */
@@ -2083,7 +2144,7 @@ QString qt_error_string(int errorCode)
     uses the new replacement function in VC, and calls the standard C
     library's implementation on all other platforms.
 
-    \sa qputenv()
+    \sa qputenv(), qEnvironmentVariableIsSet(), qEnvironmentVariableIsEmpty()
 */
 QByteArray qgetenv(const char *varName)
 {
@@ -2106,10 +2167,9 @@ QByteArray qgetenv(const char *varName)
 
 /*!
     \relates <QtGlobal>
-    \internal
+    \since 5.1
 
-    This function checks whether the environment variable \a varName
-    is empty.
+    Returns whether the environment variable \a varName is empty.
 
     Equivalent to
     \code
@@ -2136,10 +2196,9 @@ bool qEnvironmentVariableIsEmpty(const char *varName) Q_DECL_NOEXCEPT
 
 /*!
     \relates <QtGlobal>
-    \internal
+    \since 5.1
 
-    This function checks whether the environment variable \a varName
-    is set.
+    Returns whether the environment variable \a varName is set.
 
     Equivalent to
     \code
@@ -2167,6 +2226,10 @@ bool qEnvironmentVariableIsSet(const char *varName) Q_DECL_NOEXCEPT
     \a varName. It will create the variable if it does not exist. It
     returns 0 if the variable could not be set.
 
+    Calling qputenv with an empty value removes the environment variable on
+    Windows, and makes it set (but empty) on Unix. Prefer using qunsetenv()
+    for fully portable behavior.
+
     \note qputenv() was introduced because putenv() from the standard
     C library was deprecated in VC2005 (and later versions). qputenv()
     uses the replacement function in VC, and calls the standard C
@@ -2190,6 +2253,39 @@ bool qputenv(const char *varName, const QByteArray& value)
     if (result != 0) // error. we have to delete the string.
         delete[] envVar;
     return result == 0;
+#endif
+}
+
+/*!
+    \relates <QtGlobal>
+
+    This function deletes the variable \a varName from the environment.
+
+    Returns true on success.
+
+    \since 5.1
+
+    \sa qputenv(), qgetenv()
+*/
+bool qunsetenv(const char *varName)
+{
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+    return _putenv_s(varName, "") == 0;
+#elif (defined(_POSIX_VERSION) && (_POSIX_VERSION-0) >= 200112L) || defined(Q_OS_BSD4)
+    // POSIX.1-2001 and BSD have unsetenv
+    return unsetenv(varName) == 0;
+#elif defined(Q_CC_MINGW)
+    // On mingw, putenv("var=") removes "var" from the environment
+    QByteArray buffer(varName);
+    buffer += '=';
+    return putenv(buffer.constData()) == 0;
+#else
+    // Fallback to putenv("var=") which will insert an empty var into the
+    // environment and leak it
+    QByteArray buffer(varName);
+    buffer += '=';
+    char *envVar = qstrdup(buffer.constData());
+    return putenv(envVar) == 0;
 #endif
 }
 
@@ -2788,8 +2884,7 @@ bool QInternal::activateCallbacks(Callback cb, void **parameters)
 
     As a rule of thumb, \c QT_BEGIN_NAMESPACE should appear in all Qt header
     and Qt source files after the last \c{#include} line and before the first
-    declaration. In Qt headers using \c QT_BEGIN_HEADER, \c QT_BEGIN_NAMESPACE
-    follows \c QT_BEGIN_HEADER immediately.
+    declaration.
 
     If that rule can't be followed because, e.g., \c{#include} lines and
     declarations are wildly mixed, place \c QT_BEGIN_NAMESPACE before

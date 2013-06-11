@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -61,6 +61,7 @@ QT_BEGIN_NAMESPACE
 */
 QAbstractNativeEventFilter::QAbstractNativeEventFilter()
 {
+    Q_UNUSED(d);
 }
 
 /*!

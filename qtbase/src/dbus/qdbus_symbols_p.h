@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtDBus module of the Qt Toolkit.
@@ -176,7 +176,7 @@ DEFINEFUNC(dbus_bool_t , dbus_timeout_handle, (DBusTimeout      *timeout),
 
 DEFINEFUNC(dbus_bool_t  , dbus_watch_get_enabled, (DBusWatch        *watch),
            (watch), return)
-DEFINEFUNC(int , dbus_watch_get_fd, (DBusWatch        *watch),
+DEFINEFUNC(int , dbus_watch_get_unix_fd, (DBusWatch        *watch),
            (watch), return)
 DEFINEFUNC(unsigned int , dbus_watch_get_flags, (DBusWatch        *watch),
            (watch), return)

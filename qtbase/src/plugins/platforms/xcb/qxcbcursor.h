@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -72,6 +72,13 @@ private:
     QMap<int, xcb_cursor_t> m_shapeCursorMap;
     QMap<qint64, xcb_cursor_t> m_bitmapCursorMap;
 #endif
+#ifdef XCB_USE_XLIB
+    static void cursorThemePropertyChanged(QXcbScreen *screen,
+                                           const QByteArray &name,
+                                           const QVariant &property,
+                                           void *handle);
+#endif
+    bool m_gtkCursorThemeInitialized;
 };
 
 QT_END_NAMESPACE

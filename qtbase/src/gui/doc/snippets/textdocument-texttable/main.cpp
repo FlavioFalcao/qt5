@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -56,7 +56,7 @@ int main(int argc, char * argv[])
     tableFormat.setCellSpacing(2);
     QTextTable *table = cursor.insertTable(rows, columns);
     table->setFormat(tableFormat);
-    
+
     QTextCharFormat boldFormat;
     boldFormat.setFontWeight(QFont::Bold);
 

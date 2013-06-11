@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
@@ -71,8 +71,6 @@ public:
           busyInsertingRows(false)
     {}
     void clear();
-    static QSqlRecord primaryValues(const QSqlRecord &rec, const QSqlRecord &pIndex);
-    QSqlRecord primaryValues(int index) const;
     virtual void clearCache();
     QSqlRecord record(const QVector<QVariant> &values) const;
 
@@ -96,6 +94,7 @@ public:
     QSqlIndex primaryIndex;
     QString tableName;
     QString filter;
+    QString autoColumn;
 
     enum Op { None, Insert, Update, Delete };
 
@@ -169,7 +168,7 @@ public:
             if (m_op == None || m_op == Insert)
                 return QSqlRecord();
 
-            return QSqlTableModelPrivate::primaryValues(m_db_values, pi);
+            return m_db_values.keyValues(pi);
         }
     private:
         inline static void setGenerated(QSqlRecord& r, bool g)

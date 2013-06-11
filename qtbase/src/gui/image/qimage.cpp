@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -99,8 +99,6 @@ QImageData::QImageData()
       format(QImage::Format_ARGB32), bytes_per_line(0),
       ser_no(qimage_serial_number.fetchAndAddRelaxed(1)),
       detach_no(0),
-      ldpmx(qt_defaultDpiX() * 100 / qreal(2.54)),
-      ldpmy(qt_defaultDpiY() * 100 / qreal(2.54)),
       dpmx(qt_defaultDpiX() * 100 / qreal(2.54)),
       dpmy(qt_defaultDpiY() * 100 / qreal(2.54)),
       offset(0, 0), own_data(true), ro_data(false), has_alpha_clut(false),
@@ -1128,6 +1126,7 @@ QImage QImage::copy(const QRect& r) const
         image.d->colortable = d->colortable;
         image.d->dpmx = d->dpmx;
         image.d->dpmy = d->dpmy;
+        image.d->devicePixelRatio = d->devicePixelRatio;
         image.d->offset = d->offset;
         image.d->has_alpha_clut = d->has_alpha_clut;
         image.d->text = d->text;
@@ -4946,7 +4945,10 @@ QPaintEngine *QImage::paintEngine() const
 
     if (!d->paintEngine) {
         QPaintDevice *paintDevice = const_cast<QImage *>(this);
-        QPaintEngine *paintEngine = QGuiApplicationPrivate::platformIntegration()->createImagePaintEngine(paintDevice);
+        QPaintEngine *paintEngine = 0;
+        QPlatformIntegration *platformIntegration = QGuiApplicationPrivate::platformIntegration();
+        if (platformIntegration)
+            paintEngine = platformIntegration->createImagePaintEngine(paintDevice);
         d->paintEngine = paintEngine ? paintEngine : new QRasterPaintEngine(paintDevice);
     }
 
@@ -4984,20 +4986,25 @@ int QImage::metric(PaintDeviceMetric metric) const
         return d->depth;
 
     case PdmDpiX:
-        return qRound(d->ldpmx * 0.0254);
+        return qRound(d->dpmx * 0.0254);
         break;
 
     case PdmDpiY:
-        return qRound(d->ldpmy * 0.0254);
+        return qRound(d->dpmy * 0.0254);
         break;
 
     case PdmPhysicalDpiX:
-        return qRound(d->dpmx * 0.0254 * d->devicePixelRatio);
+        return qRound(d->dpmx * 0.0254);
         break;
 
     case PdmPhysicalDpiY:
-        return qRound(d->dpmy * 0.0254 * d->devicePixelRatio);
+        return qRound(d->dpmy * 0.0254);
         break;
+
+    case PdmDevicePixelRatio:
+        return d->devicePixelRatio;
+        break;
+
     default:
         qWarning("QImage::metric(): Unhandled metric type %d", metric);
         break;

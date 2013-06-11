@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -109,7 +109,7 @@ static QHash<QHostAddress, QHostAddress> ipv4Netmasks()
     IP_ADAPTER_INFO staticBuf[2]; // 2 is arbitrary
     PIP_ADAPTER_INFO pAdapter = staticBuf;
     ULONG bufSize = sizeof staticBuf;
-    QHash<QHostAddress, QHostAddress> ipv4netmasks; 
+    QHash<QHostAddress, QHostAddress> ipv4netmasks;
 
     DWORD retval = ptrGetAdaptersInfo(pAdapter, &bufSize);
     if (retval == ERROR_BUFFER_OVERFLOW) {

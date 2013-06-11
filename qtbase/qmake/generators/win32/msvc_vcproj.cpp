@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the qmake application of the Qt Toolkit.
@@ -434,18 +434,21 @@ ProStringList VcprojGenerator::collectDependencies(QMakeProject *proj, QHash<QSt
                 projLookup.insert(profileKey, fi.absoluteFilePath());
             }
             QString oldpwd = qmake_getpwd();
+            QString oldoutpwd = Option::output_dir;
             QMakeProject tmp_proj;
             QString dir = fi.absolutePath(), fn = fi.fileName();
             if (!dir.isEmpty()) {
                 if (!qmake_setpwd(dir))
                     fprintf(stderr, "Cannot find directory: %s", dir.toLatin1().constData());
             }
+            Option::output_dir = Option::globals->shadowedPath(QDir::cleanPath(fi.absoluteFilePath()));
             if (tmp_proj.read(fn)) {
                 // Check if all requirements are fulfilled
                 if (!tmp_proj.isEmpty("QMAKE_FAILED_REQUIREMENTS")) {
                     fprintf(stderr, "Project file(%s) not added to Solution because all requirements not met:\n\t%s\n",
                         fn.toLatin1().constData(), tmp_proj.values("QMAKE_FAILED_REQUIREMENTS").join(" ").toLatin1().constData());
                     qmake_setpwd(oldpwd);
+                    Option::output_dir = oldoutpwd;
                     continue;
                 }
                 if (tmp_proj.first("TEMPLATE") == "vcsubdirs") {
@@ -460,13 +463,10 @@ ProStringList VcprojGenerator::collectDependencies(QMakeProject *proj, QHash<QSt
                     // and to be able to extract all the dependencies
                     Option::QMAKE_MODE old_mode = Option::qmake_mode;
                     Option::qmake_mode = Option::QMAKE_GENERATE_NOTHING;
-                    QString old_output_dir = Option::output_dir;
-                    Option::output_dir = QFileInfo(fileFixify(dir, qmake_getpwd(), Option::output_dir)).canonicalFilePath();
                     VcprojGenerator tmp_vcproj;
                     tmp_vcproj.setNoIO(true);
                     tmp_vcproj.setProjectFile(&tmp_proj);
                     Option::qmake_mode = old_mode;
-                    Option::output_dir = old_output_dir;
 
                     // We assume project filename is [QMAKE_PROJECT_NAME].vcproj
                     QString vcproj = unescapeFilePath(tmp_vcproj.project->first("QMAKE_PROJECT_NAME") + project->first("VCPROJ_EXTENSION"));
@@ -578,6 +578,7 @@ ProStringList VcprojGenerator::collectDependencies(QMakeProject *proj, QHash<QSt
                 }
 nextfile:
                 qmake_setpwd(oldpwd);
+                Option::output_dir = oldoutpwd;
             }
         }
     }
@@ -620,8 +621,6 @@ void VcprojGenerator::writeSubDirs(QTextStream &t)
 
     QHash<QString, VcsolutionDepend*> solution_depends;
     QList<VcsolutionDepend*> solution_cleanup;
-
-    QString oldpwd = qmake_getpwd();
 
     // Make sure that all temp projects are configured
     // for release so that the depends are created
@@ -944,7 +943,6 @@ void VcprojGenerator::initConfiguration()
         conf.PrimaryOutput = project->first("TARGET").toQString();
         if ( !conf.PrimaryOutput.isEmpty() && !project->first("TARGET_VERSION_EXT").isEmpty() && project->isActiveConfig("shared"))
             conf.PrimaryOutput.append(project->first("TARGET_VERSION_EXT").toQString());
-        conf.PrimaryOutputExtension = project->first("TARGET_EXT").toQString();
     }
 
     conf.Name = project->values("BUILD_NAME").join(' ');
@@ -981,12 +979,8 @@ void VcprojGenerator::initConfiguration()
         initDeploymentTool();
     initPreLinkEventTools();
 
-    // Set definite values in both configurations
-    if (isDebug) {
-        conf.compiler.PreprocessorDefinitions.removeAll("NDEBUG");
-    } else {
+    if (!isDebug)
         conf.compiler.PreprocessorDefinitions += "NDEBUG";
-    }
 }
 
 void VcprojGenerator::initCompilerTool()
@@ -1001,7 +995,6 @@ void VcprojGenerator::initCompilerTool()
         conf.compiler.Optimization = optimizeDisabled;
     }
     conf.compiler.AssemblerListingLocation = placement ;
-    conf.compiler.ProgramDataBaseFileName = ".\\" ;
     conf.compiler.ObjectFile = placement ;
     conf.compiler.ExceptionHandling = ehNone;
     // PCH
@@ -1061,10 +1054,6 @@ void VcprojGenerator::initLinkerTool()
 
     conf.linker.OutputFile = "$(OutDir)\\";
     conf.linker.OutputFile += project->first("MSVCPROJ_TARGET").toQString();
-
-    if(project->isActiveConfig("dll")){
-        conf.linker.parseOptions(project->values("QMAKE_LFLAGS_QT_DLL"));
-    }
 }
 
 void VcprojGenerator::initResourceTool()

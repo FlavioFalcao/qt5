@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -109,6 +109,8 @@ Qt::KeyboardModifiers QWindowsMouseHandler::keyStateToModifiers(int wParam)
       mods |= Qt::ControlModifier;
     if (wParam & MK_SHIFT)
       mods |= Qt::ShiftModifier;
+    if (GetKeyState(VK_MENU) < 0)
+      mods |= Qt::AltModifier;
     return mods;
 }
 

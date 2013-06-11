@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -662,6 +662,16 @@ bool InnerNode::hasMembers() const
 }
 
 /*!
+  Appends \a node to the members list, if and only if it
+  isn't already in the members list.
+ */
+void InnerNode::addMember(Node* node)
+{
+    if (!members_.contains(node))
+        members_.append(node);
+}
+
+/*!
   Returns true if this node's members collection contains at
   least one namespace node.
  */
@@ -1069,6 +1079,16 @@ void InnerNode::deleteChildren()
  */
 
 /*!
+  Returns true if the node is a class node or a QML type node
+  that is marked as being a wrapper class or QML type, or if
+  it is a member of a wrapper class or type.
+ */
+bool Node::isWrapper() const
+{
+    return (parent_ ? parent_->isWrapper() : false);
+}
+
+/*!
  */
 const Node *InnerNode::findChildNodeByName(const QString& name) const
 {
@@ -1287,7 +1307,7 @@ void InnerNode::removeChild(Node *child)
 }
 
 /*!
-  Find the module (QtCore, QtGui, etc.) to which the class belongs.
+  Find the module (Qt Core, Qt GUI, etc.) to which the class belongs.
   We do this by obtaining the full path to the header file's location
   and examine everything between "src/" and the filename.  This is
   semi-dirty because we are assuming a particular directory structure.
@@ -1430,8 +1450,8 @@ NamespaceNode::NamespaceNode(InnerNode *parent, const QString& name)
 ClassNode::ClassNode(InnerNode *parent, const QString& name)
     : InnerNode(Class, parent, name)
 {
-    hidden = false;
     abstract_ = false;
+    wrapper_ = false;
     qmlelement = 0;
     setPageType(ApiPage);
 }
@@ -2096,8 +2116,9 @@ QmlClassNode::QmlClassNode(InnerNode *parent, const QString& name)
     : DocNode(parent, name, QmlClass, Node::ApiPage),
       abstract_(false),
       cnodeRequired_(false),
+      wrapper_(false),
       cnode_(0),
-      base_(0)
+      baseNode_(0)
 {
     int i = 0;
     if (name.startsWith("QML:")) {
@@ -2161,10 +2182,13 @@ void QmlClassNode::subclasses(const QString& base, NodeList& subs)
   This function splits \a arg on the blank character to get a
   QML module name and version number. It then spilts the version
   number on the '.' character to get a major version number and
-  a minor vrsion number. Both version numbers must be present.
-  It stores these components separately. If all three are found,
-  true is returned. If any of the three is not found or is not
-  correct, false is returned.
+  a minor vrsion number. Both major the major and minor version
+  numbers should be present, but the minor version number is not
+  absolutely necessary.
+
+  It stores the three components separately in this node. If all
+  three are found, true is returned. If any of the three is not
+  found or is not in the correct format, false is returned.
  */
 bool Node::setQmlModuleInfo(const QString& arg)
 {
@@ -2182,6 +2206,20 @@ bool Node::setQmlModuleInfo(const QString& arg)
         }
     }
     return false;
+}
+
+/*!
+  If this QML type node has a base type node,
+  return the fully qualified name of that QML
+  type, i.e. <QML-module-name>::<QML-type-name>.
+ */
+QString QmlClassNode::qmlFullBaseName() const
+{
+    QString result;
+    if (baseNode_) {
+        result = baseNode_->qmlModuleIdentifier() + "::" + baseNode_->name();
+    }
+    return result;
 }
 
 /*!

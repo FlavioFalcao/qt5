@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -59,8 +59,10 @@
 #include "qwindowsguieventdispatcher.h"
 #ifndef QT_NO_CLIPBOARD
 #  include "qwindowsclipboard.h"
+#  ifndef QT_NO_DRAGANDDROP
+#    include "qwindowsdrag.h"
+#  endif
 #endif
-#include "qwindowsdrag.h"
 #include "qwindowsinputcontext.h"
 #include "qwindowskeymapper.h"
 #  ifndef QT_NO_ACCESSIBILITY
@@ -75,6 +77,7 @@
 
 #include <QtCore/private/qeventdispatcher_win_p.h>
 #include <QtCore/QDebug>
+#include <QtCore/QVariant>
 
 QT_BEGIN_NAMESPACE
 
@@ -107,8 +110,18 @@ public:
     Q_INVOKABLE void *createMessageWindow(const QString &classNameTemplate,
                                           const QString &windowName,
                                           void *eventProc) const;
+
+    Q_INVOKABLE QString registerWindowClass(const QString &classNameIn, void *eventProc) const;
+
+    Q_INVOKABLE void beep() { MessageBeep(MB_OK); } // For QApplication
+
     bool asyncExpose() const;
     void setAsyncExpose(bool value);
+
+    QVariantMap windowProperties(QPlatformWindow *window) const;
+    QVariant windowProperty(QPlatformWindow *window, const QString &name) const;
+    QVariant windowProperty(QPlatformWindow *window, const QString &name, const QVariant &defaultValue) const;
+    void setWindowProperty(QPlatformWindow *window, const QString &name, const QVariant &value);
 };
 
 void *QWindowsNativeInterface::nativeResourceForWindow(const QByteArray &resource, QWindow *window)
@@ -143,6 +156,37 @@ void *QWindowsNativeInterface::nativeResourceForBackingStore(const QByteArray &r
         return wbs->getDC();
     qWarning("%s: Invalid key '%s' requested.", __FUNCTION__, resource.constData());
     return 0;
+}
+
+static const char customMarginPropertyC[] = "WindowsCustomMargins";
+
+QVariant QWindowsNativeInterface::windowProperty(QPlatformWindow *window, const QString &name) const
+{
+    QWindowsWindow *platformWindow = static_cast<QWindowsWindow *>(window);
+    if (name == QLatin1String(customMarginPropertyC))
+        return qVariantFromValue(platformWindow->customMargins());
+    return QVariant();
+}
+
+QVariant QWindowsNativeInterface::windowProperty(QPlatformWindow *window, const QString &name, const QVariant &defaultValue) const
+{
+    const QVariant result = windowProperty(window, name);
+    return result.isValid() ? result : defaultValue;
+}
+
+void QWindowsNativeInterface::setWindowProperty(QPlatformWindow *window, const QString &name, const QVariant &value)
+{
+    QWindowsWindow *platformWindow = static_cast<QWindowsWindow *>(window);
+    if (name == QLatin1String(customMarginPropertyC))
+        platformWindow->setCustomMargins(qvariant_cast<QMargins>(value));
+}
+
+QVariantMap QWindowsNativeInterface::windowProperties(QPlatformWindow *window) const
+{
+    QVariantMap result;
+    const QString customMarginProperty = QLatin1String(customMarginPropertyC);
+    result.insert(customMarginProperty, windowProperty(window, customMarginProperty));
+    return result;
 }
 
 #ifndef QT_NO_OPENGL
@@ -184,6 +228,15 @@ void *QWindowsNativeInterface::createMessageWindow(const QString &classNameTempl
                                              (wchar_t*)windowName.utf16(),
                                              (WNDPROC)eventProc);
     return hwnd;
+}
+
+/*!
+    \brief Registers a unique window class with a callback function based on \a classNameIn.
+*/
+
+QString QWindowsNativeInterface::registerWindowClass(const QString &classNameIn, void *eventProc) const
+{
+    return QWindowsContext::instance()->registerWindowClass(classNameIn, (WNDPROC)eventProc);
 }
 
 bool QWindowsNativeInterface::asyncExpose() const
@@ -254,8 +307,10 @@ struct QWindowsIntegrationPrivate
     QWindowsNativeInterface m_nativeInterface;
 #ifndef QT_NO_CLIPBOARD
     QWindowsClipboard m_clipboard;
-#endif
+#  ifndef QT_NO_DRAGANDDROP
     QWindowsDrag m_drag;
+#  endif
+#endif
     QWindowsGuiEventDispatcher *m_eventDispatcher;
 #if defined(QT_OPENGL_ES_2)
     QEGLStaticContextPtr m_staticEGLContext;
@@ -356,6 +411,11 @@ QPlatformWindow *QWindowsIntegration::createPlatformWindow(QWindow *window) cons
     QWindowsWindow::WindowData requested;
     requested.flags = window->flags();
     requested.geometry = window->geometry();
+    // Apply custom margins (see  QWindowsWindow::setCustomMargins())).
+    const QVariant customMarginsV = window->property("_q_windowsCustomMargins");
+    if (customMarginsV.isValid())
+        requested.customMargins = qvariant_cast<QMargins>(customMarginsV);
+
     const QWindowsWindow::WindowData obtained
             = QWindowsWindow::WindowData::create(window, requested, window->title());
     if (QWindowsContext::verboseIntegration || QWindowsContext::verboseWindows)
@@ -414,10 +474,10 @@ QPlatformOpenGLContext
 
 #ifdef Q_OS_WINCE
 // It's not easy to detect if we are running a QML application
-// Let's try to do so by checking if the QtQuick module is loaded.
+// Let's try to do so by checking if the Qt Quick module is loaded.
 inline bool isQMLApplication()
 {
-    // check if the QtQuick library is loaded
+    // check if the Qt Quick module is loaded
 #ifdef _DEBUG
     HMODULE handle = GetModuleHandle(L"Qt5Quick" QT_LIBINFIX L"d.dll");
 #else
@@ -483,7 +543,6 @@ QVariant QWindowsIntegration::styleHint(QPlatformIntegration::StyleHint hint) co
     case QPlatformIntegration::ShowIsFullScreen:
     case QPlatformIntegration::PasswordMaskDelay:
     case QPlatformIntegration::StartDragVelocity:
-    case QPlatformIntegration::SynthesizeMouseFromTouchEvents:
         break; // Not implemented
     case QPlatformIntegration::FontSmoothingGamma:
         return QVariant(QWindowsFontDatabase::fontSmoothingGamma());
@@ -493,6 +552,11 @@ QVariant QWindowsIntegration::styleHint(QPlatformIntegration::StyleHint hint) co
         break;
     case QPlatformIntegration::UseRtlExtensions:
         return QVariant(d->m_context.useRTLExtensions());
+    case QPlatformIntegration::SynthesizeMouseFromTouchEvents:
+        // We do not want Qt to synthesize mouse events as Windows also does that.
+        // Alternatively, Windows-generated touch mouse events can be identified and
+        // ignored by checking GetMessageExtraInfo() for MI_WP_SIGNATURE (0xFF515700).
+       return false;
     }
     return QPlatformIntegration::styleHint(hint);
 }
@@ -517,12 +581,13 @@ QPlatformClipboard * QWindowsIntegration::clipboard() const
 {
     return &d->m_clipboard;
 }
-#endif // !QT_NO_CLIPBOARD
-
+#  ifndef QT_NO_DRAGANDDROP
 QPlatformDrag *QWindowsIntegration::drag() const
 {
     return &d->m_drag;
 }
+#  endif // !QT_NO_DRAGANDDROP
+#endif // !QT_NO_CLIPBOARD
 
 QPlatformInputContext * QWindowsIntegration::inputContext() const
 {

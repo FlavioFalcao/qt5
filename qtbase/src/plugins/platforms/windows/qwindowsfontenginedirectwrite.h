@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -41,6 +41,8 @@
 
 #ifndef QWINDOWSFONTENGINEDIRECTWRITE_H
 #define QWINDOWSFONTENGINEDIRECTWRITE_H
+
+#include <QtCore/qglobal.h>
 
 #ifndef QT_NO_DIRECTWRITE
 
@@ -105,8 +107,6 @@ public:
     static QString fontNameSubstitute(const QString &familyName);
 
 private:
-    friend class QRawFontPrivate;
-
     QImage imageForGlyph(glyph_t t, QFixed subPixelPosition, int margin, const QTransform &xform);
     void collectMetrics();
 

@@ -41,11 +41,12 @@
 
 #include "qqnxbpseventfilter.h"
 #include "qqnxnavigatoreventhandler.h"
-#include "qqnxfiledialoghelper.h"
 #include "qqnxscreen.h"
 #include "qqnxscreeneventhandler.h"
 #include "qqnxvirtualkeyboardbps.h"
+#include "qqnxfiledialoghelper.h"
 
+#include <QCoreApplication>
 #include <QAbstractEventDispatcher>
 #include <QDebug>
 
@@ -53,7 +54,7 @@
 #include <bps/navigator.h>
 #include <bps/screen.h>
 
-#ifdef QQNXBPSEVENTFILTER_DEBUG
+#if defined(QQNXBPSEVENTFILTER_DEBUG)
 #define qBpsEventFilterDebug qDebug
 #else
 #define qBpsEventFilterDebug QT_NO_QDEBUG_MACRO
@@ -87,7 +88,7 @@ void QQnxBpsEventFilter::installOnEventDispatcher(QAbstractEventDispatcher *disp
 {
     qBpsEventFilterDebug() << Q_FUNC_INFO << "dispatcher=" << dispatcher;
 
-    if (navigator_request_events(0) != BPS_SUCCESS)
+    if (navigator_request_events(NAVIGATOR_EXTENDED_DATA) != BPS_SUCCESS)
         qWarning("QQNX: failed to register for navigator events");
 
     dispatcher->installNativeEventFilter(this);
@@ -126,6 +127,7 @@ void QQnxBpsEventFilter::unregisterForScreenEvents(QQnxScreen *screen)
         qWarning("QQNX: failed to unregister for screen events on screen %p", screen->nativeContext());
 }
 
+#if defined(Q_OS_BLACKBERRY_TABLET)
 void QQnxBpsEventFilter::registerForDialogEvents(QQnxFileDialogHelper *dialog)
 {
     if (dialog_request_events(0) != BPS_SUCCESS)
@@ -141,6 +143,7 @@ void QQnxBpsEventFilter::unregisterForDialogEvents(QQnxFileDialogHelper *dialog)
     if (count == 0)
         qWarning("QQNX: attempting to unregister dialog that was not registered");
 }
+#endif // Q_OS_BLACKBERRY_TABLET
 
 bool QQnxBpsEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
 {
@@ -160,12 +163,14 @@ bool QQnxBpsEventFilter::nativeEventFilter(const QByteArray &eventType, void *me
         return m_screenEventHandler->handleEvent(screenEvent);
     }
 
+#if defined(Q_OS_BLACKBERRY_TABLET)
     if (eventDomain == dialog_get_domain()) {
         dialog_instance_t nativeDialog = dialog_event_get_dialog_instance(event);
         QQnxFileDialogHelper *dialog = m_dialogMapper.value(nativeDialog, 0);
         if (dialog)
             return dialog->handleEvent(event);
     }
+#endif
 
     if (eventDomain == navigator_get_domain())
         return handleNavigatorEvent(event);
@@ -210,6 +215,26 @@ bool QQnxBpsEventFilter::handleNavigatorEvent(bps_event_t *event)
         m_navigatorEventHandler->handleExit();
         break;
 
+    case NAVIGATOR_WINDOW_STATE: {
+        qBpsEventFilterDebug() << Q_FUNC_INFO << "WINDOW STATE event";
+        const navigator_window_state_t state = navigator_event_get_window_state(event);
+        const QByteArray id(navigator_event_get_groupid(event));
+
+        switch (state) {
+        case NAVIGATOR_WINDOW_FULLSCREEN:
+            m_navigatorEventHandler->handleWindowGroupStateChanged(id, Qt::WindowFullScreen);
+            break;
+        case NAVIGATOR_WINDOW_THUMBNAIL:
+            m_navigatorEventHandler->handleWindowGroupStateChanged(id, Qt::WindowMinimized);
+            break;
+        case NAVIGATOR_WINDOW_INVISIBLE:
+            m_navigatorEventHandler->handleWindowGroupDeactivated(id);
+            break;
+        }
+
+        break;
+    }
+
     case NAVIGATOR_WINDOW_ACTIVE: {
         qBpsEventFilterDebug() << Q_FUNC_INFO << "WINDOW ACTIVE event";
         const QByteArray id(navigator_event_get_groupid(event));
@@ -223,6 +248,11 @@ bool QQnxBpsEventFilter::handleNavigatorEvent(bps_event_t *event)
         m_navigatorEventHandler->handleWindowGroupDeactivated(id);
         break;
     }
+
+    case NAVIGATOR_LOW_MEMORY:
+        qWarning() << "QGuiApplication based process" << QCoreApplication::applicationPid()
+                   << "received \"NAVIGATOR_LOW_MEMORY\" event";
+        return false;
 
     default:
         qBpsEventFilterDebug() << Q_FUNC_INFO << "Unhandled navigator event. code=" << bps_event_get_code(event);

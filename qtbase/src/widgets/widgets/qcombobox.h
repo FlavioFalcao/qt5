@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -47,8 +47,6 @@
 #include <QtCore/qabstractitemmodel.h>
 #include <QtCore/qvariant.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 #ifndef QT_NO_COMBOBOX
@@ -68,6 +66,7 @@ class Q_WIDGETS_EXPORT QComboBox : public QWidget
     Q_PROPERTY(int count READ count)
     Q_PROPERTY(QString currentText READ currentText WRITE setCurrentText NOTIFY currentTextChanged USER true)
     Q_PROPERTY(int currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY currentIndexChanged)
+    Q_PROPERTY(QVariant currentData READ currentData)
     Q_PROPERTY(int maxVisibleItems READ maxVisibleItems WRITE setMaxVisibleItems)
     Q_PROPERTY(int maxCount READ maxCount WRITE setMaxCount)
     Q_PROPERTY(InsertPolicy insertPolicy READ insertPolicy WRITE setInsertPolicy)
@@ -169,8 +168,8 @@ public:
     void setModelColumn(int visibleColumn);
 
     int currentIndex() const;
-
     QString currentText() const;
+    QVariant currentData(int role = Qt::UserRole) const;
 
     QString itemText(int index) const;
     QIcon itemIcon(int index) const;
@@ -279,7 +278,5 @@ inline void QComboBox::insertItem(int aindex, const QString &atext,
 #endif // QT_NO_COMBOBOX
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QCOMBOBOX_H

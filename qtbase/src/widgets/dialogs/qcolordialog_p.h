@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -87,6 +87,7 @@ public:
     void setCurrentColor(QRgb rgb);
     void setCurrentQColor(const QColor &color);
     bool selectColor(const QColor &color);
+    QColor grabScreenColor(const QPoint &p);
 
     int currentAlpha() const;
     void setCurrentAlpha(int a);
@@ -100,6 +101,8 @@ public:
     void _q_newColorTypedIn(QRgb rgb);
     void _q_newCustom(int, int);
     void _q_newStandard(int, int);
+    void _q_pickScreenColor();
+    void releaseColorPicking();
 
     QWellArray *custom;
     QWellArray *standard;
@@ -111,12 +114,16 @@ public:
     QColorShower *cs;
     QLabel *lblBasicColors;
     QLabel *lblCustomColors;
+    QLabel *lblScreenColorInfo;
     QPushButton *ok;
     QPushButton *cancel;
     QPushButton *addCusBt;
+    QPushButton *screenColorPickerButton;
     QColor selectedQColor;
     int nextCust;
     bool smallDisplay;
+    bool screenColorPicking;
+    QRgb beforeScreenColorPicking;
     QSharedPointer<QColorDialogOptions> options;
 
     QPointer<QObject> receiverToDisconnectOnClose;

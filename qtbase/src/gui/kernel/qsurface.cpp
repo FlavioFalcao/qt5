@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -61,6 +61,7 @@ QT_BEGIN_NAMESPACE
     The SurfaceClass enum describes the actual subclass of the surface.
 
     \value Window The surface is an instance of QWindow.
+    \value Offscreen The surface is an instance of QOffscreenSurface.
  */
 
 

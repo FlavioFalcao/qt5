@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -44,9 +44,16 @@
 
 #include <QtCore/qoldbasicatomic.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
+
+#if 0
+// silence syncqt warnings
+QT_END_NAMESPACE
+QT_END_HEADER
+
+#pragma qt_sync_skip_header_check
+#pragma qt_sync_stop_processing
+#endif
 
 #if defined(_LP64)
 
@@ -521,7 +528,5 @@ Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddRelease(qptrdiff valueTo
 #endif // _LP64
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QATOMIC_SPARC_H

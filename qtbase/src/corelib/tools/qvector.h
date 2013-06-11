@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -55,8 +55,6 @@
 #ifdef Q_COMPILER_INITIALIZER_LISTS
 #include <initializer_list>
 #endif
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -140,6 +138,10 @@ public:
     void replace(int i, const T &t);
     void remove(int i);
     void remove(int i, int n);
+    inline void removeFirst() { Q_ASSERT(!isEmpty()); erase(d->begin()); }
+    inline void removeLast();
+    inline T takeFirst() { Q_ASSERT(!isEmpty()); T r = first(); removeFirst(); return r; }
+    inline T takeLast()  { Q_ASSERT(!isEmpty()); T r = last(); removeLast(); return r; }
 
     QVector<T> &fill(const T &t, int size = -1);
 
@@ -200,8 +202,8 @@ public:
     typedef int size_type;
     inline void push_back(const T &t) { append(t); }
     inline void push_front(const T &t) { prepend(t); }
-    void pop_back() { Q_ASSERT(!isEmpty()); erase(d->end() - 1); }
-    void pop_front() { Q_ASSERT(!isEmpty()); erase(d->begin()); }
+    void pop_back() { removeLast(); }
+    void pop_front() { removeFirst(); }
     inline bool empty() const
     { return d->size == 0; }
     inline T& front() { return first(); }
@@ -491,7 +493,7 @@ void QVector<T>::reallocData(const int asize, const int aalloc, QArrayData::Allo
             }
             x->capacityReserved = d->capacityReserved;
         } else {
-            Q_ASSERT(d->alloc == aalloc); // resize, without changing allocation size
+            Q_ASSERT(int(d->alloc) == aalloc); // resize, without changing allocation size
             Q_ASSERT(isDetached());       // can be done only on detached d
             Q_ASSERT(x == d);             // in this case we do not need to allocate anything
             if (asize <= d->size) {
@@ -506,8 +508,7 @@ void QVector<T>::reallocData(const int asize, const int aalloc, QArrayData::Allo
     }
     if (d != x) {
         if (!d->ref.deref()) {
-            Q_ASSERT(!isShared);
-            if (QTypeInfo<T>::isStatic || !aalloc) {
+            if (QTypeInfo<T>::isStatic || !aalloc || (isShared && QTypeInfo<T>::isComplex)) {
                 // data was copy constructed, we need to call destructors
                 // or if !alloc we did nothing to the old 'd'.
                 freeData(d);
@@ -554,6 +555,22 @@ void QVector<T>::append(const T &t)
     else
         *d->end() = copy;
     ++d->size;
+}
+
+template <typename T>
+inline void QVector<T>::removeLast()
+{
+    Q_ASSERT(!isEmpty());
+
+    if (d->alloc) {
+        if (d->ref.isShared()) {
+            reallocData(d->size - 1, int(d->alloc));
+            return;
+        }
+        if (QTypeInfo<T>::isComplex)
+            (d->data() + d->size - 1)->~T();
+        --d->size;
+    }
 }
 
 template <typename T>
@@ -605,6 +622,7 @@ typename QVector<T>::iterator QVector<T>::erase(iterator abegin, iterator aend)
 
     // FIXME we could do a proper realloc, which copy constructs only needed data.
     // FIXME we ara about to delete data maybe it is good time to shrink?
+    // FIXME the shrink is also an issue in removeLast, that is just a copy + reduce of this.
     if (d->alloc) {
         detach();
         abegin = d->begin() + itemsUntouched;
@@ -813,7 +831,5 @@ Q_TEMPLATE_EXTERN template class Q_CORE_EXPORT QVector<QPoint>;
 #endif
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QVECTOR_H

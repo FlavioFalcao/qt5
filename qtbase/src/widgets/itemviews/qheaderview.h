@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -43,8 +43,6 @@
 #define QHEADERVIEW_H
 
 #include <QtWidgets/qabstractitemview.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -86,6 +84,7 @@ public:
     int offset() const;
     int length() const;
     QSize sizeHint() const;
+    void setVisible(bool v);
     int sectionSizeHint(int logicalIndex) const;
 
     int visualIndexAt(int position) const;
@@ -134,6 +133,10 @@ public:
     ResizeMode sectionResizeMode(int logicalIndex) const;
     void setSectionResizeMode(ResizeMode mode);
     void setSectionResizeMode(int logicalIndex, ResizeMode mode);
+
+    void setResizeContentsPrecision(int precision, bool resizeNow = true);
+    int  resizeContentsPrecision() const;
+
 #if QT_DEPRECATED_SINCE(5, 0)
     inline QT_DEPRECATED void setResizeMode(ResizeMode mode)
         { setSectionResizeMode(mode); }
@@ -262,7 +265,5 @@ inline void QHeaderView::showSection(int alogicalIndex)
 #endif // QT_NO_ITEMVIEWS
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QHEADERVIEW_H

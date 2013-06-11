@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -151,9 +151,6 @@ key_t QSharedMemoryPrivate::handle()
   */
 int QSharedMemoryPrivate::createUnixKeyFile(const QString &fileName)
 {
-    if (QFile::exists(fileName))
-        return 0;
-
     int fd = qt_safe_open(QFile::encodeName(fileName).constData(),
             O_EXCL | O_CREAT | O_RDWR, 0640);
     if (-1 == fd) {

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -61,8 +61,6 @@
 #include <qhash.h>
 #include <QtCore>
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
-
 QT_BEGIN_NAMESPACE
 
 class QCocoaTouch
@@ -91,8 +89,6 @@ class QCocoaTouch
 };
 
 QT_END_NAMESPACE
-
-#endif // MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
 
 #endif // QMULTITOUCH_MAC_P_H
 

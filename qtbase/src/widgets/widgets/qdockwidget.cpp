@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -55,7 +55,6 @@
 #include <qtoolbutton.h>
 #include <qdebug.h>
 
-#include <qpa/qplatformwindow.h>
 #include <private/qwidgetresizehandler_p.h>
 
 #include "qdockwidget_p.h"
@@ -1051,11 +1050,6 @@ void QDockWidgetPrivate::setWindowState(bool floating, bool unplug, const QRect 
                 emit q->dockLocationChanged(mwlayout->dockWidgetArea(q));
         }
     }
-
-    if (floating && nativeDeco)
-        if (const QWindow *window = q->windowHandle())
-            if (QPlatformWindow *platformWindow = window->handle())
-                platformWindow->setFrameStrutEventsEnabled(true);
 
     resizer->setActive(QWidgetResizeHandler::Resize, !unplug && floating && !nativeDeco);
 }

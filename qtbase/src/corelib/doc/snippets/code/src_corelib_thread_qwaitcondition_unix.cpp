@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -84,6 +84,6 @@ forever {
         mutex.lock();
     }
     keyPressed.wakeAll();
-    mutex.unlock();          
+    mutex.unlock();
 }
 //! [3]

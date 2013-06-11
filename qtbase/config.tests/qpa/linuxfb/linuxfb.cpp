@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the config.tests of the Qt Toolkit.
@@ -40,6 +40,7 @@
 ****************************************************************************/
 
 #include <linux/fb.h>
+#include <sys/kd.h>
 #include <sys/ioctl.h>
 
 int main(int, char **)

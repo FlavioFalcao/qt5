@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -52,8 +52,6 @@
 #if QT_DEPRECATED_SINCE(5, 0)
 #include <QtCore/qstringlist.h>
 #endif
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -141,6 +139,11 @@ public:
     explicit QImage(const QString &fileName, const char *format = 0);
 
     QImage(const QImage &);
+#ifdef Q_COMPILER_RVALUE_REFS
+    inline QImage(QImage &&other)
+        : QPaintDevice(), d(0)
+    { qSwap(d, other.d); }
+#endif
     ~QImage();
 
     QImage &operator=(const QImage &);
@@ -429,7 +432,5 @@ Q_GUI_EXPORT QDebug operator<<(QDebug, const QImage &);
 
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QIMAGE_H

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -418,7 +418,7 @@ QMimeType QMimeDatabase::mimeTypeForFile(const QString &fileName, MatchMode mode
     } else {
         // Implemented as a wrapper around mimeTypeForFile(QFileInfo), so no mutex.
         QFileInfo fileInfo(fileName);
-        return mimeTypeForFile(fileInfo);
+        return mimeTypeForFile(fileInfo, mode);
     }
 }
 

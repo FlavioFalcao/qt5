@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -133,6 +133,7 @@
 // factory loader
 #include <qcoreapplication.h>
 #include <private/qfactoryloader_p.h>
+#include <QMutexLocker>
 
 // image handlers
 #include <private/qbmphandler_p.h>
@@ -162,11 +163,14 @@ enum _qt_BuiltInFormatType {
 #endif
 #ifndef QT_NO_IMAGEFORMAT_JPEG
     _qt_JpgFormat,
+    _qt_JpegFormat,
 #endif
 #ifdef QT_BUILTIN_GIF_READER
     _qt_GifFormat,
 #endif
+#ifndef QT_NO_IMAGEFORMAT_BMP
     _qt_BmpFormat,
+#endif
 #ifndef QT_NO_IMAGEFORMAT_PPM
     _qt_PpmFormat,
     _qt_PgmFormat,
@@ -186,31 +190,35 @@ struct _qt_BuiltInFormatStruct
 {
     _qt_BuiltInFormatType type;
     const char *extension;
+    const char *mimeType;
 };
 
 static const _qt_BuiltInFormatStruct _qt_BuiltInFormats[] = {
 #ifndef QT_NO_IMAGEFORMAT_PNG
-    {_qt_PngFormat, "png"},
+    {_qt_PngFormat, "png", "image/png"},
 #endif
 #ifndef QT_NO_IMAGEFORMAT_JPEG
-    {_qt_JpgFormat, "jpg"},
+    {_qt_JpgFormat, "jpg", "image/jpeg"},
+    {_qt_JpegFormat, "jpeg"},
 #endif
 #ifdef QT_BUILTIN_GIF_READER
-    {_qt_GifFormat, "gif"},
+    {_qt_GifFormat, "gif", "image/gif"},
 #endif
-    {_qt_BmpFormat, "bmp"},
+#ifndef QT_NO_IMAGEFORMAT_BMP
+    {_qt_BmpFormat, "bmp", "image/bmp"},
+#endif
 #ifndef QT_NO_IMAGEFORMAT_PPM
-    {_qt_PpmFormat, "ppm"},
-    {_qt_PgmFormat, "pgm"},
-    {_qt_PbmFormat, "pbm"},
+    {_qt_PpmFormat, "ppm", "image/x-portable-pixmap"},
+    {_qt_PgmFormat, "pgm", "image/x-portable-graymap"},
+    {_qt_PbmFormat, "pbm", "image/x-portable-bitmap"},
 #endif
 #ifndef QT_NO_IMAGEFORMAT_XBM
-    {_qt_XbmFormat, "xbm"},
+    {_qt_XbmFormat, "xbm", "image/x-xbitmap"},
 #endif
 #ifndef QT_NO_IMAGEFORMAT_XPM
-    {_qt_XpmFormat, "xpm"},
+    {_qt_XpmFormat, "xpm", "image/x-xpixmap"},
 #endif
-    {_qt_NoFormat, ""}
+    {_qt_NoFormat, "", ""}
 };
 
 static QImageIOHandler *createReadHandlerHelper(QIODevice *device,
@@ -226,6 +234,9 @@ static QImageIOHandler *createReadHandlerHelper(QIODevice *device,
     QByteArray suffix;
 
 #ifndef QT_NO_IMAGEFORMATPLUGIN
+    static QMutex mutex;
+    QMutexLocker locker(&mutex);
+
     typedef QMultiMap<int, QString> PluginKeyMap;
 
     // check if we have plugins that support the image format
@@ -422,6 +433,7 @@ static QImageIOHandler *createReadHandlerHelper(QIODevice *device,
 #endif
 #ifndef QT_NO_IMAGEFORMAT_JPEG
             case _qt_JpgFormat:
+            case _qt_JpegFormat:
                 if (QJpegHandler::canRead(device))
                     handler = new QJpegHandler;
                 break;
@@ -1434,6 +1446,10 @@ QByteArray QImageReader::imageFormat(QIODevice *device)
 void supportedImageHandlerFormats(QFactoryLoader *loader,
                                   QImageIOPlugin::Capability cap,
                                   QSet<QByteArray> *result);
+
+void supportedImageHandlerMimeTypes(QFactoryLoader *loader,
+                                  QImageIOPlugin::Capability cap,
+                                  QSet<QByteArray> *result);
 #endif
 
 /*!
@@ -1442,23 +1458,21 @@ void supportedImageHandlerFormats(QFactoryLoader *loader,
     By default, Qt can read the following formats:
 
     \table
-    \header \li Format \li Description
-    \row    \li BMP    \li Windows Bitmap
-    \row    \li GIF    \li Graphic Interchange Format (optional)
-    \row    \li JPG    \li Joint Photographic Experts Group
-    \row    \li JPEG   \li Joint Photographic Experts Group
-    \row    \li PNG    \li Portable Network Graphics
-    \row    \li PBM    \li Portable Bitmap
-    \row    \li PGM    \li Portable Graymap
-    \row    \li PPM    \li Portable Pixmap
-    \row    \li XBM    \li X11 Bitmap
-    \row    \li XPM    \li X11 Pixmap
-    \row    \li SVG    \li Scalable Vector Graphics
+    \header \li Format \li MIME type                    \li Description
+    \row    \li BMP    \li image/bmp                    \li Windows Bitmap
+    \row    \li GIF    \li image/gif                    \li Graphic Interchange Format (optional)
+    \row    \li JPG    \li image/jpeg                   \li Joint Photographic Experts Group
+    \row    \li PNG    \li image/png                    \li Portable Network Graphics
+    \row    \li PBM    \li image/x-portable-bitmap      \li Portable Bitmap
+    \row    \li PGM    \li image/x-portable-graymap     \li Portable Graymap
+    \row    \li PPM    \li image/x-portable-pixmap      \li Portable Pixmap
+    \row    \li XBM    \li image/x-xbitmap              \li X11 Bitmap
+    \row    \li XPM    \li image/x-xpixmap              \li X11 Pixmap
+    \row    \li SVG    \li image/svg+xml                \li Scalable Vector Graphics
     \endtable
 
-    Reading and writing SVG files is supported through Qt's
-    \l{QtSvg Module}{SVG Module}. The \l{QtImageFormats Module}{Image Formats Module}
-    provides support for additional image formats.
+    Reading and writing SVG files is supported through the \l{Qt SVG} module.
+    The \l{Qt Image Formats} module provides support for additional image formats.
 
     Note that the QApplication instance must be created before this function is
     called.
@@ -1482,6 +1496,33 @@ QList<QByteArray> QImageReader::supportedImageFormats()
 
     qSort(sortedFormats);
     return sortedFormats;
+}
+
+/*!
+    Returns the list of MIME types supported by QImageReader.
+
+    Note that the QApplication instance must be created before this function is
+    called.
+
+    \sa supportedImageFormats(), QImageWriter::supportedMimeTypes()
+*/
+
+QList<QByteArray> QImageReader::supportedMimeTypes()
+{
+    QSet<QByteArray> mimeTypes;
+    for (int i = 0; i < _qt_NumFormats; ++i)
+        mimeTypes << _qt_BuiltInFormats[i].mimeType;
+
+#ifndef QT_NO_IMAGEFORMATPLUGIN
+    supportedImageHandlerMimeTypes(loader(), QImageIOPlugin::CanRead, &mimeTypes);
+#endif // QT_NO_IMAGEFORMATPLUGIN
+
+    QList<QByteArray> sortedMimeTypes;
+    for (QSet<QByteArray>::ConstIterator it = mimeTypes.constBegin(); it != mimeTypes.constEnd(); ++it)
+        sortedMimeTypes << *it;
+
+    qSort(sortedMimeTypes);
+    return sortedMimeTypes;
 }
 
 QT_END_NAMESPACE

@@ -1,6 +1,6 @@
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::
-:: Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+:: Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 :: Contact: http://www.qt-project.org/legal
 ::
 :: This file is part of the tools applications of the Qt Toolkit.
@@ -55,7 +55,7 @@ if not exist mkspecs (
     md mkspecs
     if errorlevel 1 goto exit
 )
-perl %QTSRC%bin\syncqt -minimal -module QtCore -outdir %QTDIR% %QTSRC%
+perl %QTSRC%bin\syncqt.pl -minimal -module QtCore -outdir %QTDIR% %QTSRC%
 if errorlevel 1 goto exit
 
 if not exist tools\configure (

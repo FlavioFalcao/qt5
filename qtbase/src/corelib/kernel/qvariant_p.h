@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -150,7 +150,7 @@ inline void v_construct(QVariant::Private *x, const T &t)
 template <class T>
 inline void v_clear(QVariant::Private *d, T* = 0)
 {
-    
+
     if (!QVariantIntegrator<T>::CanUseInternalSpace) {
         //now we need to cast
         //because QVariant::PrivateShared doesn't have a virtual destructor

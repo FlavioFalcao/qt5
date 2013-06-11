@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -288,7 +288,7 @@ void QFutureInterfaceBase::waitForResult(int resultIndex)
         return;
     lock.unlock();
 
-    // To avoid deadlocks and reduce the number of threads used, try to 
+    // To avoid deadlocks and reduce the number of threads used, try to
     // run the runnable in the current thread.
     QThreadPool::globalInstance()->d_func()->stealRunnable(d->runnable);
 

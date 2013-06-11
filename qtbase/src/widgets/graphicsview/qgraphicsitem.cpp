@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -745,9 +745,6 @@
 #include <QtGui/qevent.h>
 #include <QtGui/qinputmethod.h>
 #include <QtWidgets/qgraphicseffect.h>
-#ifndef QT_NO_ACCESSIBILITY
-# include "qaccessible.h"
-#endif
 
 #include <private/qgraphicsitem_p.h>
 #include <private/qgraphicswidget_p.h>
@@ -1661,8 +1658,8 @@ const QGraphicsObject *QGraphicsItem::toGraphicsObject() const
   the parent. You should not \l{QGraphicsScene::addItem()}{add} the
   item to the scene yourself.
 
-  Calling this function on an item that is an ancestor of \a newParent
-  have undefined behaviour.
+  The behavior when calling this function on an item that is an ancestor of
+  \a newParent is undefined.
 
   \sa parentItem(), childItems()
 */
@@ -1867,15 +1864,46 @@ void QGraphicsItem::setFlags(GraphicsItemFlags flags)
             d_ptr->scene->d_func()->updateInputMethodSensitivityInViews();
     }
 
+    if ((flags & ItemIsPanel) != (oldFlags & ItemIsPanel)) {
+        bool becomesPanel = (flags & ItemIsPanel);
+        if ((d_ptr->panelModality != NonModal) && d_ptr->scene) {
+            // update the panel's modal state
+            if (becomesPanel)
+                d_ptr->scene->d_func()->enterModal(this);
+            else
+                d_ptr->scene->d_func()->leaveModal(this);
+        }
+        if (d_ptr->isWidget && (becomesPanel || parentWidget())) {
+            QGraphicsWidget *w = static_cast<QGraphicsWidget *>(this);
+            QGraphicsWidget *focusFirst = w;
+            QGraphicsWidget *focusLast = w;
+            for (;;) {
+                QGraphicsWidget *test = focusLast->d_func()->focusNext;
+                if (!w->isAncestorOf(test) || test == w)
+                    break;
+                focusLast = test;
+            }
 
-    if ((d_ptr->panelModality != NonModal)
-        && d_ptr->scene
-        && (flags & ItemIsPanel) != (oldFlags & ItemIsPanel)) {
-        // update the panel's modal state
-        if (flags & ItemIsPanel)
-            d_ptr->scene->d_func()->enterModal(this);
-        else
-            d_ptr->scene->d_func()->leaveModal(this);
+            if (becomesPanel) {
+                // unlink own widgets from focus chain
+                QGraphicsWidget *beforeMe = w->d_func()->focusPrev;
+                QGraphicsWidget *afterMe = focusLast->d_func()->focusNext;
+                beforeMe->d_func()->focusNext = afterMe;
+                afterMe->d_func()->focusPrev = beforeMe;
+                focusFirst->d_func()->focusPrev = focusLast;
+                focusLast->d_func()->focusNext = focusFirst;
+                if (!isAncestorOf(focusFirst->d_func()->focusNext))
+                    focusFirst->d_func()->focusNext = w;
+            } else if (QGraphicsWidget *pw = parentWidget()) {
+                // link up own widgets to focus chain
+                QGraphicsWidget *beforeMe = pw;
+                QGraphicsWidget *afterMe = pw->d_func()->focusNext;
+                beforeMe->d_func()->focusNext = w;
+                afterMe->d_func()->focusPrev = focusLast;
+                w->d_func()->focusPrev = beforeMe;
+                focusLast->d_func()->focusNext = afterMe;
+            }
+        }
     }
 
     if (d_ptr->scene) {
@@ -2147,6 +2175,8 @@ bool QGraphicsItem::hasCursor() const
 */
 void QGraphicsItem::unsetCursor()
 {
+    if (!d_ptr->hasCursor)
+        return;
     d_ptr->unsetExtra(QGraphicsItemPrivate::ExtraCursor);
     d_ptr->hasCursor = 0;
     if (d_ptr->scene) {
@@ -2257,7 +2287,7 @@ void QGraphicsItemPrivate::setVisibleHelper(bool newVisible, bool explicitly,
                 scene->d_func()->leaveModal(q_ptr);
         }
         if (hasFocus && scene) {
-            // Hiding the closest non-panel ancestor of the focus item
+            // Hiding the focus item or the closest non-panel ancestor of the focus item
             QGraphicsItem *focusItem = scene->focusItem();
             bool clear = true;
             if (isWidget && !focusItem->isPanel()) {
@@ -3154,16 +3184,20 @@ void QGraphicsItem::setActive(bool active)
             // Activate this item.
             d_ptr->scene->setActivePanel(this);
         } else {
-            // Deactivate this item, and reactivate the parent panel,
-            // or the last active panel (if any).
-            QGraphicsItem *nextToActivate = 0;
-            if (d_ptr->parent)
-                nextToActivate = d_ptr->parent->panel();
-            if (!nextToActivate)
-                nextToActivate = d_ptr->scene->d_func()->lastActivePanel;
-            if (nextToActivate == this || isAncestorOf(nextToActivate))
-                nextToActivate = 0;
-            d_ptr->scene->setActivePanel(nextToActivate);
+            QGraphicsItem *activePanel = d_ptr->scene->activePanel();
+            QGraphicsItem *thisPanel = panel();
+            if (!activePanel || activePanel == thisPanel) {
+                // Deactivate this item, and reactivate the parent panel,
+                // or the last active panel (if any).
+                QGraphicsItem *nextToActivate = 0;
+                if (d_ptr->parent)
+                    nextToActivate = d_ptr->parent->panel();
+                if (!nextToActivate)
+                    nextToActivate = d_ptr->scene->d_func()->lastActivePanel;
+                if (nextToActivate == this || isAncestorOf(nextToActivate))
+                    nextToActivate = 0;
+                d_ptr->scene->setActivePanel(nextToActivate);
+            }
         }
     }
 }
@@ -3237,12 +3271,14 @@ void QGraphicsItemPrivate::setFocusHelper(Qt::FocusReason focusReason, bool clim
         if (p->flags() & QGraphicsItem::ItemIsFocusScope) {
             QGraphicsItem *oldFocusScopeItem = p->d_ptr->focusScopeItem;
             p->d_ptr->focusScopeItem = q_ptr;
+            if (oldFocusScopeItem)
+                oldFocusScopeItem->d_ptr->focusScopeItemChange(false);
+            focusScopeItemChange(true);
             if (!p->focusItem() && !focusFromHide) {
-                if (oldFocusScopeItem)
-                    oldFocusScopeItem->d_ptr->focusScopeItemChange(false);
-                focusScopeItemChange(true);
-                // If you call setFocus on a child of a focus scope that
-                // doesn't currently have a focus item, then stop.
+                // Calling setFocus() on a child of a focus scope that does
+                // not have focus changes only the focus scope pointer,
+                // so that focus is restored the next time the scope gains
+                // focus.
                 return;
             }
             break;
@@ -7150,7 +7186,7 @@ void QGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 */
 void QGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    if (flags() & ItemIsSelectable) {
+    if (event->button() == Qt::LeftButton && (flags() & ItemIsSelectable)) {
         bool multiSelect = (event->modifiers() & Qt::ControlModifier) != 0;
         if (event->scenePos() == event->buttonDownScenePos(Qt::LeftButton)) {
             // The item didn't move
@@ -7318,12 +7354,6 @@ void QGraphicsItem::updateMicroFocus()
                 if (scene()->views().at(i) == fw) {
                     if (qApp)
                         qApp->inputMethod()->update(Qt::ImQueryAll);
-
-#ifndef QT_NO_ACCESSIBILITY
-                    // ##### is this correct
-                    if (toGraphicsObject())
-                        QAccessible::updateAccessibility(toGraphicsObject(), 0, QAccessible::StateChanged);
-#endif
                     break;
                     }
                 }
@@ -7336,8 +7366,8 @@ void QGraphicsItem::updateMicroFocus()
 /*!
     This virtual function is called by QGraphicsItem to notify custom items
     that some part of the item's state changes. By reimplementing this
-    function, your can react to a change, and in some cases, (depending on \a
-    change,) adjustments can be made.
+    function, you can react to a change, and in some cases (depending on \a
+    change), adjustments can be made.
 
     \a change is the parameter of the item that is changing. \a value is the
     new value; the type of the value depends on \a change.

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -95,7 +95,7 @@ static QWindow* topLevelAt(const QPoint &pos)
 QBasicDrag::QBasicDrag() :
     m_restoreCursor(false), m_eventLoop(0),
     m_executed_drop_action(Qt::IgnoreAction), m_can_drop(false),
-    m_drag(0), m_drag_icon_window(0), m_cursor_drop_action(Qt::IgnoreAction)
+    m_drag(0), m_drag_icon_window(0)
 {
 }
 
@@ -140,7 +140,6 @@ bool QBasicDrag::eventFilter(QObject *o, QEvent *e)
             QKeyEvent *ke = static_cast<QKeyEvent *>(e);
             if (ke->key() == Qt::Key_Escape && e->type() == QEvent::KeyPress) {
                 cancel();
-                resetDndState(true);
                 disableEventFilter();
                 exitDndEventLoop();
 
@@ -154,13 +153,10 @@ bool QBasicDrag::eventFilter(QObject *o, QEvent *e)
 
         case QEvent::MouseButtonRelease:
             disableEventFilter();
-
             if (canDrop()) {
                 drop(static_cast<QMouseEvent *>(e));
-                resetDndState(false);
             } else {
                 cancel();
-                resetDndState(true);
             }
             exitDndEventLoop();
             return true; // Eat all mouse events
@@ -195,7 +191,7 @@ Qt::DropAction QBasicDrag::drag(QDrag *o)
     return m_executed_drop_action;
 }
 
-void QBasicDrag::resetDndState(bool /* deleteSource */)
+void QBasicDrag::restoreCursor()
 {
     if (m_restoreCursor) {
 #ifndef QT_NO_CURSOR
@@ -207,6 +203,8 @@ void QBasicDrag::resetDndState(bool /* deleteSource */)
 
 void QBasicDrag::startDrag()
 {
+    // ### TODO Check if its really necessary to have m_drag_icon_window
+    // when QDrag is used without a pixmap - QDrag::setPixmap()
     if (!m_drag_icon_window)
         m_drag_icon_window = new QShapedPixmapWindow();
 
@@ -225,6 +223,7 @@ void QBasicDrag::endDrag()
 void QBasicDrag::cancel()
 {
     disableEventFilter();
+    restoreCursor();
     m_drag_icon_window->setVisible(false);
 }
 
@@ -237,6 +236,7 @@ void QBasicDrag::move(const QMouseEvent *)
 void QBasicDrag::drop(const QMouseEvent *)
 {
     disableEventFilter();
+    restoreCursor();
     m_drag_icon_window->setVisible(false);
 }
 

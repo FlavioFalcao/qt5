@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -55,6 +55,16 @@ QT_BEGIN_NAMESPACE
 QString Q_GUI_EXPORT qt_accStripAmp(const QString &text);
 QString Q_GUI_EXPORT qt_accHotKey(const QString &text);
 
+QAccessibleInterface *getOrCreateMenu(QWidget *menu, QAction *action)
+{
+    QAccessibleInterface *iface = QAccessible::queryAccessibleInterface(action);
+    if (!iface) {
+        iface = new QAccessibleMenuItem(menu, action);
+        QAccessible::registerAccessibleInterface(iface);
+    }
+    return iface;
+}
+
 QAccessibleMenu::QAccessibleMenu(QWidget *w)
 : QAccessibleWidget(w)
 {
@@ -76,7 +86,7 @@ QAccessibleInterface *QAccessibleMenu::childAt(int x, int y) const
     QAction *act = menu()->actionAt(menu()->mapFromGlobal(QPoint(x,y)));
     if(act && act->isSeparator())
         act = 0;
-    return act ? new QAccessibleMenuItem(menu(), act) : 0;
+    return act ? getOrCreateMenu(menu(), act) : 0;
 }
 
 QString QAccessibleMenu::text(QAccessible::Text t) const
@@ -98,15 +108,22 @@ QAccessible::Role QAccessibleMenu::role() const
 QAccessibleInterface *QAccessibleMenu::child(int index) const
 {
     if (index < childCount())
-        return new QAccessibleMenuItem(menu(), menu()->actions().at(index));
+        return getOrCreateMenu(menu(), menu()->actions().at(index));
     return 0;
 }
 
 QAccessibleInterface *QAccessibleMenu::parent() const
 {
-    QWidget *parent = menu()->parentWidget();
-    if (qobject_cast<QMenu*>(parent) || qobject_cast<QMenuBar*>(parent)) {
-        return new QAccessibleMenuItem(parent, menu()->menuAction());
+    if (QAction *menuAction = menu()->menuAction()) {
+        QList<QWidget *> parentCandidates;
+        parentCandidates << menu()->parentWidget();
+        parentCandidates << menuAction->associatedWidgets();
+        foreach (QWidget *w, parentCandidates) {
+            if (qobject_cast<QMenu*>(w) || qobject_cast<QMenuBar*>(w)) {
+                if (w->actions().indexOf(menuAction) != -1)
+                    return getOrCreateMenu(w, menuAction);
+            }
+        }
     }
     return QAccessibleWidget::parent();
 }
@@ -139,8 +156,9 @@ int QAccessibleMenuBar::childCount() const
 
 QAccessibleInterface *QAccessibleMenuBar::child(int index) const
 {
-    if (index < childCount())
-        return new QAccessibleMenuItem(menuBar(), menuBar()->actions().at(index));
+    if (index < childCount()) {
+        return getOrCreateMenu(menuBar(), menuBar()->actions().at(index));
+    }
     return 0;
 }
 
@@ -170,7 +188,6 @@ QAccessibleInterface *QAccessibleMenuItem::childAt(int x, int y ) const
         if (childInterface->rect().contains(x,y)) {
             return childInterface;
         }
-        delete childInterface;
     }
     return 0;
 }
@@ -189,7 +206,7 @@ int QAccessibleMenuItem::indexOfChild(const QAccessibleInterface * child) const
 
 bool QAccessibleMenuItem::isValid() const
 {
-    return m_action ? true : false;
+    return m_action && m_owner ? true : false;
 }
 
 QAccessibleInterface *QAccessibleMenuItem::parent() const
@@ -200,7 +217,7 @@ QAccessibleInterface *QAccessibleMenuItem::parent() const
 QAccessibleInterface *QAccessibleMenuItem::child(int index) const
 {
     if (index == 0 && action()->menu())
-        return new QAccessibleMenu(action()->menu());
+        return QAccessible::queryAccessibleInterface(action()->menu());
     return 0;
 }
 

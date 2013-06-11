@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtTest module of the Qt Toolkit.
@@ -399,6 +399,12 @@ void QTestLog::addBenchmarkResult(const QBenchmarkResult &result)
     QTest::TestLoggers::addBenchmarkResult(result);
 }
 
+// don't warn about qInstallMsgHandler
+#if defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 406) && !defined(Q_CC_INTEL)
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 void QTestLog::startLogging()
 {
     QTest::TestLoggers::startLogging();
@@ -413,6 +419,10 @@ void QTestLog::stopLogging()
     QTest::loggerUsingStdout = false;
     saveCoverageTool(QTestResult::currentAppname(), failCount() != 0, QTestLog::installedTestCoverage());
 }
+
+#if defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 406) && !defined(Q_CC_INTEL)
+# pragma GCC diagnostic pop
+#endif
 
 void QTestLog::addLogger(LogMode mode, const char *filename)
 {

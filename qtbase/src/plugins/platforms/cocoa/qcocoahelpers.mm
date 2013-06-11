@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -47,6 +47,7 @@
 #include <QtGui>
 #include <qpa/qplatformscreen.h>
 #include <private/qguiapplication_p.h>
+#include <private/qwindow_p.h>
 
 #ifndef QT_NO_WIDGETS
 #include <QtWidgets/QWidget>
@@ -261,7 +262,7 @@ static const KeyPair entries[NumEntries] = {
     { NSF6FunctionKey, Qt::Key_F6 },
     { NSF7FunctionKey, Qt::Key_F7 },
     { NSF8FunctionKey, Qt::Key_F8 },
-    { NSF9FunctionKey, Qt::Key_F8 },
+    { NSF9FunctionKey, Qt::Key_F9 },
     { NSF10FunctionKey, Qt::Key_F10 },
     { NSF11FunctionKey, Qt::Key_F11 },
     { NSF12FunctionKey, Qt::Key_F12 },
@@ -466,20 +467,17 @@ QString qt_mac_removeMnemonics(const QString &original)
     return returnText;
 }
 
-
-CGColorSpaceRef m_genericColorSpace = 0;
-QHash<CGDirectDisplayID, CGColorSpaceRef> m_displayColorSpaceHash;
-bool m_postRoutineRegistered = false;
+static CGColorSpaceRef m_genericColorSpace = 0;
+static QHash<CGDirectDisplayID, CGColorSpaceRef> m_displayColorSpaceHash;
+static bool m_postRoutineRegistered = false;
 
 CGColorSpaceRef qt_mac_genericColorSpace()
 {
 #if 0
     if (!m_genericColorSpace) {
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4
         if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4) {
             m_genericColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
         } else
-#endif
         {
             m_genericColorSpace = CGColorSpaceCreateDeviceRGB();
         }
@@ -587,10 +585,28 @@ QString qt_mac_applicationName()
     return appName;
 }
 
+/*
+    Mac window coordinates are in the first quadrant: 0, 0 is at the lower-left
+    corner of the primary screen. This function converts the given rect to an
+    NSRect for the window geometry, flipping from 4th quadrant to 1st quadrant
+    and simultaneously ensuring that as much of the window as possible will be
+    onscreen. If the rect is too tall for the screen, the OS will reduce the
+    window's height anyway; but by moving the window upwards we can have more
+    of it onscreen.  But the application can still control the y coordinate
+    in case it really wants the window to be positioned partially offscreen.
+*/
 NSRect qt_mac_flipRect(const QRect &rect, QWindow *window)
 {
     QPlatformScreen *onScreen = QPlatformScreen::platformScreenForWindow(window);
-    int flippedY = onScreen->geometry().height() - rect.y() - rect.height();
+    int flippedY = onScreen->geometry().height() - (rect.y() + rect.height());
+
+    // In case of automatic positioning, try to put as much of the window onscreen as possible.
+    if (window->isTopLevel() && qt_window_private(const_cast<QWindow*>(window))->positionAutomatic && flippedY < 0)
+        flippedY = onScreen->geometry().height() - onScreen->availableGeometry().height() - onScreen->availableGeometry().y();
+#ifdef QT_COCOA_ENABLE_WINDOW_DEBUG
+    qDebug() << Q_FUNC_INFO << rect << "flippedY" << flippedY <<
+                "screen" << onScreen->geometry() << "available" << onScreen->availableGeometry();
+#endif
     return NSMakeRect(rect.x(), flippedY, rect.width(), rect.height());
 }
 
@@ -616,27 +632,19 @@ InvalidContext:
         return err;
 }
 
-CGFloat qt_mac_get_scalefactor()
-{
-    return [[NSScreen mainScreen] userSpaceScaleFactor];
-}
-
 Qt::MouseButton cocoaButton2QtButton(NSInteger buttonNum)
 {
-    switch (buttonNum) {
-    case 0:
+    if (buttonNum == 0)
         return Qt::LeftButton;
-    case 1:
+    if (buttonNum == 1)
         return Qt::RightButton;
-    case 2:
-        return Qt::MidButton;
-    case 3:
-        return Qt::XButton1;
-    case 4:
-        return Qt::XButton2;
-    default:
-        return Qt::NoButton;
+    if (buttonNum == 2)
+        return Qt::MiddleButton;
+    if (buttonNum >= 3 && buttonNum <= 31) { // handle XButton1 and higher via logical shift
+        return Qt::MouseButton(uint(Qt::MiddleButton) << (buttonNum - 3));
     }
+    // else error: buttonNum too high, or negative
+    return Qt::NoButton;
 }
 
 bool qt_mac_execute_apple_script(const char *script, long script_len, AEDesc *ret) {
@@ -722,36 +730,42 @@ QString qt_mac_removeAmpersandEscapes(QString s)
  \warning This function is only available on Mac OS X.
  \warning This function is duplicated in qmacstyle_mac.mm
  */
-CGContextRef qt_mac_cg_context(const QPaintDevice *pdev)
+CGContextRef qt_mac_cg_context(QPaintDevice *pdev)
 {
-    if (pdev->devType() == QInternal::Pixmap) {
-        const QPixmap *pm = static_cast<const QPixmap*>(pdev);
-        CGColorSpaceRef colorspace = qt_mac_colorSpaceForDeviceType(pdev);
-        uint flags = kCGImageAlphaPremultipliedFirst;
-        flags |= kCGBitmapByteOrder32Host;
-        CGContextRef ret = 0;
+    // In Qt 5, QWidget and QPixmap (and QImage) paint devices are all QImages under the hood.
+    QImage *image = 0;
+    if (pdev->devType() == QInternal::Image) {
+        image = static_cast<QImage *>(pdev);
+    } else if (pdev->devType() == QInternal::Pixmap) {
 
+        const QPixmap *pm = static_cast<const QPixmap*>(pdev);
         QPlatformPixmap *data = const_cast<QPixmap *>(pm)->data_ptr().data();
         if (data && data->classId() == QPlatformPixmap::RasterClass) {
-            QImage *image = data->buffer();
-            ret = CGBitmapContextCreate(image->bits(), image->width(), image->height(),
-                                        8, image->bytesPerLine(), colorspace, flags);
+            image = data->buffer();
         } else {
             qDebug() << "qt_mac_cg_context: Unsupported pixmap class";
         }
-
-        CGContextTranslateCTM(ret, 0, pm->height());
-        CGContextScaleCTM(ret, 1, -1);
-        return ret;
     } else if (pdev->devType() == QInternal::Widget) {
-        //CGContextRef ret = static_cast<CGContextRef>(static_cast<const QWidget *>(pdev)->macCGHandle());
-        ///CGContextRetain(ret);
-        //return ret;
+        // TODO test: image = static_cast<QImage *>(static_cast<const QWidget *>(pdev)->backingStore()->paintDevice());
         qDebug() << "qt_mac_cg_context: not implemented: Widget class";
-        return 0;
     }
-    return 0;
+
+    if (!image)
+        return 0; // Context type not supported.
+
+    CGColorSpaceRef colorspace = qt_mac_colorSpaceForDeviceType(pdev);
+    uint flags = kCGImageAlphaPremultipliedFirst;
+    flags |= kCGBitmapByteOrder32Host;
+    CGContextRef ret = 0;
+    ret = CGBitmapContextCreate(image->bits(), image->width(), image->height(),
+                                8, image->bytesPerLine(), colorspace, flags);
+    CGContextTranslateCTM(ret, 0, image->height());
+    CGContextScaleCTM(ret, 1, -1);
+    return ret;
 }
+
+// qpaintengine_mac.mm
+extern void qt_mac_cgimage_data_free(void *, const void *memoryToFree, size_t);
 
 CGImageRef qt_mac_toCGImage(const QImage &qImage, bool isMask, uchar **dataCopy)
 {
@@ -766,8 +780,7 @@ CGImageRef qt_mac_toCGImage(const QImage &qImage, bool isMask, uchar **dataCopy)
 
     const uchar *imageData = qImage.bits();
     if (dataCopy) {
-        delete[] *dataCopy;
-        *dataCopy = new uchar[qImage.byteCount()];
+        *dataCopy = static_cast<uchar *>(malloc(qImage.byteCount()));
         memcpy(*dataCopy, imageData, qImage.byteCount());
     }
     int bitDepth = qImage.depth();
@@ -778,7 +791,7 @@ CGImageRef qt_mac_toCGImage(const QImage &qImage, bool isMask, uchar **dataCopy)
                 NULL,
                 dataCopy ? *dataCopy : imageData,
                 qImage.byteCount(),
-                NULL);
+                dataCopy ? qt_mac_cgimage_data_free : NULL);
 
     CGImageRef cgImage = 0;
     if (isMask) {
@@ -843,5 +856,19 @@ CGImageRef qt_mac_toCGImage(const QImage &qImage, bool isMask, uchar **dataCopy)
     CGDataProviderRelease(cgDataProviderRef);
     return cgImage;
 }
+
+QImage qt_mac_toQImage(CGImageRef image)
+{
+    const size_t w = CGImageGetWidth(image),
+                 h = CGImageGetHeight(image);
+    QImage ret(w, h, QImage::Format_ARGB32_Premultiplied);
+    ret.fill(Qt::transparent);
+    CGRect rect = CGRectMake(0, 0, w, h);
+    CGContextRef ctx = qt_mac_cg_context(&ret);
+    qt_mac_drawCGImage(ctx, &rect, image);
+    CGContextRelease(ctx);
+    return ret;
+}
+
 
 QT_END_NAMESPACE

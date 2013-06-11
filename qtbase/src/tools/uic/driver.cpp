@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -304,7 +304,7 @@ bool Driver::uic(const QString &fileName, QTextStream *out)
         m_output = out;
     } else {
 #ifdef Q_OS_WIN
-        // As one might also redirect the output to a file on win, 
+        // As one might also redirect the output to a file on win,
         // we should not create the textstream with QFile::Text flag.
         // The redirected file is opened in TextMode and this will
         // result in broken line endings as writing will replace \n again.

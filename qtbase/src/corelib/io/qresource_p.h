@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -109,7 +109,7 @@ public:
 
     virtual Iterator *beginEntryList(QDir::Filters filters, const QStringList &filterNames);
     virtual Iterator *endEntryList();
-    
+
     bool extension(Extension extension, const ExtensionOption *option = 0, ExtensionReturn *output = 0);
     bool supportsExtension(Extension extension) const;
 };

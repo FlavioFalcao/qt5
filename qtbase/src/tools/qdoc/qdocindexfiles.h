@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -86,6 +86,7 @@ class QDocIndexFiles
     static QDocIndexFiles* qdocIndexFiles_;
     QDocDatabase* qdb_;
     Generator* gen_;
+    QString project_;
     QList<QPair<ClassNode*,QString> > basesList_;
     QList<QPair<FunctionNode*,QString> > relatedList_;
 

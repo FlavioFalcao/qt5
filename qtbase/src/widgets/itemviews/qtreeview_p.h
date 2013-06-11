@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -148,6 +148,7 @@ public:
 #endif
 
     int firstVisibleItem(int *offset = 0) const;
+    int lastVisibleItem(int firstVisual = -1, int offset = -1) const;
     int columnAt(int x) const;
     bool hasVisibleChildren( const QModelIndex& parent) const;
 
@@ -171,7 +172,7 @@ public:
     // logicalIndices: vector of currently visibly logical indices
     // itemPositions: vector of view item positions (beginning/middle/end/onlyone)
     void calcLogicalIndices(QVector<int> *logicalIndices, QVector<QStyleOptionViewItem::ViewItemPosition> *itemPositions, int left, int right) const;
-
+    int widthHintForIndex(const QModelIndex &index, int hint, const QStyleOptionViewItem &option, int i) const;
     QHeaderView *header;
     int indent;
 
@@ -203,7 +204,7 @@ public:
 
     inline bool isIndexExpanded(const QModelIndex &idx) const {
         //We first check if the idx is a QPersistentModelIndex, because creating QPersistentModelIndex is slow
-        return isPersistent(idx) && expandedIndexes.contains(idx);
+        return !(idx.flags() & Qt::ItemNeverHasChildren) && isPersistent(idx) && expandedIndexes.contains(idx);
     }
 
     // used when hiding and showing items
@@ -229,7 +230,7 @@ public:
         { viewItems[item].height = 0; }
 
     inline int accessibleTable2Index(const QModelIndex &index) const {
-        return (viewIndex(index) + (header ? 1 : 0)) * model->columnCount()+index.column() + 1;
+        return (viewIndex(index) + (header ? 1 : 0)) * model->columnCount()+index.column();
     }
 
     // used for spanning rows

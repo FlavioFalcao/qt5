@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -52,6 +52,8 @@
 //
 // We mean it.
 //
+
+#include <QtCore/qglobal.h>
 
 #ifndef QT_NO_PRINTER
 
@@ -142,6 +144,7 @@ public:
     bool newPage_helper();
     void setPaperSize(QPrinter::PaperSize ps);
     QPrinter::PaperSize paperSize() const;
+    void setPaperName(const QString &name);
     QList<QVariant> supportedResolutions() const;
     inline bool isPrintSessionInitialized() const
     {

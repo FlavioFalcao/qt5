@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -136,6 +136,10 @@
 #define GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT      0x0001
 #endif
 
+#ifndef GL_CONTEXT_FLAG_DEBUG_BIT
+#define GL_CONTEXT_FLAG_DEBUG_BIT 0x00000002
+#endif
+
 QT_BEGIN_NAMESPACE
 
 template <class MaskType, class FlagType> inline bool testFlag(MaskType mask, FlagType flag)
@@ -228,6 +232,7 @@ static QSurfaceFormat
                                          QWindowsOpenGLAdditionalFormat *additionalIn = 0)
 {
     QSurfaceFormat format;
+    format.setRenderableType(QSurfaceFormat::OpenGL);
     if (pfd.dwFlags & PFD_DOUBLEBUFFER)
         format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
     format.setDepthBufferSize(pfd.cDepthBits);
@@ -274,7 +279,7 @@ static PIXELFORMATDESCRIPTOR
 
     if (format.stereo())
         pfd.dwFlags |= PFD_STEREO;
-    if (format.swapBehavior() == QSurfaceFormat::DoubleBuffer && !isPixmap)
+    if (format.swapBehavior() != QSurfaceFormat::SingleBuffer && !isPixmap)
         pfd.dwFlags |= PFD_DOUBLEBUFFER;
     pfd.cDepthBits =
         format.depthBufferSize() >= 0 ? format.depthBufferSize() : 32;
@@ -384,12 +389,11 @@ static int choosePixelFormat(HDC hdc,
     iAttributes[i++] = WGL_COLOR_BITS_ARB;
     iAttributes[i++] = 24;
     switch (format.swapBehavior()) {
-    case QSurfaceFormat::DefaultSwapBehavior:
-        break;
     case QSurfaceFormat::SingleBuffer:
         iAttributes[i++] = WGL_DOUBLE_BUFFER_ARB;
         iAttributes[i++] = FALSE;
         break;
+    case QSurfaceFormat::DefaultSwapBehavior:
     case QSurfaceFormat::DoubleBuffer:
     case QSurfaceFormat::TripleBuffer:
         iAttributes[i++] = WGL_DOUBLE_BUFFER_ARB;
@@ -496,6 +500,7 @@ static QSurfaceFormat
     enum { attribSize =40 };
 
     QSurfaceFormat result;
+    result.setRenderableType(QSurfaceFormat::OpenGL);
     if (!staticContext.hasExtensions())
         return result;
     int iAttributes[attribSize];
@@ -608,8 +613,12 @@ static HGLRC createContext(const QOpenGLStaticContext &staticContext,
 
     const HGLRC result =
         staticContext.wglCreateContextAttribsARB(hdc, shared, attributes);
-    if (!result)
-        qErrnoWarning("%s: wglCreateContextAttribsARB() failed.", __FUNCTION__);
+    if (!result) {
+        QString message;
+        QDebug(&message).nospace() << __FUNCTION__ << ": wglCreateContextAttribsARB() failed (GL error code: 0x"
+            << hex << glGetError() << dec << ") for format: " << format << ", shared context: " << shared;
+        qErrnoWarning("%s", qPrintable(message));
+    }
     return result;
 }
 
@@ -696,34 +705,27 @@ QWindowsOpenGLContextFormat QWindowsOpenGLContextFormat::current()
         result.version = (version.mid(0, majorDot).toInt() << 8)
             + version.mid(majorDot + 1, minorDot - majorDot - 1).toInt();
     }
+    result.profile = QSurfaceFormat::NoProfile;
     if (result.version < 0x0300) {
-        result.profile = QSurfaceFormat::NoProfile;
         result.options |= QSurfaceFormat::DeprecatedFunctions;
         return result;
     }
     // v3 onwards
     GLint value = 0;
     glGetIntegerv(GL_CONTEXT_FLAGS, &value);
-    if (value & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT)
+    if (!(value & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT))
         result.options |= QSurfaceFormat::DeprecatedFunctions;
-    if (value & WGL_CONTEXT_DEBUG_BIT_ARB)
+    if (value & GL_CONTEXT_FLAG_DEBUG_BIT)
         result.options |= QSurfaceFormat::DebugContext;
     if (result.version < 0x0302)
         return result;
     // v3.2 onwards: Profiles
     value = 0;
     glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &value);
-    switch (value) {
-    case WGL_CONTEXT_CORE_PROFILE_BIT_ARB:
+    if (value & GL_CONTEXT_CORE_PROFILE_BIT)
         result.profile = QSurfaceFormat::CoreProfile;
-        break;
-    case WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB:
+    else if (value & GL_CONTEXT_COMPATIBILITY_PROFILE_BIT)
         result.profile = QSurfaceFormat::CompatibilityProfile;
-        break;
-    default:
-        result.profile = QSurfaceFormat::NoProfile;
-        break;
-    }
     return result;
 }
 
@@ -878,6 +880,12 @@ QWindowsGLContext::QWindowsGLContext(const QOpenGLStaticContextPtr &staticContex
     m_renderingContext(0),
     m_pixelFormat(0), m_extensionsUsed(false)
 {
+    QSurfaceFormat format = context->format();
+    if (format.renderableType() == QSurfaceFormat::DefaultRenderableType)
+        format.setRenderableType(QSurfaceFormat::OpenGL);
+    if (format.renderableType() != QSurfaceFormat::OpenGL)
+        return;
+
     // workaround for matrox driver:
     // make a cheap call to opengl to force loading of DLL
     static bool opengl32dll = false;
@@ -915,7 +923,7 @@ QWindowsGLContext::QWindowsGLContext(const QOpenGLStaticContextPtr &staticContex
         QWindowsOpenGLAdditionalFormat obtainedAdditional;
         if (tryExtensions) {
             m_pixelFormat =
-                ARB::choosePixelFormat(hdc, *m_staticContext, context->format(),
+                ARB::choosePixelFormat(hdc, *m_staticContext, format,
                                        requestedAdditional, &m_obtainedPixelFormatDescriptor);
             if (m_pixelFormat > 0) {
                 m_obtainedFormat =
@@ -925,7 +933,7 @@ QWindowsGLContext::QWindowsGLContext(const QOpenGLStaticContextPtr &staticContex
             }
         } // tryExtensions
         if (!m_pixelFormat) { // Failed, try GDI
-            m_pixelFormat = GDI::choosePixelFormat(hdc, context->format(), requestedAdditional,
+            m_pixelFormat = GDI::choosePixelFormat(hdc, format, requestedAdditional,
                                                    &m_obtainedPixelFormatDescriptor);
             if (m_pixelFormat)
                 m_obtainedFormat =
@@ -948,7 +956,7 @@ QWindowsGLContext::QWindowsGLContext(const QOpenGLStaticContextPtr &staticContex
         if (m_extensionsUsed)
             m_renderingContext =
                 ARB::createContext(*m_staticContext, hdc,
-                                   context->format(),
+                                   format,
                                    requestedAdditional,
                                    sharingRenderingContext);
         if (!m_renderingContext)
@@ -1048,8 +1056,16 @@ bool QWindowsGLContext::makeCurrent(QPlatformSurface *surface)
     // Do we already have a DC entry for that window?
     QWindowsWindow *window = static_cast<QWindowsWindow *>(surface);
     const HWND hwnd = window->handle();
-    if (const QOpenGLContextData *contextData = findByHWND(m_windowContexts, hwnd))
+    if (const QOpenGLContextData *contextData = findByHWND(m_windowContexts, hwnd)) {
+        // Repeated calls to wglMakeCurrent when vsync is enabled in the driver will
+        // often result in 100% cpuload. This check is cheap and avoids the problem.
+        // This is reproducable on NVidia cards and Intel onboard chips.
+        if (wglGetCurrentContext() == contextData->renderingContext
+                && wglGetCurrentDC() == contextData->hdc) {
+            return true;
+        }
         return wglMakeCurrent(contextData->hdc, contextData->renderingContext);
+    }
     // Create a new entry.
     const QOpenGLContextData newContext(m_renderingContext, hwnd, GetDC(hwnd));
     if (!newContext.hdc)

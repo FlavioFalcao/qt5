@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -63,7 +63,7 @@
 #include <private/qabstractitemmodel_p.h>
 #ifndef QT_NO_ACCESSIBILITY
 #include <qaccessible.h>
-#include <qaccessible2.h>
+#include <private/qaccessible2_p.h>
 #endif
 #ifndef QT_NO_GESTURES
 #  include <qscroller.h>
@@ -1108,6 +1108,7 @@ void QAbstractItemView::reset()
         QAccessible::updateAccessibility(&accessibleEvent);
     }
 #endif
+    d->updateGeometry();
 }
 
 /*!
@@ -1124,6 +1125,7 @@ void QAbstractItemView::setRootIndex(const QModelIndex &index)
     }
     d->root = index;
     d->doDelayedItemsLayout();
+    d->updateGeometry();
 }
 
 /*!
@@ -1853,7 +1855,8 @@ void QAbstractItemView::mouseReleaseEvent(QMouseEvent *event)
         QStyleOptionViewItem option = d->viewOptions();
         if (d->pressedAlreadySelected)
             option.state |= QStyle::State_Selected;
-        if (style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick, &option, this))
+        if ((model()->flags(index) & Qt::ItemIsEnabled)
+            && style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick, &option, this))
             emit activated(index);
     }
 }
@@ -2667,8 +2670,10 @@ void QAbstractItemView::updateEditorGeometries()
 */
 void QAbstractItemView::updateGeometries()
 {
+    Q_D(QAbstractItemView);
     updateEditorGeometries();
-    d_func()->fetchMoreTimer.start(0, this); //fetch more later
+    d->fetchMoreTimer.start(0, this); //fetch more later
+    d->updateGeometry();
 }
 
 /*!
@@ -3230,6 +3235,7 @@ void QAbstractItemView::dataChanged(const QModelIndex &topLeft, const QModelInde
         QAccessible::updateAccessibility(&accessibleEvent);
     }
 #endif
+    d->updateGeometry();
 }
 
 /*!
@@ -3331,6 +3337,7 @@ void QAbstractItemViewPrivate::_q_rowsRemoved(const QModelIndex &index, int star
         QAccessible::updateAccessibility(&accessibleEvent);
     }
 #endif
+    updateGeometry();
 }
 
 /*!
@@ -3411,6 +3418,7 @@ void QAbstractItemViewPrivate::_q_columnsRemoved(const QModelIndex &index, int s
         QAccessible::updateAccessibility(&accessibleEvent);
     }
 #endif
+    updateGeometry();
 }
 
 
@@ -3434,6 +3442,7 @@ void QAbstractItemViewPrivate::_q_rowsInserted(const QModelIndex &index, int sta
         QAccessible::updateAccessibility(&accessibleEvent);
     }
 #endif
+    updateGeometry();
 }
 
 /*!
@@ -3458,6 +3467,7 @@ void QAbstractItemViewPrivate::_q_columnsInserted(const QModelIndex &index, int 
         QAccessible::updateAccessibility(&accessibleEvent);
     }
 #endif
+    updateGeometry();
 }
 
 /*!
@@ -3816,13 +3826,31 @@ QItemSelectionModel::SelectionFlags QAbstractItemView::selectionCommand(const QM
                                                                         const QEvent *event) const
 {
     Q_D(const QAbstractItemView);
+    Qt::KeyboardModifiers keyModifiers = Qt::NoModifier;
+    if (event) {
+        switch (event->type()) {
+            case QEvent::MouseButtonDblClick:
+            case QEvent::MouseButtonPress:
+            case QEvent::MouseButtonRelease:
+            case QEvent::MouseMove:
+            case QEvent::KeyPress:
+            case QEvent::KeyRelease:
+                keyModifiers = (static_cast<const QInputEvent*>(event))->modifiers();
+                break;
+            default:
+                keyModifiers = QApplication::keyboardModifiers();
+        }
+    }
     switch (d->selectionMode) {
         case NoSelection: // Never update selection model
             return QItemSelectionModel::NoUpdate;
         case SingleSelection: // ClearAndSelect on valid index otherwise NoUpdate
             if (event && event->type() == QEvent::MouseButtonRelease)
                 return QItemSelectionModel::NoUpdate;
-            return QItemSelectionModel::ClearAndSelect|d->selectionBehaviorFlags();
+            if ((keyModifiers & Qt::ControlModifier) && d->selectionModel->isSelected(index))
+                return QItemSelectionModel::Deselect | d->selectionBehaviorFlags();
+            else
+                return QItemSelectionModel::ClearAndSelect | d->selectionBehaviorFlags();
         case MultiSelection:
             return d->multiSelectionCommand(index, event);
         case ExtendedSelection:
@@ -4065,7 +4093,14 @@ void QAbstractItemViewPrivate::interruptDelayedItemsLayout() const
     delayedPendingLayout = false;
 }
 
-
+void QAbstractItemViewPrivate::updateGeometry()
+{
+    Q_Q(QAbstractItemView);
+    if (sizeAdjustPolicy == QAbstractScrollArea::AdjustIgnored)
+        return;
+    if (sizeAdjustPolicy == QAbstractScrollArea::AdjustToContents || !shownOnce)
+        q->updateGeometry();
+}
 
 QWidget *QAbstractItemViewPrivate::editor(const QModelIndex &index,
                                           const QStyleOptionViewItem &options)

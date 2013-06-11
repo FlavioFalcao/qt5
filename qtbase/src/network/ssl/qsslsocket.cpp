@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -267,7 +267,7 @@
 
 /*!
     \fn void QSslSocket::sslErrors(const QList<QSslError> &errors);
-    
+
     QSslSocket emits this signal after the SSL handshake to indicate that one
     or more errors have occurred while establishing the identity of the
     peer. The errors are usually an indication that QSslSocket is unable to
@@ -281,7 +281,7 @@
 
     \a errors contains one or more errors that prevent QSslSocket from
     verifying the identity of the peer.
-    
+
     Note: You cannot use Qt::QueuedConnection when connecting to this signal,
     or calling QSslSocket::ignoreSslErrors() will have no effect.
 
@@ -436,7 +436,7 @@ void QSslSocket::connectToHostEncrypted(const QString &hostName, quint16 port, O
     \overload
 
     In addition to the original behaviour of connectToHostEncrypted,
-    this overloaded method enables the usage of a different hostname 
+    this overloaded method enables the usage of a different hostname
     (\a sslPeerName) for the certificate validation instead of
     the one used for the TCP connection (\a hostName).
 
@@ -827,7 +827,7 @@ bool QSslSocket::flush()
 /*!
     \since 4.4
 
-    Sets the size of QSslSocket's internal read buffer to be \a size bytes. 
+    Sets the size of QSslSocket's internal read buffer to be \a size bytes.
 */
 void QSslSocket::setReadBufferSize(qint64 size)
 {
@@ -895,7 +895,7 @@ QSslConfiguration QSslSocket::sslConfiguration() const
 void QSslSocket::setSslConfiguration(const QSslConfiguration &configuration)
 {
     Q_D(QSslSocket);
-    d->configuration.localCertificate = configuration.localCertificate();
+    d->configuration.localCertificateChain = configuration.localCertificateChain();
     d->configuration.privateKey = configuration.privateKey();
     d->configuration.ciphers = configuration.ciphers();
     d->configuration.caCertificates = configuration.caCertificates();
@@ -903,7 +903,40 @@ void QSslSocket::setSslConfiguration(const QSslConfiguration &configuration)
     d->configuration.peerVerifyMode = configuration.peerVerifyMode();
     d->configuration.protocol = configuration.protocol();
     d->configuration.sslOptions = configuration.d->sslOptions;
-    d->allowRootCertOnDemandLoading = false;
+    d->configuration.sslSession = configuration.session();
+    d->configuration.sslSessionTicketLifeTimeHint = configuration.sessionTicketLifeTimeHint();
+
+    // if the CA certificates were set explicitly (either via
+    // QSslConfiguration::setCaCertificates() or QSslSocket::setCaCertificates(),
+    // we cannot load the certificates on demand
+    if (!configuration.d->allowRootCertOnDemandLoading)
+        d->allowRootCertOnDemandLoading = false;
+}
+
+/*!
+    Sets the certificate chain to be presented to the peer during the
+    SSL handshake to be \a localChain.
+
+    \sa QSslConfiguration::setLocalCertificateChain()
+    \since 5.1
+ */
+void QSslSocket::setLocalCertificateChain(const QList<QSslCertificate> &localChain)
+{
+    Q_D(QSslSocket);
+    d->configuration.localCertificateChain = localChain;
+}
+
+/*!
+    Returns the socket's local \l {QSslCertificate} {certificate} chain,
+    or an empty list if no local certificates have been assigned.
+
+    \sa setLocalCertificateChain()
+    \since 5.1
+*/
+QList<QSslCertificate> QSslSocket::localCertificateChain() const
+{
+    Q_D(const QSslSocket);
+    return d->configuration.localCertificateChain;
 }
 
 /*!
@@ -921,23 +954,24 @@ void QSslSocket::setSslConfiguration(const QSslConfiguration &configuration)
 void QSslSocket::setLocalCertificate(const QSslCertificate &certificate)
 {
     Q_D(QSslSocket);
-    d->configuration.localCertificate = certificate;
+    d->configuration.localCertificateChain = QList<QSslCertificate>();
+    d->configuration.localCertificateChain += certificate;
 }
 
 /*!
     \overload
 
     Sets the socket's local \l {QSslCertificate} {certificate} to the
-    first one found in file \a path, which is parsed according to the 
+    first one found in file \a path, which is parsed according to the
     specified \a format.
 */
 void QSslSocket::setLocalCertificate(const QString &path,
                                      QSsl::EncodingFormat format)
 {
-    Q_D(QSslSocket);
     QFile file(path);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
-        d->configuration.localCertificate = QSslCertificate(file.readAll(), format);
+        setLocalCertificate(QSslCertificate(file.readAll(), format));
+
 }
 
 /*!
@@ -949,14 +983,16 @@ void QSslSocket::setLocalCertificate(const QString &path,
 QSslCertificate QSslSocket::localCertificate() const
 {
     Q_D(const QSslSocket);
-    return d->configuration.localCertificate;
+    if (d->configuration.localCertificateChain.isEmpty())
+        return QSslCertificate();
+    return d->configuration.localCertificateChain[0];
 }
 
 /*!
     Returns the peer's digital certificate (i.e., the immediate
     certificate of the host you are connected to), or a null
     certificate, if the peer has not assigned a certificate.
-    
+
     The peer certificate is checked automatically during the
     handshake phase, so this function is normally used to fetch
     the certificate for display or for connection diagnostic
@@ -1068,7 +1104,7 @@ void QSslSocket::setPrivateKey(const QSslKey &key)
     creating an SSL server socket. If you are creating an SSL client
     socket, the key and local certificate are required if your client
     must identify itself to an SSL server.
-    
+
     \sa privateKey(), setLocalCertificate()
 */
 void QSslSocket::setPrivateKey(const QString &fileName, QSsl::KeyAlgorithm algorithm,
@@ -1676,7 +1712,7 @@ void QSslSocket::startClientEncryption()
     subclass of QTcpServer and reimplement
     QTcpServer::incomingConnection(). The returned socket descriptor
     is then passed to QSslSocket::setSocketDescriptor().
-    
+
     \sa connectToHostEncrypted(), startClientEncryption()
 */
 void QSslSocket::startServerEncryption()
@@ -1709,9 +1745,13 @@ void QSslSocket::startServerEncryption()
     will not emit the sslErrors() signal, and it is unnecessary to
     call this function.
 
-    Ignoring errors that occur during an SSL handshake should be done
-    with caution. A fundamental characteristic of secure connections
-    is that they should be established with an error free handshake.
+    \warning Be sure to always let the user inspect the errors
+    reported by the sslErrors() signal, and only call this method
+    upon confirmation from the user that proceeding is ok.
+    If there are unexpected errors, the connection should be aborted.
+    Calling this method without inspecting the actual errors will
+    most likely pose a security risk for your application. Use it
+    with great care!
 
     \sa sslErrors()
 */
@@ -1870,6 +1910,7 @@ QSslSocketPrivate::QSslSocketPrivate()
     , mode(QSslSocket::UnencryptedMode)
     , autoStartHandshake(false)
     , connectionEncrypted(false)
+    , shutdown(false)
     , ignoreAllSslErrors(false)
     , readyReadEmittedPointer(0)
     , allowRootCertOnDemandLoading(true)
@@ -1895,6 +1936,7 @@ void QSslSocketPrivate::init()
     autoStartHandshake = false;
     connectionEncrypted = false;
     ignoreAllSslErrors = false;
+    shutdown = false;
 
     // we don't want to clear the ignoreErrorsList, so
     // that it is possible setting it before connecting
@@ -2048,7 +2090,7 @@ void QSslConfigurationPrivate::deepCopyDefaultConfiguration(QSslConfigurationPri
     ptr->ref.store(1);
     ptr->peerCertificate = global->peerCertificate;
     ptr->peerCertificateChain = global->peerCertificateChain;
-    ptr->localCertificate = global->localCertificate;
+    ptr->localCertificateChain = global->localCertificateChain;
     ptr->privateKey = global->privateKey;
     ptr->sessionCipher = global->sessionCipher;
     ptr->ciphers = global->ciphers;
@@ -2381,6 +2423,14 @@ QByteArray QSslSocketPrivate::peek(qint64 maxSize)
 /*!
     \internal
 */
+bool QSslSocketPrivate::rootCertOnDemandLoadingSupported()
+{
+    return s_loadRootCertsOnDemand;
+}
+
+/*!
+    \internal
+*/
 QList<QByteArray> QSslSocketPrivate::unixRootCertDirectories()
 {
     return QList<QByteArray>() <<  "/etc/ssl/certs/" // (K)ubuntu, OpenSUSE, Mandriva, MeeGo ...
@@ -2389,8 +2439,25 @@ QList<QByteArray> QSslSocketPrivate::unixRootCertDirectories()
                                << "/usr/local/ssl/" // Normal OpenSSL Tarball
                                << "/var/ssl/certs/" // AIX
                                << "/usr/local/ssl/certs/" // Solaris
-                               << "/var/certmgr/web/user_trusted/" // BlackBerry
+                               << "/etc/openssl/certs/" // BlackBerry
                                << "/opt/openssl/certs/"; // HP-UX
+}
+
+/*!
+    \internal
+*/
+void QSslSocketPrivate::checkSettingSslContext(QSslSocket* socket, QSharedPointer<QSslContext> sslContext)
+{
+    if (socket->d_func()->sslContextPointer.isNull())
+        socket->d_func()->sslContextPointer = sslContext;
+}
+
+/*!
+    \internal
+*/
+QSharedPointer<QSslContext> QSslSocketPrivate::sslContext(QSslSocket *socket)
+{
+    return (socket) ? socket->d_func()->sslContextPointer : QSharedPointer<QSslContext>();
 }
 
 QT_END_NAMESPACE

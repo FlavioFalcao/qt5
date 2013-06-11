@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -95,10 +95,10 @@ public:
 
     void setResourceRoot(const QString &root) { m_resourceRoot = root; }
     QString resourceRoot() const { return m_resourceRoot; }
-    
+
     void setUseNameSpace(bool v) { m_useNameSpace = v; }
     bool useNameSpace() const { return m_useNameSpace; }
-    
+
     QStringList failedResources() const { return m_failedResources; }
 
 private:

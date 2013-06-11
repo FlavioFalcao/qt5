@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -190,6 +190,15 @@ bool QStyleHints::showIsFullScreen() const
 int QStyleHints::passwordMaskDelay() const
 {
     return themeableHint(QPlatformTheme::PasswordMaskDelay, QPlatformIntegration::PasswordMaskDelay).toInt();
+}
+
+/*!
+    Returns the character used to mask the characters typed into text input
+    fields in password mode.
+*/
+QChar QStyleHints::passwordMaskCharacter() const
+{
+    return themeableHint(QPlatformTheme::PasswordMaskCharacter, QPlatformIntegration::PasswordMaskCharacter).toChar();
 }
 
 /*!

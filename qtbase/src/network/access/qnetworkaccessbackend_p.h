@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -62,6 +62,7 @@ class QAuthenticator;
 class QNetworkProxy;
 class QNetworkProxyQuery;
 class QNetworkRequest;
+class QStringList;
 class QUrl;
 class QUrlInfo;
 class QSslConfiguration;
@@ -196,6 +197,7 @@ protected slots:
     void authenticationRequired(QAuthenticator *auth);
     void metaDataChanged();
     void redirectionRequested(const QUrl &destination);
+    void encrypted();
     void sslErrors(const QList<QSslError> &errors);
     void emitReplyUploadProgress(qint64 bytesSent, qint64 bytesTotal);
 
@@ -218,6 +220,7 @@ class QNetworkAccessBackendFactory
 public:
     QNetworkAccessBackendFactory();
     virtual ~QNetworkAccessBackendFactory();
+    virtual QStringList supportedSchemes() const = 0;
     virtual QNetworkAccessBackend *create(QNetworkAccessManager::Operation op,
                                           const QNetworkRequest &request) const = 0;
 };

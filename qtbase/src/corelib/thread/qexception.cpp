@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -47,7 +47,7 @@
 
 QT_BEGIN_NAMESPACE
 
-/*! 
+/*!
     \class QException
     \inmodule QtCore
     \brief The QException class provides a base class for exceptions that can transferred across threads.
@@ -91,7 +91,7 @@ QT_BEGIN_NAMESPACE
     \snippet code/src_corelib_thread_qexception.cpp 3
 */
 
-/*! 
+/*!
     \class QUnhandledException
     \inmodule QtCore
 

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -420,6 +420,53 @@ public:
     int alias;
 };
 
+class QMetaTypeConversionRegistry
+{
+public:
+    typedef QPair<int, int> Key;
+
+    ~QMetaTypeConversionRegistry()
+    {
+        const QWriteLocker locker(&lock);
+        map.clear();
+    }
+
+    bool contains(int from, int to) const
+    {
+        const Key k(from, to);
+        const QReadLocker locker(&lock);
+        return map.contains(k);
+    }
+
+    bool insertIfNotContains(int from, int to, const QtPrivate::AbstractConverterFunction *f)
+    {
+        const Key k(from, to);
+        const QWriteLocker locker(&lock);
+        const QtPrivate::AbstractConverterFunction* &fun = map[k];
+        if (fun != 0)
+            return false;
+        fun = f;
+        return true;
+    }
+
+    const QtPrivate::AbstractConverterFunction *function(int from, int to) const
+    {
+        const Key k(from, to);
+        const QReadLocker locker(&lock);
+        return map.value(k, 0);
+    }
+
+    void remove(int from, int to)
+    {
+        const Key k(from, to);
+        const QWriteLocker locker(&lock);
+        map.remove(k);
+    }
+private:
+    mutable QReadWriteLock lock;
+    QHash<Key, const QtPrivate::AbstractConverterFunction *> map;
+};
+
 namespace
 {
 union CheckThatItIsPod
@@ -431,6 +478,93 @@ union CheckThatItIsPod
 Q_DECLARE_TYPEINFO(QCustomTypeInfo, Q_MOVABLE_TYPE);
 Q_GLOBAL_STATIC(QVector<QCustomTypeInfo>, customTypes)
 Q_GLOBAL_STATIC(QReadWriteLock, customTypesLock)
+Q_GLOBAL_STATIC(QMetaTypeConversionRegistry, customTypesConversionRegistry)
+
+/*!
+    \fn bool QMetaType::registerConverter()
+    \since 5.2
+    Registers the possibility of an implicit conversion from type From to type To in the meta
+    type system. Returns true if the registration succeeded, otherwise false.
+*/
+
+/*!
+    \fn bool QMetaType::registerConverter(MemberFunction function)
+    \since 5.2
+    \overload
+    Registers a method \a function like To From::function() const as converter from type From
+    to type To in the meta type system. Returns true if the registration succeeded, otherwise false.
+*/
+
+/*!
+    \fn bool QMetaType::registerConverter(MemberFunctionOk function)
+    \since 5.2
+    \overload
+    Registers a method \a function like To From::function(bool *ok) const as converter from type From
+    to type To in the meta type system. Returns true if the registration succeeded, otherwise false.
+*/
+
+/*!
+    \fn bool QMetaType::registerConverter(UnaryFunction function)
+    \since 5.2
+    \overload
+    Registers a unary function object \a function as converter from type From
+    to type To in the meta type system. Returns true if the registration succeeded, otherwise false.
+*/
+
+/*!
+    Registers function \a f as converter function from type id \a from to \a to.
+    If there's already a conversion registered, this does nothing but deleting \a f.
+    Returns true if the registration succeeded, otherwise false.
+    \since 5.2
+    \internal
+*/
+bool QMetaType::registerConverterFunction(const QtPrivate::AbstractConverterFunction *f, int from, int to)
+{
+    if (!customTypesConversionRegistry()->insertIfNotContains(from, to, f)) {
+        qWarning("Type conversion already registered from type %s to type %s",
+                 QMetaType::typeName(from), QMetaType::typeName(to));
+        return false;
+    }
+    return true;
+}
+
+/*!
+    \internal
+
+    Invoked automatically when a converter function object is destroyed.
+ */
+void QMetaType::unregisterConverterFunction(int from, int to)
+{
+    customTypesConversionRegistry()->remove(from, to);
+}
+
+/*!
+    Converts the object at \a from from \a fromTypeId to the preallocated space at \a to
+    typed \a toTypeId. Returns true, if the conversion succeeded, otherwise false.
+    \since 5.2
+*/
+bool QMetaType::convert(const void *from, int fromTypeId, void *to, int toTypeId)
+{
+    const QtPrivate::AbstractConverterFunction * const f = customTypesConversionRegistry()->function(fromTypeId, toTypeId);
+    return f && f->convert(f, from, to);
+}
+
+/*!
+    \fn bool QMetaType::hasRegisteredConverterFunction()
+    Returns true, if the meta type system has a registered conversion from type From to type To.
+    \since 5.2
+    \overload
+    */
+
+/*!
+    Returns true, if the meta type system has a registered conversion from meta type id \a fromTypeId
+    to \a toTypeId
+    \since 5.2
+*/
+bool QMetaType::hasRegisteredConverterFunction(int fromTypeId, int toTypeId)
+{
+    return customTypesConversionRegistry()->contains(fromTypeId, toTypeId);
+}
 
 #ifndef QT_NO_DATASTREAM
 /*!
@@ -646,11 +780,26 @@ int QMetaType::registerNormalizedType(const NS(QByteArray) &normalizedTypeName, 
             "size %i, now registering size %i.",
             normalizedTypeName.constData(), idx, previousSize, size);
     }
+
+    // Ignore WasDeclaredAsMetaType inconsitency, to many users were hitting the problem
+    previousFlags |= WasDeclaredAsMetaType;
+    flags |= WasDeclaredAsMetaType;
+
     if (previousFlags != flags) {
-        qFatal("QMetaType::registerType: Binary compatibility break "
-            "-- Type flags for type '%s' [%i] don't match. Previously "
-            "registered TypeFlags(0x%x), now registering TypeFlags(0x%x).",
-            normalizedTypeName.constData(), idx, previousFlags, int(flags));
+        const int maskForTypeInfo = NeedsConstruction | NeedsDestruction | MovableType;
+        const char *msg = "QMetaType::registerType: Binary compatibility break. "
+                "\nType flags for type '%s' [%i] don't match. Previously "
+                "registered TypeFlags(0x%x), now registering TypeFlags(0x%x). "
+                "This is an ODR break, which means that your application depends on a C++ undefined behavior."
+                "\nHint: %s";
+        QT_PREPEND_NAMESPACE(QByteArray) hint;
+        if ((previousFlags & maskForTypeInfo) != (flags & maskForTypeInfo)) {
+            hint += "\nIt seems that the type was registered at least twice in a different translation units, "
+                    "but Q_DECLARE_TYPEINFO is not visible from all the translations unit or different flags were used."
+                    "Remember that Q_DECLARE_TYPEINFO should be declared before QMetaType registration, "
+                    "preferably it should be placed just after the type declaration and before Q_DECLARE_METATYPE";
+        }
+        qFatal(msg, normalizedTypeName.constData(), idx, previousFlags, int(flags), hint.constData());
     }
 
     return idx;
@@ -944,11 +1093,11 @@ bool QMetaType::save(QDataStream &stream, int type, const void *data)
         break;
 #endif
 #ifndef QT_BOOTSTRAPPED
-#ifndef QT_NO_REGEXP
+#ifndef QT_NO_REGULAREXPRESSION
     case QMetaType::QRegularExpression:
         stream << *static_cast<const NS(QRegularExpression)*>(data);
         break;
-#endif // QT_NO_REGEXP
+#endif // QT_NO_REGULAREXPRESSION
     case QMetaType::QEasingCurve:
         stream << *static_cast<const NS(QEasingCurve)*>(data);
         break;
@@ -1167,11 +1316,11 @@ bool QMetaType::load(QDataStream &stream, int type, void *data)
         break;
 #endif
 #ifndef QT_BOOTSTRAPPED
-#ifndef QT_NO_REGEXP
+#ifndef QT_NO_REGULAREXPRESSION
     case QMetaType::QRegularExpression:
         stream >> *static_cast< NS(QRegularExpression)*>(data);
         break;
-#endif // QT_NO_REGEXP
+#endif // QT_NO_REGULAREXPRESSION
     case QMetaType::QEasingCurve:
         stream >> *static_cast< NS(QEasingCurve)*>(data);
         break;
@@ -1722,6 +1871,9 @@ const QMetaObject *QMetaType::metaObjectForType(int type)
 
     \snippet code/src_corelib_kernel_qmetatype.cpp 9
 
+    \warning This function is useful only for registering an alias (typedef)
+    for every other use case Q_DECLARE_METATYPE and qMetaTypeId() should be used instead.
+
     \sa qRegisterMetaTypeStreamOperators(), QMetaType::isRegistered(),
         Q_DECLARE_METATYPE()
 */
@@ -1767,7 +1919,7 @@ const QMetaObject *QMetaType::metaObjectForType(int type)
 */
 
 /*!
-    \fn int qRegisterMetaType(const char *typeName)
+    \fn int qRegisterMetaType()
     \relates QMetaType
     \threadsafe
     \since 4.2
@@ -1778,6 +1930,14 @@ const QMetaObject *QMetaType::metaObjectForType(int type)
     Example:
 
     \snippet code/src_corelib_kernel_qmetatype.cpp 7
+
+    This function requires that \c{T} is a fully defined type at the point
+    where the function is called. For pointer types, it also requires that the
+    pointed to type is fully defined. Use Q_DECLARE_OPAQUE_POINTER() to be able
+    to register pointers to forward declared types.
+
+    After a type has been registered, you can create and destroy
+    objects of that type dynamically at run-time.
 
     To use the type \c T in QVariant, using Q_DECLARE_METATYPE() is
     sufficient. To use the type \c T in queued signal and slot connections,
@@ -1812,6 +1972,37 @@ const QMetaObject *QMetaType::metaObjectForType(int type)
     type is not registered.
 
     \sa Q_DECLARE_METATYPE(), QMetaType::type()
+*/
+
+/*!
+    \fn bool qRegisterSequentialConverter()
+    \relates QMetaType
+    \since 5.2
+
+    Registers a sequential container so that it can be converted to
+    a QVariantList. If compilation fails, then you probably forgot to
+    Q_DECLARE_METATYPE the value type.
+
+    Note that it is not necessary to call this method for Qt containers (QList,
+    QVector etc) or for std::vector or std::list. Such containers are automatically
+    registered by Qt.
+
+    \sa QVariant::canConvert()
+*/
+
+/*!
+    \fn bool qRegisterAssociativeConverter()
+    \relates QMetaType
+    \since 5.2
+
+    Registers an associative container so that it can be converted to
+    a QVariantHash or QVariantMap. If the key_type and mapped_type of the container
+    was not declared with Q_DECLARE_METATYPE(), compilation will fail.
+
+    Note that it is not necessary to call this method for Qt containers (QHash,
+    QMap etc) or for std::map. Such containers are automatically registered by Qt.
+
+    \sa QVariant::canConvert()
 */
 
 namespace {

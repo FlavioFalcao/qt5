@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -59,10 +59,6 @@
 #include <qtransform.h>
 
 #include <private/qfontengineglyphcache_p.h>
-
-#if defined(Q_OS_VXWORKS) && defined(m_type)
-#  undef m_type
-#endif
 
 #ifndef QT_DEFAULT_TEXTURE_GLYPH_CACHE_WIDTH
 #define QT_DEFAULT_TEXTURE_GLYPH_CACHE_WIDTH 256

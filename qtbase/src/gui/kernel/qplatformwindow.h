@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -58,8 +58,6 @@
 #include <QtGui/qwindow.h>
 #include <qpa/qplatformopenglcontext.h>
 #include <qpa/qplatformsurface.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -130,7 +128,15 @@ public:
     virtual void setFrameStrutEventsEnabled(bool enabled);
     virtual bool frameStrutEventsEnabled() const;
 
+    virtual void setAlertState(bool enabled);
+    virtual bool isAlertState() const;
+
+    static QRect initialGeometry(const QWindow *w,
+        const QRect &initialGeometry, int defaultWidth, int defaultHeight);
+
 protected:
+    static QString formatWindowTitle(const QString &title, const QString &separator);
+
     QScopedPointer<QPlatformWindowPrivate> d_ptr;
 private:
     Q_DISABLE_COPY(QPlatformWindow)
@@ -138,5 +144,4 @@ private:
 
 QT_END_NAMESPACE
 
-QT_END_HEADER
 #endif //QPLATFORMWINDOW_H

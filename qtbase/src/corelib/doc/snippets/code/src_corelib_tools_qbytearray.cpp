@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -405,7 +405,7 @@ QString tmp = "test";
 QByteArray text = tmp.toLocal8Bit();
 char *data = new char[text.size()]
 strcpy(data, text.data());
-delete [] data; 
+delete [] data;
 //! [46]
 
 //! [47]

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -90,21 +90,9 @@
 #import <Cocoa/Cocoa.h>
 
 #include <qglobal.h>
+#include <private/qcore_mac_p.h>
 
 @class QT_MANGLE_NAMESPACE(QCocoaMenuLoader);
-
-#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_5
-
-@protocol NSApplicationDelegate <NSObject>
-- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender;
-- (void)applicationDidFinishLaunching:(NSNotification *)aNotification;
-- (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames;
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender;
-- (void)applicationDidBecomeActive:(NSNotification *)notification;
-- (void)applicationDidResignActive:(NSNotification *)notification;
-@end
-
-#endif
 
 @interface QT_MANGLE_NAMESPACE(QCocoaApplicationDelegate) : NSObject <NSApplicationDelegate> {
     bool startedQuit;
@@ -121,3 +109,5 @@
 - (void)getUrl:(NSAppleEventDescriptor *)event withReplyEvent:(NSAppleEventDescriptor *)replyEvent;
 - (void) removeAppleEventHandlers;
 @end
+
+QT_NAMESPACE_ALIAS_OBJC_CLASS(QCocoaApplicationDelegate);

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -186,7 +186,7 @@ QNetworkReplyHttpImpl::QNetworkReplyHttpImpl(QNetworkAccessManager* const manage
 
 
     // Internal code that does a HTTP reply for the synchronous Ajax
-    // in QtWebKit.
+    // in Qt WebKit.
     QVariant synchronousHttpAttribute = request.attribute(
             static_cast<QNetworkRequest::Attribute>(QNetworkRequest::SynchronousRequestAttribute));
     if (synchronousHttpAttribute.isValid()) {
@@ -610,14 +610,14 @@ void QNetworkReplyHttpImplPrivate::postRequest()
     if (synchronous) {
         // A synchronous HTTP request uses its own thread
         thread = new QThread();
-        thread->setObjectName(QStringLiteral("httpReply"));
+        thread->setObjectName(QStringLiteral("Qt HTTP synchronous thread"));
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
         thread->start();
     } else if (!managerPrivate->httpThread) {
         // We use the manager-global thread.
         // At some point we could switch to having multiple threads if it makes sense.
         managerPrivate->httpThread = new QThread();
-        managerPrivate->httpThread->setObjectName(QStringLiteral("httpThread"));
+        managerPrivate->httpThread->setObjectName(QStringLiteral("Qt HTTP thread"));
         managerPrivate->httpThread->start();
 
         thread = managerPrivate->httpThread;
@@ -663,7 +663,7 @@ void QNetworkReplyHttpImplPrivate::postRequest()
         // unsuitable proxies
         QMetaObject::invokeMethod(q, "_q_error", synchronous ? Qt::DirectConnection : Qt::QueuedConnection,
                                   Q_ARG(QNetworkReply::NetworkError, QNetworkReply::ProxyNotFoundError),
-                                  Q_ARG(QString, q->tr("No suitable proxy found")));
+                                  Q_ARG(QString, QNetworkReplyHttpImpl::tr("No suitable proxy found")));
         QMetaObject::invokeMethod(q, "_q_finished", synchronous ? Qt::DirectConnection : Qt::QueuedConnection);
         return;
     }
@@ -830,6 +830,8 @@ void QNetworkReplyHttpImplPrivate::postRequest()
                  Qt::BlockingQueuedConnection);
 #endif
 #ifndef QT_NO_SSL
+        QObject::connect(delegate, SIGNAL(encrypted()), q, SLOT(replyEncrypted()),
+                Qt::BlockingQueuedConnection);
         QObject::connect(delegate, SIGNAL(sslErrors(QList<QSslError>,bool*,QList<QSslError>*)),
                 q, SLOT(replySslErrors(QList<QSslError>,bool*,QList<QSslError>*)),
                 Qt::BlockingQueuedConnection);
@@ -1220,6 +1222,12 @@ void QNetworkReplyHttpImplPrivate::httpError(QNetworkReply::NetworkError errorCo
 }
 
 #ifndef QT_NO_SSL
+void QNetworkReplyHttpImplPrivate::replyEncrypted()
+{
+    Q_Q(QNetworkReplyHttpImpl);
+    emit q->encrypted();
+}
+
 void QNetworkReplyHttpImplPrivate::replySslErrors(
         const QList<QSslError> &list, bool *ignoreAll, QList<QSslError> *toBeIgnored)
 {

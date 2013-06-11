@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -1074,7 +1074,7 @@ static void initDefaultPaths(QMutexLocker *locker)
     QString systemPath;
 
     locker->unlock();
-	
+
     /*
        QLibraryInfo::location() uses QSettings, so in order to
        avoid a dead-lock, we can't hold the global mutex while
@@ -2092,9 +2092,9 @@ void QConfFileSettingsPrivate::ensureSectionParsed(QConfFile *confFile,
 
     \section1 QVariant and GUI Types
 
-    Because QVariant is part of the \l QtCore library, it cannot provide
+    Because QVariant is part of the Qt Core module, it cannot provide
     conversion functions to data types such as QColor, QImage, and
-    QPixmap, which are part of \l QtGui. In other words, there is no
+    QPixmap, which are part of Qt GUI. In other words, there is no
     \c toColor(), \c toImage(), or \c toPixmap() functions in QVariant.
 
     Instead, you can use the QVariant::value() or the qVariantValue()
@@ -3198,7 +3198,7 @@ bool QSettings::isWritable() const
 }
 
 /*!
-  
+
   Sets the value of setting \a key to \a value. If the \a key already
   exists, the previous value is overwritten.
 
@@ -3465,7 +3465,7 @@ void QSettings::setPath(Format format, Scope scope, const QString &path)
     \typedef QSettings::SettingsMap
 
     Typedef for QMap<QString, QVariant>.
-	
+
     \sa registerFormat()
 */
 
@@ -3477,8 +3477,8 @@ void QSettings::setPath(Format format, Scope scope, const QString &path)
     \snippet code/src_corelib_io_qsettings.cpp 27
 
     \c ReadFunc is used in \c registerFormat() as a pointer to a function
-    that reads a set of key/value pairs. \c ReadFunc should read all the 
-    options in one pass, and return all the settings in the \c SettingsMap 
+    that reads a set of key/value pairs. \c ReadFunc should read all the
+    options in one pass, and return all the settings in the \c SettingsMap
     container, which is initially empty.
 
     \sa WriteFunc, registerFormat()
@@ -3491,7 +3491,7 @@ void QSettings::setPath(Format format, Scope scope, const QString &path)
 
     \snippet code/src_corelib_io_qsettings.cpp 28
 
-    \c WriteFunc is used in \c registerFormat() as a pointer to a function 
+    \c WriteFunc is used in \c registerFormat() as a pointer to a function
     that writes a set of key/value pairs. \c WriteFunc is only called once,
     so you need to output the settings in one go.
 

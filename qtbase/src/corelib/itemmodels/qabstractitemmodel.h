@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -46,8 +46,6 @@
 #include <QtCore/qobject.h>
 #include <QtCore/qhash.h>
 #include <QtCore/qvector.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -112,6 +110,11 @@ public:
     inline bool operator!=(const QPersistentModelIndex &other) const
     { return !operator==(other); }
     QPersistentModelIndex &operator=(const QPersistentModelIndex &other);
+#ifdef Q_COMPILER_RVALUE_REFS
+    inline QPersistentModelIndex(QPersistentModelIndex &&other) : d(other.d) { other.d = 0; }
+    inline QPersistentModelIndex &operator=(QPersistentModelIndex &&other)
+    { qSwap(d, other.d); return *this; }
+#endif
     inline void swap(QPersistentModelIndex &other) { qSwap(d, other.d); }
     bool operator==(const QModelIndex &other) const;
     bool operator!=(const QModelIndex &other) const;
@@ -156,7 +159,7 @@ template <class Key, class T> class QMap;
 class Q_CORE_EXPORT QAbstractItemModel : public QObject
 {
     Q_OBJECT
-    Q_ENUMS(LayoutChangeHints)
+    Q_ENUMS(LayoutChangeHint)
 
     friend class QPersistentModelIndexData;
     friend class QAbstractItemViewPrivate;
@@ -332,6 +335,10 @@ public Q_SLOTS:
     virtual bool submit();
     virtual void revert();
 
+protected Q_SLOTS:
+    // Qt 6: Make virtual
+    void resetInternalData();
+
 protected:
     QAbstractItemModel(QAbstractItemModelPrivate &dd, QObject *parent = 0);
 
@@ -403,7 +410,7 @@ inline bool QAbstractItemModel::moveRow(const QModelIndex &sourceParent, int sou
 { return moveRows(sourceParent, sourceRow, 1, destinationParent, destinationChild); }
 inline bool QAbstractItemModel::moveColumn(const QModelIndex &sourceParent, int sourceColumn,
                                            const QModelIndex &destinationParent, int destinationChild)
-{ return moveRows(sourceParent, sourceColumn, 1, destinationParent, destinationChild); }
+{ return moveColumns(sourceParent, sourceColumn, 1, destinationParent, destinationChild); }
 inline QModelIndex QAbstractItemModel::createIndex(int arow, int acolumn, void *adata) const
 { return QModelIndex(arow, acolumn, adata, this); }
 inline QModelIndex QAbstractItemModel::createIndex(int arow, int acolumn, quintptr aid) const
@@ -421,6 +428,7 @@ public:
     bool dropMimeData(const QMimeData *data, Qt::DropAction action,
                       int row, int column, const QModelIndex &parent);
 
+    Qt::ItemFlags flags(const QModelIndex &index) const Q_DECL_OVERRIDE;
 protected:
     QAbstractTableModel(QAbstractItemModelPrivate &dd, QObject *parent);
 
@@ -441,6 +449,8 @@ public:
     QModelIndex index(int row, int column = 0, const QModelIndex &parent = QModelIndex()) const;
     bool dropMimeData(const QMimeData *data, Qt::DropAction action,
                       int row, int column, const QModelIndex &parent);
+
+    Qt::ItemFlags flags(const QModelIndex &index) const Q_DECL_OVERRIDE;
 protected:
     QAbstractListModel(QAbstractItemModelPrivate &dd, QObject *parent);
 
@@ -472,7 +482,5 @@ inline uint qHash(const QModelIndex &index)
 { return uint((index.row() << 4) + index.column() + index.internalId()); }
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QABSTRACTITEMMODEL_H

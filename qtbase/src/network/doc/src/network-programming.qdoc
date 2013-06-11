@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -51,7 +51,7 @@
 
     \section1 Qt's Classes for Network Programming
 
-    The \l{Qt Network - C++ Classes} page contains a list of the C++ classes
+    The \l{Qt Network C++ Classes} page contains a list of the C++ classes
     in Qt Network.
 
     \section1 High Level Network Operations for HTTP and FTP

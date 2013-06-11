@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -374,7 +374,7 @@ QByteArray QIconvCodec::convertFromUnicode(const QChar *uc, int len, ConverterSt
         delete temporaryState;
         return QString(uc, len).toLatin1();
     }
- 
+
     size_t outBytesLeft = len;
     QByteArray ba(outBytesLeft, Qt::Uninitialized);
     outBytes = ba.data();

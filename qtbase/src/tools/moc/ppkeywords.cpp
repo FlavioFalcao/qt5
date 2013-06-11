@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -45,7 +45,7 @@
 static const short pp_keyword_trans[][128] = {
     {0,0,0,0,0,0,0,0,0,98,12,0,0,0,0,0,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-     98,76,96,13,0,60,62,97,9,10,58,56,11,57,102,59,
+     98,76,96,13,1,60,62,97,9,10,58,56,11,57,102,59,
      6,6,6,6,6,6,6,6,6,6,92,0,7,81,8,91,
      0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
      1,1,1,1,1,1,1,1,1,1,1,0,101,0,61,1,

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -61,6 +61,7 @@ void (*qcgl_getProcAddress(const QByteArray &procName))()
 QSurfaceFormat qcgl_surfaceFormat()
 {
     QSurfaceFormat format;
+    format.setRenderableType(QSurfaceFormat::OpenGL);
     format.setRedBufferSize(8);
     format.setGreenBufferSize(8);
     format.setBlueBufferSize(8);
@@ -87,7 +88,8 @@ void *qcgl_createNSOpenGLPixelFormat(const QSurfaceFormat &format)
 
     QVector<NSOpenGLPixelFormatAttribute> attrs;
 
-    attrs.append(NSOpenGLPFADoubleBuffer);
+    if (format.swapBehavior() != QSurfaceFormat::SingleBuffer)
+        attrs.append(NSOpenGLPFADoubleBuffer);
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7
     if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_7) {
@@ -124,13 +126,3 @@ void *qcgl_createNSOpenGLPixelFormat(const QSurfaceFormat &format)
     NSOpenGLPixelFormat* pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs.constData()];
     return pixelFormat;
 }
-
-CGLContextObj qcgl_createGlContext()
-{
-    CGLContextObj context;
-    NSOpenGLPixelFormat *format = reinterpret_cast<NSOpenGLPixelFormat *>(qcgl_createNSOpenGLPixelFormat(qcgl_surfaceFormat()));
-    CGLPixelFormatObj cglFormat = static_cast<CGLPixelFormatObj>([format CGLPixelFormatObj]);
-    CGLCreateContext(cglFormat ,NULL, &context);
-    return context;
-}
-

@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -1480,6 +1480,9 @@ bool QMainWindow::event(QEvent *event)
     \obsolete
 
     This property is not implemented in Qt 5. Setting it has no effect.
+
+    A replacement API (QtMacUnifiedToolBar) is available in QtMacExtras at
+    http://qt.gitorious.org/qtplayground/qtmacextras
 */
 void QMainWindow::setUnifiedTitleAndToolBarOnMac(bool set)
 {

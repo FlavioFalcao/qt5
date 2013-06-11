@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -52,8 +52,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "qdbusconnection.h"    // for the Export* flags
-#include "qdbusconnection_p.h"    // for the qDBusCheckAsyncTag
+#include <qdbusconnection.h>    // for the Export* flags
+#include <private/qdbusconnection_p.h>    // for the qDBusCheckAsyncTag
 
 // copied from dbus-protocol.h:
 static const char docTypeHeader[] =
@@ -64,9 +64,9 @@ static const char docTypeHeader[] =
 #define QCLASSINFO_DBUS_INTERFACE       "D-Bus Interface"
 #define QCLASSINFO_DBUS_INTROSPECTION   "D-Bus Introspection"
 
-#include "qdbusmetatype_p.h"
-#include "qdbusmetatype.h"
-#include "qdbusutil_p.h"
+#include <qdbusmetatype.h>
+#include <private/qdbusmetatype_p.h>
+#include <private/qdbusutil_p.h>
 
 #include "moc.h"
 #include "generator.h"
@@ -74,7 +74,7 @@ static const char docTypeHeader[] =
 
 #define PROGRAMNAME     "qdbuscpp2xml"
 #define PROGRAMVERSION  "0.2"
-#define PROGRAMCOPYRIGHT "Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies)."
+#define PROGRAMCOPYRIGHT "Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies)."
 
 static QString outputFile;
 static int flags;

@@ -3,7 +3,7 @@
 
 ANGLE_DIR = $$(ANGLE_DIR)
 isEmpty(ANGLE_DIR) {
-    ANGLE_DIR = $$PWD/../../3rdparty/angle
+    ANGLE_DIR = $$absolute_path(../../3rdparty/angle)
 } else {
     !build_pass:message("Using external ANGLE from $$ANGLE_DIR")
 }
@@ -12,20 +12,19 @@ isEmpty(ANGLE_DIR) {
     error("$$ANGLE_DIR does not contain ANGLE")
 }
 
-win32 {
-    GNUTOOLS_DIR=$$PWD/../../../../gnuwin32/bin
-    exists($$GNUTOOLS_DIR/gperf.exe) {
-        # Escape closing parens when expanding the variable, otherwise cmd confuses itself.
-        GNUTOOLS = "(set PATH=$$replace(GNUTOOLS_DIR, [/\\\\], $${QMAKE_DIR_SEP});%PATH:)=^)%)"
+equals(QMAKE_HOST.os, Windows) {
+    gnutools.value = $$absolute_path(../../../../gnuwin32/bin)
+    exists($$gnutools.value/gperf.exe) {
+        gnutools.name = PATH
+        gnutools.CONFIG = prepend
     }
 }
 
 defineReplace(addGnuPath) {
-    unset(gnuPath)
     gnuPath = $$1
-    !isEmpty(gnuPath):!isEmpty(GNUTOOLS) {
-        eval(gnuPath = $${GNUTOOLS} && $$gnuPath)
-        silent: eval(gnuPath = @echo generating sources from ${QMAKE_FILE_IN} && $$val_escape($$gnuPath))
+    !isEmpty(gnuPath):!isEmpty(gnutools.name) {
+        qtAddToolEnv(gnuPath, gnutools)
+        silent: gnuPath = @echo generating sources from ${QMAKE_FILE_IN} && $$gnuPath
     }
     return($$gnuPath)
 }
@@ -47,15 +46,21 @@ DEFINES +=  ANGLE_DISABLE_TRACE \
             ANGLE_COMPILE_OPTIMIZATION_LEVEL=D3DCOMPILE_OPTIMIZATION_LEVEL0 \
             ANGLE_USE_NEW_PREPROCESSOR=1
 
+angle_d3d11 {
+    DEFINES += ANGLE_ENABLE_D3D11
+    !build_pass: message("Enabling D3D11 mode for ANGLE")
+}
+
 CONFIG(debug, debug|release) {
     DEFINES += _DEBUG
 } else {
+    CONFIG += rtti_off
     DEFINES += NDEBUG
 }
 
 # c++11 is needed by MinGW to get support for unordered_map.
 CONFIG -= qt
-CONFIG += stl rtti_off exceptions c++11
+CONFIG += stl exceptions c++11
 
 contains(QT_CONFIG, debug_and_release):CONFIG += debug_and_release
 contains(QT_CONFIG, build_all):CONFIG += build_all

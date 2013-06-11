@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -52,10 +52,6 @@ class QAbstractEventDispatcher;
 class QXcbNativeInterface;
 class QXcbScreen;
 
-#if !defined(QT_NO_OPENGL) && defined(XCB_USE_GLX)
-class QOpenGLDefaultContextInfo;
-#endif
-
 class QXcbIntegration : public QPlatformIntegration
 {
 public:
@@ -67,6 +63,8 @@ public:
     QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const;
 #endif
     QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const;
+
+    QPlatformOffscreenSurface *createPlatformOffscreenSurface(QOffscreenSurface *surface) const;
 
     bool hasCapability(Capability cap) const;
     QAbstractEventDispatcher *guiThreadEventDispatcher() const;
@@ -93,11 +91,13 @@ public:
     QPlatformServices *services() const;
 
     Qt::KeyboardModifiers queryKeyboardModifiers() const;
+    QList<int> possibleKeys(const QKeyEvent *e) const;
 
     QStringList themeNames() const;
     QPlatformTheme *createPlatformTheme(const QString &name) const;
+    QVariant styleHint(StyleHint hint) const;
 
-    void removeDefaultOpenGLContextInfo(QXcbScreen *screen);
+    QXcbConnection *defaultConnection() const { return m_connections.first(); }
 
 private:
     QList<QXcbConnection *> m_connections;
@@ -107,10 +107,6 @@ private:
 
     QScopedPointer<QPlatformInputContext> m_inputContext;
     QAbstractEventDispatcher *m_eventDispatcher;
-
-#if !defined(QT_NO_OPENGL) && defined(XCB_USE_GLX)
-    mutable QHash<QXcbScreen *, QOpenGLDefaultContextInfo *> m_defaultContextInfos;
-#endif
 
 #ifndef QT_NO_ACCESSIBILITY
     QScopedPointer<QPlatformAccessibility> m_accessibility;

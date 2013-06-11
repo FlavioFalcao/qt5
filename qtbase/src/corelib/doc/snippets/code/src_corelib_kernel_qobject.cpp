@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -374,6 +374,7 @@ Q_PROPERTY(type name
            [WRITE setFunction]
            [RESET resetFunction]
            [NOTIFY notifySignal]
+           [REVISION int]
            [DESIGNABLE bool]
            [SCRIPTABLE bool]
            [STORED bool]
@@ -480,7 +481,8 @@ QObject::disconnect(lineEdit, &QLineEdit::textChanged,
 //! [48]
 
 //! [49]
-if (isSignalConnected(QMetaMethod::fromSignal(&MyObject::valueChanged))) {
+static const QMetaMethod valueChangedSignal = QMetaMethod::fromSignal(&MyObject::valueChanged);
+if (isSignalConnected(valueChangedSignal)) {
     QByteArray data;
     data = get_the_value();       // expensive operation
     emit valueChanged(data);

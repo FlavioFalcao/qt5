@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -55,7 +55,8 @@
 
 #include "qqmljsglobal_p.h"
 #include "qqmljsgrammar_p.h"
-#include <qstring.h>
+
+#include <QtCore/qstring.h>
 
 QT_QML_BEGIN_NAMESPACE
 
@@ -104,7 +105,6 @@ public:
         T_IMPLEMENTS = T_RESERVED_WORD,
         T_INT = T_RESERVED_WORD,
         T_INTERFACE = T_RESERVED_WORD,
-        T_LET = T_RESERVED_WORD,
         T_LONG = T_RESERVED_WORD,
         T_NATIVE = T_RESERVED_WORD,
         T_PACKAGE = T_RESERVED_WORD,
@@ -116,13 +116,13 @@ public:
         T_SYNCHRONIZED = T_RESERVED_WORD,
         T_THROWS = T_RESERVED_WORD,
         T_TRANSIENT = T_RESERVED_WORD,
-        T_VOLATILE = T_RESERVED_WORD,
-        T_YIELD = T_RESERVED_WORD
+        T_VOLATILE = T_RESERVED_WORD
     };
 
     enum Error {
         NoError,
         IllegalCharacter,
+        IllegalHexNumber,
         UnclosedStringLiteral,
         IllegalEscapeSequence,
         IllegalUnicodeEscapeSequence,
@@ -158,18 +158,18 @@ public:
     int regExpFlags() const { return _patternFlags; }
     QString regExpPattern() const { return _tokenText; }
 
-    int tokenKind() const;
-    int tokenOffset() const;
-    int tokenLength() const;
+    int tokenKind() const { return _tokenKind; }
+    int tokenOffset() const { return _tokenStartPtr - _code.unicode(); }
+    int tokenLength() const { return _tokenLength; }
 
-    int tokenStartLine() const;
-    int tokenStartColumn() const;
+    int tokenStartLine() const { return _tokenLine; }
+    int tokenStartColumn() const { return _tokenStartPtr - _tokenLinePtr + 1; }
 
     int tokenEndLine() const;
     int tokenEndColumn() const;
 
-    QStringRef tokenSpell() const;
-    double tokenValue() const;
+    inline QStringRef tokenSpell() const { return _tokenSpell; }
+    double tokenValue() const { return _tokenValue; }
     QString tokenText() const;
 
     Error errorCode() const;
@@ -191,8 +191,10 @@ protected:
 private:
     inline void scanChar();
     int scanToken();
+    int scanNumber(QChar ch);
 
     bool isLineTerminator() const;
+    unsigned isLineTerminatorSequence() const;
     static bool isIdentLetter(QChar c);
     static bool isDecimalDigit(ushort c);
     static bool isHexDigit(QChar c);
@@ -211,6 +213,7 @@ private:
     QStringRef _tokenSpell;
 
     const QChar *_codePtr;
+    const QChar *_endPtr;
     const QChar *_lastLinePtr;
     const QChar *_tokenLinePtr;
     const QChar *_tokenStartPtr;

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -47,7 +47,7 @@
 #define _WINSCARD_H_
 #include <windows.h>
 #endif
-#include "../../../sql/drivers/tds/qsql_tds.h"
+#include "../../../sql/drivers/tds/qsql_tds_p.h"
 
 QT_BEGIN_NAMESPACE
 

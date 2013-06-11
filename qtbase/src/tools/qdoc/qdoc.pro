@@ -1,6 +1,9 @@
 option(host_build)
+QT = core xml
 
-DEFINES += QDOC2_COMPAT
+DEFINES += \
+    QT_QMLDEVTOOLS_LIB \   # force static exports even if not bootstrapping
+    QDOC2_COMPAT
 
 INCLUDEPATH += $$QT_SOURCE_TREE/src/tools/qdoc \
                $$QT_SOURCE_TREE/src/tools/qdoc/qmlparser
@@ -64,12 +67,11 @@ SOURCES += atom.cpp \
            text.cpp \
            tokenizer.cpp \
            tree.cpp \
-           yyindent.cpp \
-           ../../corelib/tools/qcryptographichash.cpp
+           yyindent.cpp
 
 ### QML/JS Parser ###
 
-include(qmlparser/qmlparser.pri)
+include(qmlparser/parser.pri)
 
 HEADERS += jscodemarker.h \
             qmlcodemarker.h \
@@ -88,21 +90,8 @@ SOURCES += jscodemarker.cpp \
 qtPrepareTool(QDOC, qdoc)
 qtPrepareTool(QHELPGENERATOR, qhelpgenerator)
 
-equals(QMAKE_DIR_SEP, /) {
-    QDOC = QT_BUILD_TREE=$$QT_BUILD_TREE QT_SOURCE_TREE=$$QT_SOURCE_TREE $$QDOC
-} else {
-    QDOC = set QT_BUILD_TREE=$$QT_BUILD_TREE&& set QT_SOURCE_TREE=$$QT_SOURCE_TREE&& $$QDOC
-    QDOC = $$replace(QDOC, "/", "\\")
-}
-
-html-docs.commands = $$QDOC $$PWD/doc/config/qdoc.qdocconf
-html-docs.files = $$PWD/doc/html
-
-qch-docs.commands = $$QHELPGENERATOR $$PWD/doc/html/qdoc.qhp -o $$PWD/doc/qch/qdoc.qch
-qch-docs.files = $$PWD/doc/qch
-qch-docs.path = $$[QT_INSTALL_DOCS]
-qch-docs.CONFIG += no_check_exist directory
-
-QMAKE_EXTRA_TARGETS += html-docs qch-docs
+QMAKE_DOCS = $$PWD/doc/config/qdoc.qdocconf
 
 load(qt_tool)
+
+TR_EXCLUDE += $$PWD/*

@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -55,6 +55,7 @@
 #include <qdesktopwidget.h>
 #include <qpa/qplatformcursor.h>
 #include <qpa/qplatformtheme.h>
+#include <qpa/qplatformwindow.h>
 
 #include <qdebug.h>
 #include <qpa/qwindowsysteminterface.h>
@@ -195,7 +196,6 @@ void QApplicationPrivate::closePopup(QWidget *popup)
                 // mouse release event or inside
                 qt_replay_popup_mouse_event = false;
             } else { // mouse press event
-                QGuiApplicationPrivate::mousePressTime -= 10000; // avoid double click
                 qt_replay_popup_mouse_event = true;
             }
 
@@ -408,10 +408,20 @@ QWidget *QApplication::topLevelAt(const QPoint &pos)
 
 void QApplication::beep()
 {
+    QMetaObject::invokeMethod(QGuiApplication::platformNativeInterface(), "beep");
 }
 
-void QApplication::alert(QWidget *, int)
+void QApplication::alert(QWidget *widget, int duration)
 {
+    if (widget) {
+       if (widget->window()->isActiveWindow() && !(widget->window()->windowState() & Qt::WindowMinimized))
+            return;
+        if (QWindow *window= QApplicationPrivate::windowForWidget(widget))
+            window->alert(duration);
+    } else {
+        foreach (QWidget *topLevel, topLevelWidgets())
+            QApplication::alert(topLevel, duration);
+    }
 }
 
 void qt_init(QApplicationPrivate *priv, int type)

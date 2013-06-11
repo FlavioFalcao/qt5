@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -41,45 +41,24 @@
 
 #include "qcocoamenuloader.h"
 
+#include "messages.h"
 #include "qcocoahelpers.h"
 #include "qcocoamenubar.h"
 #include "qcocoamenuitem.h"
 
 #include <QtCore/private/qcore_mac_p.h>
+#include <QtCore/private/qthread_p.h>
 #include <QtCore/qcoreapplication.h>
 #include <QtCore/qdir.h>
 #include <QtCore/qstring.h>
 #include <QtCore/qdebug.h>
+#include <QtGui/private/qguiapplication_p.h>
 
 QT_FORWARD_DECLARE_CLASS(QCFString)
 QT_FORWARD_DECLARE_CLASS(QString)
 
 
 QT_BEGIN_NAMESPACE
-
-#ifndef QT_NO_TRANSLATION
-static const char *application_menu_strings[] = {
-    QT_TRANSLATE_NOOP("MAC_APPLICATION_MENU","Services"),
-    QT_TRANSLATE_NOOP("MAC_APPLICATION_MENU","Hide %1"),
-    QT_TRANSLATE_NOOP("MAC_APPLICATION_MENU","Hide Others"),
-    QT_TRANSLATE_NOOP("MAC_APPLICATION_MENU","Show All"),
-    QT_TRANSLATE_NOOP("MAC_APPLICATION_MENU","Preferences..."),
-    QT_TRANSLATE_NOOP("MAC_APPLICATION_MENU","Quit %1"),
-    QT_TRANSLATE_NOOP("MAC_APPLICATION_MENU","About %1")
-    };
-
-QString qt_mac_applicationmenu_string(int type)
-{
-    QString menuString = QString::fromLatin1(application_menu_strings[type]);
-    QString translated = qApp->translate("QMenuBar", application_menu_strings[type]);
-    if (translated != menuString) {
-        return translated;
-    } else {
-        return qApp->translate("MAC_APPLICATION_MENU",
-                               application_menu_strings[type]);
-    }
-}
-#endif
 
 /*
     Loads and instantiates the main app menu from the menu nib file(s).
@@ -88,9 +67,9 @@ QString qt_mac_applicationmenu_string(int type)
     The reason for having the nib file is that those can not be created
     programmatically. To ease deployment the nib files are stored in Qt resources
     and written to QDir::temp() before loading. (Earlier Qt versions used
-    to require having the nib file in the QtGui framework.)
+    to require having the nib file in the Qt GUI framework.)
 */
-void qt_mac_loadMenuNib(QT_MANGLE_NAMESPACE(QCocoaMenuLoader) *qtMenuLoader)
+void qt_mac_loadMenuNib(QCocoaMenuLoader *qtMenuLoader)
 {
     // Create qt_menu.nib dir in temp.
     QDir temp = QDir::temp();
@@ -127,7 +106,7 @@ void qt_mac_loadMenuNib(QT_MANGLE_NAMESPACE(QCocoaMenuLoader) *qtMenuLoader)
 
 QT_END_NAMESPACE
 
-@implementation QT_MANGLE_NAMESPACE(QCocoaMenuLoader)
+@implementation QCocoaMenuLoader
 
 - (void)awakeFromNib
 {
@@ -246,11 +225,17 @@ QT_END_NAMESPACE
     return [[hideItem retain] autorelease];
 }
 
-- (NSMenuItem *)appSpecificMenuItem
+- (NSMenuItem *)appSpecificMenuItem:(NSInteger)tag
 {
+    NSMenuItem *item = [appMenu itemWithTag:tag];
+
+    // No reason to create the item if it already exists. See QTBUG-27202.
+    if (item)
+        return [[item retain] autorelease];
+
     // Create an App-Specific menu item, insert it into the menu and return
     // it as an autorelease item.
-    NSMenuItem *item = [[NSMenuItem alloc] init];
+    item = [[NSMenuItem alloc] init];
 
     NSInteger location;
     if (lastAppSpecificItem == nil) {
@@ -322,6 +307,7 @@ QT_END_NAMESPACE
 
     if ([item tag]) {
         QCocoaMenuItem *cocoaItem = reinterpret_cast<QCocoaMenuItem *>([item tag]);
+        QScopedLoopLevelCounter loopLevelCounter(QGuiApplicationPrivate::instance()->threadData);
         cocoaItem->activated();
     }
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the qmake spec of the Qt Toolkit.
@@ -41,8 +41,6 @@
 
 #ifndef QPLATFORMDEFS_H
 #define QPLATFORMDEFS_H
-
-#define QT_QPA_DEFAULT_PLATFORM_NAME "cocoa"
 
 // Get Qt defines/settings
 
@@ -85,11 +83,7 @@
 
 #define QT_OPEN_LARGEFILE       0
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4)
 #define QT_SOCKLEN_T            socklen_t
-#else
-#define QT_SOCKLEN_T            int
-#endif
 
 #define QT_SIGNAL_IGNORE        (void (*)(int))1
 

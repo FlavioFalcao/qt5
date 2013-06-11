@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtDBus module of the Qt Toolkit.
@@ -97,7 +97,7 @@ public:
         inline bool operator==(const Argument& other) const
         { return name == other.name && type == other.type; }
     };
-    
+
     struct Method
     {
         QString name;

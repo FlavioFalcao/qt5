@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -100,7 +100,7 @@ void QFileDevicePrivate::setError(QFileDevice::FileError err, int errNum)
     \value ReadError        An error occurred when reading from the file.
     \value WriteError       An error occurred when writing to the file.
     \value FatalError       A fatal error occurred.
-    \value ResourceError
+    \value ResourceError    Out of resources (e.g., too many open files, out of memory, etc.)
     \value OpenError        The file could not be opened.
     \value AbortError       The operation was aborted.
     \value TimeOutError     A timeout occurred.

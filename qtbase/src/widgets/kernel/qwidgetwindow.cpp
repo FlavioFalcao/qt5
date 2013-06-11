@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -39,6 +39,7 @@
 **
 ****************************************************************************/
 
+#include "private/qwindow_p.h"
 #include "qwidgetwindow_qpa_p.h"
 
 #include "private/qwidget_p.h"
@@ -51,6 +52,8 @@
 
 QT_BEGIN_NAMESPACE
 
+Q_WIDGETS_EXPORT extern bool qt_tab_all_widgets();
+
 QWidget *qt_button_down = 0; // widget got last button-down
 static QWidget *qt_tablet_target = 0;
 
@@ -60,8 +63,23 @@ extern int openPopupCount;
 bool qt_replay_popup_mouse_event = false;
 extern bool qt_try_modal(QWidget *widget, QEvent::Type type);
 
+class QWidgetWindowPrivate : public QWindowPrivate
+{
+    Q_DECLARE_PUBLIC(QWidgetWindow)
+public:
+    QWindow *eventReceiver() {
+        Q_Q(QWidgetWindow);
+        QWindow *w = q;
+        while (w->parent() && qobject_cast<QWidgetWindow *>(w) && qobject_cast<QWidgetWindow *>(w->parent())) {
+            w = w->parent();
+        }
+        return w;
+    }
+};
+
 QWidgetWindow::QWidgetWindow(QWidget *widget)
-    : m_widget(widget)
+    : QWindow(*new QWidgetWindowPrivate(), 0)
+    , m_widget(widget)
 {
     updateObjectName();
     connect(m_widget, &QObject::objectNameChanged, this, &QWidgetWindow::updateObjectName);
@@ -107,6 +125,8 @@ bool QWidgetWindow::event(QEvent *event)
     // these should not be sent to QWidget, the corresponding events
     // are sent by QApplicationPrivate::notifyActiveWindowChange()
     case QEvent::FocusIn:
+        handleFocusInEvent(static_cast<QFocusEvent *>(event));
+        // Fallthrough
     case QEvent::FocusOut: {
 #ifndef QT_NO_ACCESSIBILITY
         QAccessible::State state;
@@ -268,6 +288,42 @@ void QWidgetWindow::handleEnterLeaveEvent(QEvent *event)
     }
 }
 
+QWidget *QWidgetWindow::getFocusWidget(FocusWidgets fw)
+{
+    QWidget *tlw = m_widget;
+    QWidget *w = tlw->nextInFocusChain();
+
+    QWidget *last = tlw;
+
+    uint focus_flag = qt_tab_all_widgets() ? Qt::TabFocus : Qt::StrongFocus;
+
+    while (w != tlw)
+    {
+        if (((w->focusPolicy() & focus_flag) == focus_flag)
+            && w->isVisibleTo(m_widget) && w->isEnabled())
+        {
+            last = w;
+            if (fw == FirstFocusWidget)
+                break;
+        }
+        w = w->nextInFocusChain();
+    }
+
+    return last;
+}
+
+void QWidgetWindow::handleFocusInEvent(QFocusEvent *e)
+{
+    QWidget *focusWidget = 0;
+    if (e->reason() == Qt::BacktabFocusReason)
+        focusWidget = getFocusWidget(LastFocusWidget);
+    else if (e->reason() == Qt::TabFocusReason)
+        focusWidget = getFocusWidget(FirstFocusWidget);
+
+    if (focusWidget != 0)
+        focusWidget->setFocus();
+}
+
 void QWidgetWindow::handleNonClientAreaMouseEvent(QMouseEvent *e)
 {
     QApplication::sendSpontaneousEvent(m_widget, e);
@@ -336,6 +392,27 @@ void QWidgetWindow::handleMouseEvent(QMouseEvent *event)
             && qt_replay_popup_mouse_event) {
             if (m_widget->windowType() != Qt::Popup)
                 qt_button_down = 0;
+            if (event->type() == QEvent::MouseButtonPress) {
+                // the popup disappeared, replay the mouse press event
+                QWidget *w = QApplication::widgetAt(event->globalPos());
+                if (w && !QApplicationPrivate::isBlockedByModal(w)) {
+                    // activate window of the widget under mouse pointer
+                    if (!w->isActiveWindow()) {
+                        w->activateWindow();
+                        w->raise();
+                    }
+
+                    QWindow *win = w->windowHandle();
+                    if (!win)
+                        win = w->nativeParentWidget()->windowHandle();
+                    if (win && win->geometry().contains(event->globalPos())) {
+                        const QPoint localPos = win->mapFromGlobal(event->globalPos());
+                        QMouseEvent e(QEvent::MouseButtonPress, localPos, localPos, event->globalPos(), event->button(), event->buttons(), event->modifiers());
+                        e.setTimestamp(event->timestamp());
+                        QApplication::sendSpontaneousEvent(win, &e);
+                    }
+                }
+            }
             qt_replay_popup_mouse_event = false;
 #ifndef QT_NO_CONTEXTMENU
         } else if (event->type() == QEvent::MouseButtonPress
@@ -396,10 +473,16 @@ void QWidgetWindow::handleMouseEvent(QMouseEvent *event)
 
 void QWidgetWindow::handleTouchEvent(QTouchEvent *event)
 {
-    if (event->type() == QEvent::TouchCancel)
+    if (event->type() == QEvent::TouchCancel) {
         QApplicationPrivate::translateTouchCancel(event->device(), event->timestamp());
-    else
-        QApplicationPrivate::translateRawTouchEvent(m_widget, event->device(), event->touchPoints(), event->timestamp());
+        event->accept();
+    } else if (qApp->d_func()->inPopupMode()) {
+        // Ignore touch events for popups. This will cause QGuiApplication to synthesise mouse
+        // events instead, which QWidgetWindow::handleMouseEvent will forward correctly:
+        event->ignore();
+    } else {
+        event->setAccepted(QApplicationPrivate::translateRawTouchEvent(m_widget, event->device(), event->touchPoints(), event->timestamp()));
+    }
 }
 
 void QWidgetWindow::handleKeyEvent(QKeyEvent *event)
@@ -407,14 +490,12 @@ void QWidgetWindow::handleKeyEvent(QKeyEvent *event)
     if (QApplicationPrivate::instance()->modalState() && !qt_try_modal(m_widget, event->type()))
         return;
 
-    QObject *receiver = 0;
-    if (QApplicationPrivate::inPopupMode()) {
+    QObject *receiver = QWidget::keyboardGrabber();
+    if (!receiver && QApplicationPrivate::inPopupMode()) {
         QWidget *popup = QApplication::activePopupWidget();
         QWidget *popupFocusWidget = popup->focusWidget();
         receiver = popupFocusWidget ? popupFocusWidget : popup;
     }
-    if (!receiver)
-        receiver = QWidget::keyboardGrabber();
     if (!receiver)
         receiver = focusObject();
     QGuiApplication::sendSpontaneousEvent(receiver, event);

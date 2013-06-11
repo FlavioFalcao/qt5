@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -49,14 +49,13 @@
 #error qtemporaryfile.h must be included before any header file that defines open
 #endif
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
 #ifndef QT_NO_TEMPORARYFILE
 
 class QTemporaryFilePrivate;
+class QLockFilePrivate;
 
 class Q_CORE_EXPORT QTemporaryFile : public QFile
 {
@@ -98,13 +97,12 @@ protected:
 
 private:
     friend class QFile;
+    friend class QLockFilePrivate;
     Q_DISABLE_COPY(QTemporaryFile)
 };
 
 #endif // QT_NO_TEMPORARYFILE
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QTEMPORARYFILE_H

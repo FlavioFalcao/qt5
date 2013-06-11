@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -45,9 +45,16 @@
 #include <QtCore/qoldbasicatomic.h>
 #include <INTEGRITY.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
+
+#if 0
+// silence syncqt warnings
+QT_END_NAMESPACE
+QT_END_HEADER
+
+#pragma qt_sync_skip_header_check
+#pragma qt_sync_stop_processing
+#endif
 
 #define qt_i2addr(a) reinterpret_cast<Address *>(const_cast<int *>(a))
 #define qt_p2addr(a) reinterpret_cast<Address *>(const_cast<void *>(a))
@@ -283,8 +290,6 @@ Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddRelease(qptrdiff valueTo
 }
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QATOMIC_INTEGRITY_H
 

@@ -42,6 +42,8 @@
 #include "qqnxinputcontext_imf.h"
 #include "qqnxeventthread.h"
 #include "qqnxabstractvirtualkeyboard.h"
+#include "qqnxintegration.h"
+#include "qqnxscreen.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QInputMethodEvent>
@@ -59,13 +61,13 @@
 #include <process.h>
 #include <sys/keycodes.h>
 
-#ifdef QQNXINPUTCONTEXT_IMF_EVENT_DEBUG
+#if defined(QQNXINPUTCONTEXT_IMF_EVENT_DEBUG)
 #define qInputContextIMFEventDebug qDebug
 #else
 #define qInputContextIMFEventDebug QT_NO_QDEBUG_MACRO
 #endif
 
-#ifdef QQNXINPUTCONTEXT_DEBUG
+#if defined(QQNXINPUTCONTEXT_DEBUG)
 #define qInputContextDebug qDebug
 #else
 #define qInputContextDebug QT_NO_QDEBUG_MACRO
@@ -604,12 +606,10 @@ static bool imfAvailable()
     static bool s_imfDisabled = getenv("DISABLE_IMF") != 0;
     static bool s_imfReady = false;
 
-    if ( s_imfInitFailed || s_imfDisabled) {
+    if ( s_imfInitFailed || s_imfDisabled)
         return false;
-    }
-    else if ( s_imfReady ) {
+    else if ( s_imfReady )
         return true;
-    }
 
     if ( p_imf_client_init == 0 ) {
         void *handle = dlopen("libinput_client.so.1", 0);
@@ -621,17 +621,15 @@ static bool imfAvailable()
             p_ictrl_dispatch_event = (int32_t (*)(event_t *))dlsym(handle, "ictrl_dispatch_event");
             p_vkb_init_selection_service = (int32_t (*)())dlsym(handle, "vkb_init_selection_service");
             p_ictrl_get_num_active_sessions = (int32_t (*)())dlsym(handle, "ictrl_get_num_active_sessions");
-        }
-        else
-        {
+        } else {
             qCritical() << Q_FUNC_INFO << "libinput_client.so.1 is not present - IMF services are disabled.";
             s_imfDisabled = true;
             return false;
         }
+
         if ( p_imf_client_init && p_ictrl_open_session && p_ictrl_dispatch_event ) {
             s_imfReady = true;
-        }
-        else {
+        } else {
             p_ictrl_open_session = 0;
             p_ictrl_dispatch_event = 0;
             s_imfDisabled = true;
@@ -645,12 +643,13 @@ static bool imfAvailable()
 
 QT_BEGIN_NAMESPACE
 
-QQnxInputContext::QQnxInputContext(QQnxAbstractVirtualKeyboard &keyboard):
+QQnxInputContext::QQnxInputContext(QQnxIntegration *integration, QQnxAbstractVirtualKeyboard &keyboard) :
          QPlatformInputContext(),
          m_lastCaretPos(0),
          m_isComposing(false),
          m_inputPanelVisible(false),
          m_inputPanelLocale(QLocale::c()),
+         m_integration(integration),
          m_virtualKeyboad(keyboard)
 {
     qInputContextDebug() << Q_FUNC_INFO;
@@ -855,6 +854,13 @@ bool QQnxInputContext::filterEvent( const QEvent *event )
     default:
         return false;
     }
+}
+
+QRectF QQnxInputContext::keyboardRect() const
+{
+    QRect screenGeometry = m_integration->primaryDisplay()->geometry();
+    return QRectF(screenGeometry.x(), screenGeometry.height() - m_virtualKeyboard.height(),
+                  screenGeometry.width(), m_virtualKeyboard.height());
 }
 
 void QQnxInputContext::reset()
@@ -1390,11 +1396,10 @@ spannable_string_t *QQnxInputContext::onGetTextBeforeCursor(input_session_t *ic,
     QString text = query.value(Qt::ImSurroundingText).toString();
     m_lastCaretPos = query.value(Qt::ImCursorPosition).toInt();
 
-    if (n < m_lastCaretPos) {
+    if (n < m_lastCaretPos)
         return toSpannableString(text.mid(m_lastCaretPos - n, n));
-    } else {
+    else
         return toSpannableString(text.mid(0, m_lastCaretPos));
-    }
 }
 
 int32_t QQnxInputContext::onPerformEditorAction(input_session_t *ic, int32_t editor_action)

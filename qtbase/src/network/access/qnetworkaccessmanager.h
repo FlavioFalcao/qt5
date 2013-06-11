@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -43,8 +43,6 @@
 #define QNETWORKACCESSMANAGER_H
 
 #include <QtCore/QObject>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -99,6 +97,9 @@ public:
     explicit QNetworkAccessManager(QObject *parent = 0);
     ~QNetworkAccessManager();
 
+    // ### Qt 6: turn into virtual
+    QStringList supportedSchemes() const;
+
     void clearAccessCache();
 
 #ifndef QT_NO_NETWORKPROXY
@@ -141,6 +142,7 @@ Q_SIGNALS:
     void authenticationRequired(QNetworkReply *reply, QAuthenticator *authenticator);
     void finished(QNetworkReply *reply);
 #ifndef QT_NO_SSL
+    void encrypted(QNetworkReply *reply);
     void sslErrors(QNetworkReply *reply, const QList<QSslError> &errors);
 #endif
 
@@ -154,6 +156,9 @@ protected:
     virtual QNetworkReply *createRequest(Operation op, const QNetworkRequest &request,
                                          QIODevice *outgoingData = 0);
 
+protected Q_SLOTS:
+    QStringList supportedSchemesImplementation() const;
+
 private:
     friend class QNetworkReplyImplPrivate;
     friend class QNetworkReplyHttpImpl;
@@ -161,15 +166,15 @@ private:
 
     Q_DECLARE_PRIVATE(QNetworkAccessManager)
     Q_PRIVATE_SLOT(d_func(), void _q_replyFinished())
+    Q_PRIVATE_SLOT(d_func(), void _q_replyEncrypted())
     Q_PRIVATE_SLOT(d_func(), void _q_replySslErrors(QList<QSslError>))
 #ifndef QT_NO_BEARERMANAGEMENT
     Q_PRIVATE_SLOT(d_func(), void _q_networkSessionClosed())
     Q_PRIVATE_SLOT(d_func(), void _q_networkSessionStateChanged(QNetworkSession::State))
+    Q_PRIVATE_SLOT(d_func(), void _q_onlineStateChanged(bool))
 #endif
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif

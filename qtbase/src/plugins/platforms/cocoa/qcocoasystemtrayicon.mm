@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Copyright (C) 2012 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Christoph Schleifenbaum <christoph.schleifenbaum@kdab.com>
 ** Contact: http://www.qt-project.org/legal
 **
@@ -93,7 +93,11 @@ QT_USE_NAMESPACE
 @class QT_MANGLE_NAMESPACE(QNSMenu);
 @class QT_MANGLE_NAMESPACE(QNSImageView);
 
-@interface QT_MANGLE_NAMESPACE(QNSStatusItem) : NSObject {
+@interface QT_MANGLE_NAMESPACE(QNSStatusItem) : NSObject
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_8
+    <NSUserNotificationCenterDelegate>
+#endif
+    {
 @public
     QCocoaSystemTrayIcon *systray;
     NSStatusItem *item;
@@ -108,6 +112,11 @@ QT_USE_NAMESPACE
 -(QRectF)geometry;
 - (void)triggerSelector:(id)sender button:(Qt::MouseButton)mouseButton;
 - (void)doubleClickSelector:(id)sender;
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_8
+- (BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification;
+- (void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)notification;
+#endif
 @end
 
 @interface QT_MANGLE_NAMESPACE(QNSImageView) : NSImageView {
@@ -126,18 +135,32 @@ QT_USE_NAMESPACE
 -(id)initWithQMenu:(QPlatformMenu*)qmenu;
 @end
 
+QT_NAMESPACE_ALIAS_OBJC_CLASS(QNSStatusItem);
+QT_NAMESPACE_ALIAS_OBJC_CLASS(QNSImageView);
+QT_NAMESPACE_ALIAS_OBJC_CLASS(QNSMenu);
+
 QT_BEGIN_NAMESPACE
 class QSystemTrayIconSys
 {
 public:
     QSystemTrayIconSys(QCocoaSystemTrayIcon *sys) {
-        item = [[QT_MANGLE_NAMESPACE(QNSStatusItem) alloc] initWithSysTray:sys];
+        item = [[QNSStatusItem alloc] initWithSysTray:sys];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_8
+        if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_8) {
+            [[NSUserNotificationCenter defaultUserNotificationCenter] setDelegate:item];
+        }
+#endif
     }
     ~QSystemTrayIconSys() {
         [[[item item] view] setHidden: YES];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_8
+        if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_8) {
+            [[NSUserNotificationCenter defaultUserNotificationCenter] setDelegate:nil];
+        }
+#endif
         [item release];
     }
-    QT_MANGLE_NAMESPACE(QNSStatusItem) *item;
+    QNSStatusItem *item;
 };
 
 void QCocoaSystemTrayIcon::init()
@@ -223,6 +246,18 @@ void QCocoaSystemTrayIcon::showMessage(const QString &title, const QString &mess
     if (!m_sys)
         return;
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_8
+    if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_8) {
+        NSUserNotification *notification = [[NSUserNotification alloc] init];
+        notification.title = [NSString stringWithUTF8String:title.toUtf8().data()];
+        notification.informativeText = [NSString stringWithUTF8String:message.toUtf8().data()];
+
+        [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:notification];
+
+        return;
+    }
+#endif
+
 #ifdef QT_MAC_SYSTEMTRAY_USE_GROWL
     // Make sure that we have Growl installed on the machine we are running on.
     QCFType<CFURLRef> cfurl;
@@ -279,8 +314,8 @@ QT_END_NAMESPACE
 @implementation NSStatusItem (Qt)
 @end
 
-@implementation QT_MANGLE_NAMESPACE(QNSImageView)
--(id)initWithParent:(QT_MANGLE_NAMESPACE(QNSStatusItem)*)myParent {
+@implementation QNSImageView
+-(id)initWithParent:(QNSStatusItem*)myParent {
     self = [super init];
     parent = myParent;
     down = NO;
@@ -375,7 +410,7 @@ QT_END_NAMESPACE
 }
 @end
 
-@implementation QT_MANGLE_NAMESPACE(QNSStatusItem)
+@implementation QNSStatusItem
 
 -(id)initWithSysTray:(QCocoaSystemTrayIcon *)sys
 {
@@ -385,7 +420,7 @@ QT_END_NAMESPACE
         menu = 0;
         menuVisible = false;
         systray = sys;
-        imageCell = [[QT_MANGLE_NAMESPACE(QNSImageView) alloc] initWithParent:self];
+        imageCell = [[QNSImageView alloc] initWithParent:self];
         [item setView: imageCell];
     }
     return self;
@@ -439,6 +474,20 @@ QT_END_NAMESPACE
     emit systray->activated(QPlatformSystemTrayIcon::DoubleClick);
 }
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_8
+- (BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification {
+    Q_UNUSED(center);
+    Q_UNUSED(notification);
+    return YES;
+}
+
+- (void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)notification {
+    Q_UNUSED(center);
+    Q_UNUSED(notification);
+    emit systray->messageClicked();
+}
+#endif
+
 @end
 
 class QSystemTrayIconQMenu : public QPlatformMenu
@@ -449,7 +498,7 @@ private:
     QSystemTrayIconQMenu();
 };
 
-@implementation QT_MANGLE_NAMESPACE(QNSMenu)
+@implementation QNSMenu
 -(id)initWithQMenu:(QPlatformMenu*)qm {
     self = [super init];
     if (self) {

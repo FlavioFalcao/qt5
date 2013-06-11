@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -62,7 +62,7 @@ db.setDatabaseName("C:\\test.gdb");
 
 
 //! [25]
-// connect to database using the Latin-1 character set 
+// connect to database using the Latin-1 character set
 db.setConnectOptions("ISC_DPB_LC_CTYPE=Latin1");
 db.open();
 //! [25]

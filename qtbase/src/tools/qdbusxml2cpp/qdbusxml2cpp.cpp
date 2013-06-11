@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -48,15 +48,15 @@
 #include <qtextstream.h>
 #include <qset.h>
 
-#include "qdbusmetatype.h"
-#include <qdbusintrospection_p.h>
+#include <qdbusmetatype.h>
+#include <private/qdbusintrospection_p.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #define PROGRAMNAME     "qdbusxml2cpp"
 #define PROGRAMVERSION  "0.8"
-#define PROGRAMCOPYRIGHT "Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies)."
+#define PROGRAMCOPYRIGHT "Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies)."
 
 #define ANNOTATION_NO_WAIT      "org.freedesktop.DBus.Method.NoReply"
 

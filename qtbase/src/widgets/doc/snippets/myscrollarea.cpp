@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -121,7 +121,7 @@ int main(int argv, char **args)
     MyScrollArea area(&label);
     area.resize(300, 300);
     area.show();
-    
+
     area.setWidget(&label);
 
     return app.exec();

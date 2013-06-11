@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the qmake spec of the Qt Toolkit.
@@ -65,16 +65,16 @@
 
 #if !defined(_WIN32_WINNT) || (_WIN32_WINNT-0 < 0x0500)
 typedef enum {
-    NameUnknown		  = 0, 
-    NameFullyQualifiedDN  = 1, 
-    NameSamCompatible	  = 2, 
-    NameDisplay		  = 3, 
-    NameUniqueId	  = 6, 
-    NameCanonical	  = 7, 
-    NameUserPrincipal	  = 8, 
-    NameCanonicalEx	  = 9, 
-    NameServicePrincipal  = 10, 
-    NameDnsDomain	  = 12
+    NameUnknown           = 0,
+    NameFullyQualifiedDN  = 1,
+    NameSamCompatible     = 2,
+    NameDisplay           = 3,
+    NameUniqueId          = 6,
+    NameCanonical         = 7,
+    NameUserPrincipal     = 8,
+    NameCanonicalEx       = 9,
+    NameServicePrincipal  = 10,
+    NameDnsDomain         = 12
 } EXTENDED_NAME_FORMAT, *PEXTENDED_NAME_FORMAT;
 #endif
 

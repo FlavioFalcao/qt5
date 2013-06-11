@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the utils of the Qt Toolkit.
@@ -227,7 +227,7 @@ void tst_LexGen::lexgen_data()
     d.cd("testdata");
     foreach (QString test, d.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         QString dir = d.absoluteFilePath(test) + '/';
-        QTest::newRow(qPrintable(test)) 
+        QTest::newRow(qPrintable(test))
             << dir + "rules.lexgen"
             << dir + "input"
             << dir + "output"

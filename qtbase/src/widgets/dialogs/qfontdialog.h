@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -46,8 +46,6 @@
 #include <QtWidgets/qdialog.h>
 #include <QtGui/qfont.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -66,7 +64,11 @@ class Q_WIDGETS_EXPORT QFontDialog : public QDialog
 public:
     enum FontDialogOption {
         NoButtons           = 0x00000001,
-        DontUseNativeDialog = 0x00000002
+        DontUseNativeDialog = 0x00000002,
+        ScalableFonts       = 0x00000004,
+        NonScalableFonts    = 0x00000008,
+        MonospacedFonts     = 0x00000010,
+        ProportionalFonts   = 0x00000020
     };
 
     Q_DECLARE_FLAGS(FontDialogOptions, FontDialogOption)
@@ -125,7 +127,5 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QFontDialog::FontDialogOptions)
 #endif // QT_NO_FONTDIALOG
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QFONTDIALOG_H

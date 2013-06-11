@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -95,6 +95,8 @@ int QPaintDevice::metric(PaintDeviceMetric m) const
     } else if (m == PdmNumColors) {
         // FIXME: does this need to be a real value?
         return 256;
+    } else if (m == PdmDevicePixelRatio) {
+        return 1;
     } else {
         qDebug("Unrecognised metric %d!",m);
         return 0;

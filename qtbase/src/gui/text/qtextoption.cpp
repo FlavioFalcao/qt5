@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -394,7 +394,7 @@ QList<QTextOption::Tab> QTextOption::tabs() const
 
 /*!
     \fn Tab::Tab(qreal pos, TabType tabType, QChar delim = QChar())
-    
+
     Creates a tab with the given position, tab type, and delimiter
     (\a pos, \a tabType, \a delim).
 

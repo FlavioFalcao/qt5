@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -88,21 +88,33 @@
 
 QT_USE_NAMESPACE
 
-static QT_MANGLE_NAMESPACE(QCocoaApplicationDelegate) *sharedCocoaApplicationDelegate = nil;
+static QCocoaApplicationDelegate *sharedCocoaApplicationDelegate = nil;
 
 static void cleanupCocoaApplicationDelegate()
 {
     [sharedCocoaApplicationDelegate release];
 }
 
-@implementation QT_MANGLE_NAMESPACE(QCocoaApplicationDelegate)
+@implementation QCocoaApplicationDelegate
 
 - (id)init
 {
     self = [super init];
-    if (self)
+    if (self) {
         inLaunch = true;
+        [[NSNotificationCenter defaultCenter]
+                addObserver:self
+                   selector:@selector(updateScreens:)
+                       name:NSApplicationDidChangeScreenParametersNotification
+                     object:NSApp];
+    }
     return self;
+}
+
+- (void)updateScreens:(NSNotification *)notification
+{
+    if (QCocoaIntegration *ci = dynamic_cast<QCocoaIntegration *>(QGuiApplicationPrivate::platformIntegration()))
+        ci->updateScreens();
 }
 
 - (void)dealloc
@@ -114,6 +126,8 @@ static void cleanupCocoaApplicationDelegate()
         [NSApp setDelegate:reflectionDelegate];
         [reflectionDelegate release];
     }
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+
     [super dealloc];
 }
 
@@ -129,7 +143,7 @@ static void cleanupCocoaApplicationDelegate()
     return nil;
 }
 
-+ (QT_MANGLE_NAMESPACE(QCocoaApplicationDelegate)*)sharedDelegate
++ (QCocoaApplicationDelegate *)sharedDelegate
 {
     @synchronized(self) {
         if (sharedCocoaApplicationDelegate == nil)
@@ -145,19 +159,20 @@ static void cleanupCocoaApplicationDelegate()
     dockMenu = newMenu;
 }
 
-- (NSMenu *)applicationDockMenu
+- (NSMenu *)applicationDockMenu:(NSApplication *)sender
 {
+    Q_UNUSED(sender);
     return [[dockMenu retain] autorelease];
 }
 
-- (void)setMenuLoader:(QT_MANGLE_NAMESPACE(QCocoaMenuLoader) *)menuLoader
+- (void)setMenuLoader:(QCocoaMenuLoader *)menuLoader
 {
     [menuLoader retain];
     [qtMenuLoader release];
     qtMenuLoader = menuLoader;
 }
 
-- (QT_MANGLE_NAMESPACE(QCocoaMenuLoader) *)menuLoader
+- (QCocoaMenuLoader *)menuLoader
 {
     return [[qtMenuLoader retain] autorelease];
 }
@@ -167,7 +182,7 @@ static void cleanupCocoaApplicationDelegate()
     [[NSApp mainMenu] cancelTracking];
 
     bool handle_quit = true;
-    NSMenuItem *quitMenuItem = [[[QT_MANGLE_NAMESPACE(QCocoaApplicationDelegate) sharedDelegate] menuLoader] quitMenuItem];
+    NSMenuItem *quitMenuItem = [[[QCocoaApplicationDelegate sharedDelegate] menuLoader] quitMenuItem];
     if (!QGuiApplicationPrivate::instance()->modalWindowList.isEmpty()
         && [quitMenuItem isEnabled]) {
         int visible = 0;
@@ -202,6 +217,13 @@ static void cleanupCocoaApplicationDelegate()
     if ([self canQuit]) {
         if (!startedQuit) {
             startedQuit = true;
+            // Close open windows. This is done in order to deliver de-expose
+            // events while the event loop is still running.
+            const QWindowList topLevels = QGuiApplication::topLevelWindows();
+            for (int i = 0; i < topLevels.size(); ++i) {
+                topLevels.at(i)->close();
+            }
+
             QGuiApplication::exit(0);
             startedQuit = false;
         }

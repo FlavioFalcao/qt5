@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
@@ -195,29 +195,6 @@ bool QSqlTableModelPrivate::exec(const QString &stmt, bool prepStatement,
     return true;
 }
 
-QSqlRecord QSqlTableModelPrivate::primaryValues(const QSqlRecord &rec, const QSqlRecord &pIndex)
-{
-    QSqlRecord pValues(pIndex);
-
-    for (int i = pValues.count() - 1; i >= 0; --i)
-        pValues.setValue(i, rec.value(pValues.fieldName(i)));
-
-    return pValues;
-}
-
-QSqlRecord QSqlTableModelPrivate::primaryValues(int row) const
-{
-    Q_Q(const QSqlTableModel);
-
-    const QSqlRecord &pIndex = primaryIndex.isEmpty() ? rec : primaryIndex;
-
-    ModifiedRow mr = cache.value(row);
-    if (mr.op() != None)
-        return mr.primaryValues(pIndex);
-    else
-        return primaryValues(q->QSqlQueryModel::record(row), pIndex);
-}
-
 /*!
     \class QSqlTableModel
     \brief The QSqlTableModel class provides an editable data model
@@ -355,6 +332,16 @@ void QSqlTableModel::setTable(const QString &tableName)
     if (d->rec.count() == 0)
         d->error = QSqlError(QLatin1String("Unable to find table ") + d->tableName, QString(),
                              QSqlError::StatementError);
+
+    // Remember the auto index column if there is one now.
+    // The record that will be obtained from the query after select lacks this feature.
+    d->autoColumn.clear();
+    for (int c = 0; c < d->rec.count(); ++c) {
+        if (d->rec.field(c).isAutoValue()) {
+            d->autoColumn = d->rec.fieldName(c);
+            break;
+        }
+    }
 }
 
 /*!
@@ -422,7 +409,7 @@ bool QSqlTableModel::selectRow(int row)
     const QString table_filter = d->filter;
     d->filter = d->db.driver()->sqlStatement(QSqlDriver::WhereStatement,
                                               d->tableName,
-                                              d->primaryValues(row),
+                                              primaryValues(row),
                                               false);
     static const QString wh = Sql::where() + Sql::sp();
     if (d->filter.startsWith(wh, Qt::CaseInsensitive))
@@ -587,7 +574,10 @@ bool QSqlTableModel::setData(const QModelIndex &index, const QVariant &value, in
     if (!(flags(index) & Qt::ItemIsEditable))
         return false;
 
-    if (QSqlTableModel::data(index, role) == value)
+    const QVariant oldValue = QSqlTableModel::data(index, role);
+    if (value == oldValue
+        && value.isNull() == oldValue.isNull()
+        && d->cache.value(index.row()).op() != QSqlTableModelPrivate::Insert)
         return true;
 
     QSqlTableModelPrivate::ModifiedRow &row = d->cache[index.row()];
@@ -639,7 +629,7 @@ bool QSqlTableModel::updateRowInTable(int row, const QSqlRecord &values)
     QSqlRecord rec(values);
     emit beforeUpdate(row, rec);
 
-    const QSqlRecord whereValues = d->primaryValues(row);
+    const QSqlRecord whereValues = primaryValues(row);
     const bool prepStatement = d->db.driver()->hasFeature(QSqlDriver::PreparedQueries);
     const QString stmt = d->db.driver()->sqlStatement(QSqlDriver::UpdateStatement, d->tableName,
                                                      rec, prepStatement);
@@ -705,7 +695,7 @@ bool QSqlTableModel::deleteRowFromTable(int row)
     Q_D(QSqlTableModel);
     emit beforeDelete(row);
 
-    const QSqlRecord whereValues = d->primaryValues(row);
+    const QSqlRecord whereValues = primaryValues(row);
     const bool prepStatement = d->db.driver()->hasFeature(QSqlDriver::PreparedQueries);
     const QString stmt = d->db.driver()->sqlStatement(QSqlDriver::DeleteStatement,
                                                       d->tableName,
@@ -772,6 +762,11 @@ bool QSqlTableModel::submitAll()
         }
 
         if (success) {
+            if (d->strategy != OnManualSubmit && mrow.op() == QSqlTableModelPrivate::Insert) {
+                int c = mrow.rec().indexOf(d->autoColumn);
+                if (c != -1 && !mrow.rec().isGenerated(c))
+                    mrow.setValue(c, d->editQuery.lastInsertId());
+            }
             mrow.setSubmitted();
             if (d->strategy != OnManualSubmit)
                 success = selectRow(row);
@@ -821,7 +816,8 @@ bool QSqlTableModel::submit()
     user canceled editing the current row.
 
     Reverts the changes if the model's strategy is set to
-    OnRowChange. Does nothing for the other edit strategies.
+    OnRowChange or OnFieldChange. Does nothing for the OnManualSubmit
+    strategy.
 
     Use revertAll() to revert all pending changes for the
     OnManualSubmit strategy or revertRow() to revert a specific row.
@@ -831,7 +827,7 @@ bool QSqlTableModel::submit()
 void QSqlTableModel::revert()
 {
     Q_D(QSqlTableModel);
-    if (d->strategy == OnRowChange)
+    if (d->strategy == OnRowChange || d->strategy == OnFieldChange)
         revertAll();
 }
 
@@ -1418,6 +1414,26 @@ bool QSqlTableModel::setRecord(int row, const QSqlRecord &values)
         return submit();
 
     return true;
+}
+
+/*!
+    \since 5.1
+    Returns a record containing the fields represented in the primary key set to the values
+    at \a row. If no primary key is defined, the returned record will contain all fields.
+
+    \sa primaryKey()
+*/
+QSqlRecord QSqlTableModel::primaryValues(int row) const
+{
+    Q_D(const QSqlTableModel);
+
+    const QSqlRecord &pIndex = d->primaryIndex.isEmpty() ? d->rec : d->primaryIndex;
+
+    QSqlTableModelPrivate::ModifiedRow mr = d->cache.value(row);
+    if (mr.op() != QSqlTableModelPrivate::None)
+        return mr.primaryValues(pIndex);
+    else
+        return QSqlQueryModel::record(row).keyValues(pIndex);
 }
 
 QT_END_NAMESPACE

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -47,7 +47,7 @@ if (socket->waitForConnected(1000))
 
 //! [1]
 socket->disconnectFromHost();
-    if (socket->state() == QAbstractSocket::UnconnectedState || 
+    if (socket->state() == QAbstractSocket::UnconnectedState ||
         socket->waitForDisconnected(1000))
         qDebug("Disconnected!");
 //! [1]

@@ -44,11 +44,18 @@
 
 #include <qpa/qplatformdialoghelper.h>
 
-#include <bps/dialog.h>
 
 QT_BEGIN_NAMESPACE
 
 class QQnxIntegration;
+
+#if defined(Q_OS_BLACKBERRY_TABLET)
+#include <bps/dialog.h>
+#define NativeDialogPtr dialog_instance_t
+#else
+class QQnxFilePicker;
+#define NativeDialogPtr QQnxFilePicker *
+#endif
 
 class QQnxFileDialogHelper : public QPlatformFileDialogHelper
 {
@@ -57,7 +64,9 @@ public:
     explicit QQnxFileDialogHelper(const QQnxIntegration *);
     ~QQnxFileDialogHelper();
 
+#if defined(Q_OS_BLACKBERRY_TABLET)
     bool handleEvent(bps_event_t *event);
+#endif
 
     void exec();
 
@@ -73,21 +82,24 @@ public:
     void selectNameFilter(const QString &filter);
     QString selectedNameFilter() const;
 
-    dialog_instance_t nativeDialog() const { return m_dialog; }
+    NativeDialogPtr nativeDialog() const { return m_dialog; }
 
 Q_SIGNALS:
     void dialogClosed();
 
 private:
     void setNameFilter(const QString &filter);
+    void setNameFilters(const QStringList &filters);
 
     const QQnxIntegration *m_integration;
-    dialog_instance_t m_dialog;
+    NativeDialogPtr m_dialog;
     QFileDialogOptions::AcceptMode m_acceptMode;
     QString m_selectedFilter;
 
     QPlatformDialogHelper::DialogCode m_result;
+#if defined(Q_OS_BLACKBERRY_TABLET)
     QStringList m_paths;
+#endif
 };
 
 QT_END_NAMESPACE

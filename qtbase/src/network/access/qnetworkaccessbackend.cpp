@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -47,6 +47,7 @@
 #include "qnetworkreply_p.h"
 #include "QtCore/qhash.h"
 #include "QtCore/qmutex.h"
+#include "QtCore/qstringlist.h"
 #include "QtNetwork/private/qnetworksession_p.h"
 
 #include "qnetworkaccesscachebackend_p.h"
@@ -108,6 +109,22 @@ QNetworkAccessBackend *QNetworkAccessManagerPrivate::findBackend(QNetworkAccessM
         }
     }
     return 0;
+}
+
+QStringList QNetworkAccessManagerPrivate::backendSupportedSchemes() const
+{
+    if (QNetworkAccessBackendFactoryData::valid.load()) {
+        QMutexLocker locker(&factoryData()->mutex);
+        QNetworkAccessBackendFactoryData::ConstIterator it = factoryData()->constBegin();
+        QNetworkAccessBackendFactoryData::ConstIterator end = factoryData()->constEnd();
+        QStringList schemes;
+        while (it != end) {
+            schemes += (*it)->supportedSchemes();
+            ++it;
+        }
+        return schemes;
+    }
+    return QStringList();
 }
 
 QNonContiguousByteDevice* QNetworkAccessBackend::createUploadByteDevice()
@@ -338,6 +355,13 @@ void QNetworkAccessBackend::metaDataChanged()
 void QNetworkAccessBackend::redirectionRequested(const QUrl &target)
 {
     reply->redirectionRequested(target);
+}
+
+void QNetworkAccessBackend::encrypted()
+{
+#ifndef QT_NO_SSL
+    reply->encrypted();
+#endif
 }
 
 void QNetworkAccessBackend::sslErrors(const QList<QSslError> &errors)

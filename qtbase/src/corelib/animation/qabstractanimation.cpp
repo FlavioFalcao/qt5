@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -827,8 +827,8 @@ void QAnimationDriver::start()
 {
     Q_D(QAnimationDriver);
     if (!d->running) {
-        emit started();
         d->running = true;
+        emit started();
     }
 }
 
@@ -837,8 +837,8 @@ void QAnimationDriver::stop()
 {
     Q_D(QAnimationDriver);
     if (d->running) {
-        emit stopped();
         d->running = false;
+        emit stopped();
     }
 }
 

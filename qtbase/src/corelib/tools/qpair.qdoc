@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -31,7 +31,7 @@
     \brief The QPair class is a template class that stores a pair of items.
 
     \ingroup tools
-    
+
     QPair\<T1, T2\> can be used in your application if the STL \c
     pair type is not available. It stores one value of type T1 and
     one value of type T2. It can be used as a return value for a
@@ -84,7 +84,7 @@
 /*! \fn QPair::QPair()
 
     Constructs an empty pair. The \c first and \c second elements are
-    initialized with \l{default-constructed values}.
+    initialized with \l{default-constructed value}s.
 */
 
 /*!
@@ -92,6 +92,26 @@
 
     Constructs a pair and initializes the \c first element with \a
     value1 and the \c second element with \a value2.
+
+    \sa qMakePair()
+*/
+
+/*!
+    \fn QPair::QPair(const QPair<TT1, TT2> &p)
+    \since 5.2
+
+    Constructs a pair from the other pair \a p, of types TT1 and TT2. This
+    constructor will fail if \c first cannot be initialized from \c p.first or
+    if \c second cannot be initialized from \c p.second.
+
+    \sa qMakePair()
+*/
+
+/*!
+    \fn QPair &QPair::operator=(const QPair<TT1, TT2> &p)
+    \since 5.2
+
+    Copies the pair \a p onto this pair.
 
     \sa qMakePair()
 */

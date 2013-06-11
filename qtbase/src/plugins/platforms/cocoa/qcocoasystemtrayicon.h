@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Copyright (C) 2012 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Christoph Schleifenbaum <christoph.schleifenbaum@kdab.com>
 ** Contact: http://www.qt-project.org/legal
 **
@@ -42,6 +42,8 @@
 
 #ifndef QCOCOASYSTEMTRAYICON_P_H
 #define QCOCOASYSTEMTRAYICON_P_H
+
+#include <QtCore/qglobal.h>
 
 #ifndef QT_NO_SYSTEMTRAYICON
 

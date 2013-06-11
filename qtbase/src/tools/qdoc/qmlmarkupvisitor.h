@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -94,7 +94,7 @@ public:
 
     virtual bool visit(QQmlJS::AST::ElementList *);
     virtual bool visit(QQmlJS::AST::Elision *);
-    virtual bool visit(QQmlJS::AST::PropertyNameAndValueList *);
+    virtual bool visit(QQmlJS::AST::PropertyNameAndValue *);
     virtual bool visit(QQmlJS::AST::ArrayMemberExpression *);
     virtual bool visit(QQmlJS::AST::FieldMemberExpression *);
     virtual bool visit(QQmlJS::AST::NewMemberExpression *);

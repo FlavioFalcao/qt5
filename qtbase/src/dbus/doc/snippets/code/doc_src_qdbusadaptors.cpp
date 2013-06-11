@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
     new MainApplicationAdaptor(app);
 
     // connect to D-Bus and register as an object:
-    QDBusConnection::sessionBus().registerObject("/MainApplication", app);
+    QDBusConnection::sessionBus().registerObject("/MainApplication", &app);
 
     // add main window, etc.
     [...]

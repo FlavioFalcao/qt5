@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
@@ -56,6 +56,7 @@
 #include <qglframebufferobject.h>
 #include <private/qglpaintdevice_p.h>
 #include <private/qgl_p.h>
+#include <private/qopenglextensions_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -119,7 +120,6 @@ public:
 private:
     QGLFramebufferObject* fbo;
     QGLFormat fboFormat;
-    bool wasBound;
     bool reqAlpha;
 };
 
@@ -148,6 +148,7 @@ public:
     QGLFramebufferObject::Attachment fbo_attachment;
     mutable QPaintEngine *engine;
     QGLFBOGLPaintDevice glDevice;
+    QOpenGLExtensions funcs;
 
     inline GLuint fbo() const { return fbo_guard ? fbo_guard->id() : 0; }
 };

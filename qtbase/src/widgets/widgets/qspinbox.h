@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -44,8 +44,6 @@
 
 #include <QtWidgets/qabstractspinbox.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -63,6 +61,7 @@ class Q_WIDGETS_EXPORT QSpinBox : public QAbstractSpinBox
     Q_PROPERTY(int maximum READ maximum WRITE setMaximum)
     Q_PROPERTY(int singleStep READ singleStep WRITE setSingleStep)
     Q_PROPERTY(int value READ value WRITE setValue NOTIFY valueChanged USER true)
+    Q_PROPERTY(int displayIntegerBase READ displayIntegerBase WRITE setDisplayIntegerBase)
 
 public:
     explicit QSpinBox(QWidget *parent = 0);
@@ -89,6 +88,8 @@ public:
 
     void setRange(int min, int max);
 
+    int displayIntegerBase() const;
+    void setDisplayIntegerBase(int base);
 
 protected:
     bool event(QEvent *event);
@@ -171,7 +172,5 @@ private:
 #endif // QT_NO_SPINBOX
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QSPINBOX_H

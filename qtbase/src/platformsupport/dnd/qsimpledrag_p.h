@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -48,8 +48,6 @@
 
 QT_BEGIN_NAMESPACE
 
-QT_BEGIN_HEADER
-
 #ifndef QT_NO_DRAGANDDROP
 
 class QMouseEvent;
@@ -90,7 +88,7 @@ protected:
 private:
     void enableEventFilter();
     void disableEventFilter();
-    void resetDndState(bool deleteSource);
+    void restoreCursor();
     void exitDndEventLoop();
 
     bool m_restoreCursor;
@@ -99,7 +97,6 @@ private:
     bool m_can_drop;
     QDrag *m_drag;
     QShapedPixmapWindow *m_drag_icon_window;
-    Qt::DropAction m_cursor_drop_action;
 };
 
 class QSimpleDrag : public QBasicDrag
@@ -119,8 +116,6 @@ private:
 };
 
 #endif // QT_NO_DRAGANDDROP
-
-QT_END_HEADER
 
 QT_END_NAMESPACE
 

@@ -9,6 +9,8 @@
 # We mean it.
 #
 
+load(resolve_config)
+
 QMAKE_RESOLVED_TARGET = $$absolute_path($$DESTDIR, $$OUT_PWD)/
 
 win32 {
@@ -26,7 +28,7 @@ win32 {
 } else {
     contains(TEMPLATE, .*lib):LIBPREFIX = lib
 
-    macx {
+    mac {
         equals(TEMPLATE, lib) {
             lib_bundle {
                 QMAKE_RESOLVED_TARGET = $${QMAKE_RESOLVED_TARGET}$${TARGET}.framework/$${TARGET}

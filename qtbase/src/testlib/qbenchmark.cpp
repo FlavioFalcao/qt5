@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtTest module of the Qt Toolkit.
@@ -59,6 +59,7 @@ QBenchmarkGlobalData::QBenchmarkGlobalData()
     , medianIterationCount(-1)
     , createChart(false)
     , verboseOutput(false)
+    , minimumTotal(-1)
     , mode_(WallTime)
 {
     setMode(mode_);
@@ -86,6 +87,10 @@ QBenchmarkMeasurerBase * QBenchmarkGlobalData::createMeasurer()
 #ifdef QTESTLIB_USE_VALGRIND
     } else if (mode_ == CallgrindChildProcess || mode_ == CallgrindParentProcess) {
         measurer = new QBenchmarkCallgrindMeasurer;
+#endif
+#ifdef QTESTLIB_USE_PERF_EVENTS
+    } else if (mode_ == PerfCounter) {
+        measurer = new QBenchmarkPerfEventsMeasurer;
 #endif
 #ifdef HAVE_TICK_COUNTER
     } else if (mode_ == TickCounter) {
@@ -266,7 +271,7 @@ quint64 QTest::endBenchmarkMeasurement()
     Sets the benchmark result for this test function to \a result.
 
     Use this function if you want to report benchmark results without
-    using the QBENCHMARK macro. Use \a metric to specify how QTestLib
+    using the QBENCHMARK macro. Use \a metric to specify how Qt Test
     should interpret the results.
 
     The context for the result will be the test function name and any

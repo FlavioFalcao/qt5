@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -125,6 +125,7 @@ public:
     QList<int> possibleKeys(const QKeyEvent *event) const;
 
     void updateScreens();
+    QCocoaScreen *screenAtIndex(int index) const { return mScreens.at(index); }
 
 private:
 
@@ -132,7 +133,7 @@ private:
     QAbstractEventDispatcher *mEventDispatcher;
 
     QScopedPointer<QPlatformInputContext> mInputContext;
-#ifndef QT_NO_COCOA_ACCESSIBILITY
+#ifndef QT_NO_ACCESSIBILITY
     QScopedPointer<QPlatformAccessibility> mAccessibility;
 #endif
     QScopedPointer<QPlatformTheme> mPlatformTheme;

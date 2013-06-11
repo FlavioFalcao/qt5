@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -67,7 +67,6 @@ QT_BEGIN_NAMESPACE
 
 #ifndef QT_NO_ACCESSIBILITY
 
-using namespace QAccessible2;
 extern QList<QWidget*> childWidgets(const QWidget *widget, bool includeTopLevel = false);
 
 QString Q_GUI_EXPORT qt_accStripAmp(const QString &text);
@@ -424,7 +423,7 @@ QString QAccessibleDisplay::text(QAccessible::Text t) const
 
 /*! \reimp */
 QVector<QPair<QAccessibleInterface*, QAccessible::Relation> >
-QAccessibleDisplay::relations(QAccessible::Relation match /*= QAccessible::AllRelations*/) const
+QAccessibleDisplay::relations(QAccessible::Relation match /* = QAccessible::AllRelations */) const
 {
     QVector<QPair<QAccessibleInterface*, QAccessible::Relation> > rels = QAccessibleWidget::relations(match);
     if (match & QAccessible::Labelled) {
@@ -530,7 +529,7 @@ QAccessible::Role QAccessibleGroupBox::role() const
 }
 
 QVector<QPair<QAccessibleInterface*, QAccessible::Relation> >
-QAccessibleGroupBox::relations(QAccessible::Relation match /*= QAccessible::AllRelations*/) const
+QAccessibleGroupBox::relations(QAccessible::Relation match /* = QAccessible::AllRelations */) const
 {
     QVector<QPair<QAccessibleInterface*, QAccessible::Relation> > rels = QAccessibleWidget::relations(match);
 
@@ -724,7 +723,7 @@ QString QAccessibleLineEdit::text(int startOffset, int endOffset) const
     return lineEdit()->text().mid(startOffset, endOffset - startOffset);
 }
 
-QString QAccessibleLineEdit::textBeforeOffset(int offset, BoundaryType boundaryType,
+QString QAccessibleLineEdit::textBeforeOffset(int offset, QAccessible::TextBoundaryType boundaryType,
         int *startOffset, int *endOffset) const
 {
     if (lineEdit()->echoMode() != QLineEdit::Normal) {
@@ -734,7 +733,7 @@ QString QAccessibleLineEdit::textBeforeOffset(int offset, BoundaryType boundaryT
     return QAccessibleTextInterface::textBeforeOffset(offset, boundaryType, startOffset, endOffset);
 }
 
-QString QAccessibleLineEdit::textAfterOffset(int offset, BoundaryType boundaryType,
+QString QAccessibleLineEdit::textAfterOffset(int offset, QAccessible::TextBoundaryType boundaryType,
         int *startOffset, int *endOffset) const
 {
     if (lineEdit()->echoMode() != QLineEdit::Normal) {
@@ -744,7 +743,7 @@ QString QAccessibleLineEdit::textAfterOffset(int offset, BoundaryType boundaryTy
     return QAccessibleTextInterface::textAfterOffset(offset, boundaryType, startOffset, endOffset);
 }
 
-QString QAccessibleLineEdit::textAtOffset(int offset, BoundaryType boundaryType,
+QString QAccessibleLineEdit::textAtOffset(int offset, QAccessible::TextBoundaryType boundaryType,
         int *startOffset, int *endOffset) const
 {
     if (lineEdit()->echoMode() != QLineEdit::Normal) {

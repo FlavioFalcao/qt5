@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -50,7 +50,7 @@
 #include <qstring.h>
 #include <qstringlist.h>
 #include <qtextstream.h>
-
+#include "config.h"
 #include "node.h"
 #include "text.h"
 
@@ -66,8 +66,11 @@ class QDocDatabase;
 
 class Generator
 {
+    Q_DECLARE_TR_FUNCTIONS(QDoc::Generator)
+
 public:
     enum Passes { Both, Prepare, Generate };
+    enum ListType { Generic, Obsolete };
 
     Generator();
     virtual ~Generator();
@@ -79,11 +82,13 @@ public:
     virtual void terminateGenerator();
 
     QString fullDocumentLocation(const Node *node, bool subdir = false);
+    const Config* config() { return config_; }
 
     static Generator *currentGenerator() { return currentGenerator_; }
     static Generator *generatorForFormat(const QString& format);
     static void initialize(const Config& config);
     static const QString& outputDir() { return outDir_; }
+    static const QString& outputSubdir() { return outSubdir_; }
     static void terminate();
     static void writeOutFileNames();
     static void augmentImageDirs(QSet<QString>& moreImageDirs);
@@ -190,6 +195,7 @@ private:
     static QMap<QString, QStringList> imgFileExts;
     static QString project;
     static QString outDir_;
+    static QString outSubdir_;
     static QSet<QString> outputFormats;
     static QHash<QString, QString> outputPrefixes;
     static QStringList scriptDirs;
@@ -198,6 +204,7 @@ private:
     static QStringList styleFiles;
     static bool debugging_;
     static bool noLinkErrors_;
+    static bool redirectDocumentationToDevNull_;
     static Passes qdocPass_;
 
     void appendFullName(Text& text,
@@ -219,6 +226,7 @@ private:
     QRegExp tag;
 
  protected:
+    const Config* config_;
     QDocDatabase* qdb_;
     bool inLink_;
     bool inContents_;

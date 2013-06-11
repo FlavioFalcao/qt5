@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -43,8 +43,6 @@
 #define QCOLORDIALOG_H
 
 #include <QtWidgets/qdialog.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -114,6 +112,9 @@ Q_SIGNALS:
 
 protected:
     void changeEvent(QEvent *event);
+    virtual void mouseMoveEvent(QMouseEvent *);
+    virtual void mouseReleaseEvent(QMouseEvent *);
+    virtual void keyPressEvent(QKeyEvent *);
     void done(int result);
 
 private:
@@ -124,6 +125,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void _q_newColorTypedIn(QRgb rgb))
     Q_PRIVATE_SLOT(d_func(), void _q_newCustom(int, int))
     Q_PRIVATE_SLOT(d_func(), void _q_newStandard(int, int))
+    Q_PRIVATE_SLOT(d_func(), void _q_pickScreenColor())
     friend class QColorShower;
 };
 
@@ -132,7 +134,5 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QColorDialog::ColorDialogOptions)
 #endif // QT_NO_COLORDIALOG
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QCOLORDIALOG_H

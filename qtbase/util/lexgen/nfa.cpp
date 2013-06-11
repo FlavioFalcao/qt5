@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the utils of the Qt Toolkit.
@@ -288,7 +288,6 @@ DFA NFA::toDFA() const
                     if (transition.key() == Epsilon && epsilonStates.contains(transition.value()))
                         epsilonStates.insert(i, epsilonStates.value(transition.value()));
             }
-
         } while (lastCount != epsilonStates.count());
 
         for (int i = 0; i < states.count(); ++i) {
@@ -313,7 +312,6 @@ DFA NFA::toDFA() const
             */
     }
 
-    
     QSet<InputType> validInput;
     foreach (const State &s, states)
         for (TransitionMap::ConstIterator it = s.transitions.constBegin(),
@@ -504,5 +502,3 @@ DFA DFA::minimize() const
 
     return *this;
 }
-
-

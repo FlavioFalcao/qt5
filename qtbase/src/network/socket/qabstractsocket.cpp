@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -313,15 +313,15 @@
            or the proxy server stopped responding in the authentication phase.
     \value ProxyNotFoundError The proxy address set with setProxy() (or the application
            proxy) was not found.
-    \value ProxyProtocolError The connection negotiation with the proxy server
+    \value ProxyProtocolError The connection negotiation with the proxy server failed,
            because the response from the proxy server could not be understood.
     \value OperationError An operation was attempted while the socket was in a state that
            did not permit it.
-    \value SslInternalError The SSL library being used reported a internal error, this is
+    \value SslInternalError The SSL library being used reported an internal error. This is
            probably the result of a bad installation or misconfiguration of the library.
-    \value SslInvalidUserDataError Invalid data(certificate, key, cypher, etc.) was
+    \value SslInvalidUserDataError Invalid data (certificate, key, cypher, etc.) was
            provided and its use resulted in an error in the SSL library.
-    \value TemporaryError A temporary error occurred(e.g., operation would block and socket
+    \value TemporaryError A temporary error occurred (e.g., operation would block and socket
            is non-blocking).
 
     \value UnknownSocketError An unidentified error occurred.
@@ -643,7 +643,7 @@ bool QAbstractSocketPrivate::initSocketLayer(QAbstractSocket::NetworkLayerProtoc
         return false;
     }
 
-    if (threadData->eventDispatcher)
+    if (threadData->hasEventDispatcher())
         socketEngine->setReceiver(this);
 
 #if defined (QABSTRACTSOCKET_DEBUG)
@@ -1134,7 +1134,7 @@ void QAbstractSocketPrivate::_q_connectToNextAddress()
         }
 
         // Start the connect timer.
-        if (threadData->eventDispatcher) {
+        if (threadData->hasEventDispatcher()) {
             if (!connectTimer) {
                 connectTimer = new QTimer(q);
                 QObject::connect(connectTimer, SIGNAL(timeout()),
@@ -1159,7 +1159,7 @@ void QAbstractSocketPrivate::_q_connectToNextAddress()
 void QAbstractSocketPrivate::_q_testConnection()
 {
     if (socketEngine) {
-        if (threadData->eventDispatcher) {
+        if (threadData->hasEventDispatcher()) {
             if (connectTimer)
                 connectTimer->stop();
         }
@@ -1180,7 +1180,7 @@ void QAbstractSocketPrivate::_q_testConnection()
             addresses.clear();
     }
 
-    if (threadData->eventDispatcher) {
+    if (threadData->hasEventDispatcher()) {
         if (connectTimer)
             connectTimer->stop();
     }
@@ -1640,7 +1640,7 @@ void QAbstractSocket::connectToHost(const QString &hostName, quint16 port,
         return;
 #endif
     } else {
-        if (d->threadData->eventDispatcher) {
+        if (d->threadData->hasEventDispatcher()) {
             // this internal API for QHostInfo either immediately gives us the desired
             // QHostInfo from cache or later calls the _q_startConnecting slot.
             bool immediateResultValid = false;
@@ -1846,7 +1846,7 @@ bool QAbstractSocket::setSocketDescriptor(qintptr socketDescriptor, SocketState 
         return false;
     }
 
-    if (d->threadData->eventDispatcher)
+    if (d->threadData->hasEventDispatcher())
         d->socketEngine->setReceiver(d);
 
     QIODevice::open(openMode);

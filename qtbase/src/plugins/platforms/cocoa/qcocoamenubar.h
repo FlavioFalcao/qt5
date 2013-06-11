@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Copyright (C) 2012 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author James Turner <james.turner@kdab.com>
 ** Contact: http://www.qt-project.org/legal
 **
@@ -47,14 +47,13 @@
 #include <qpa/qplatformmenu.h>
 #include "qcocoamenu.h"
 
-@class NSMenu;
-
 QT_BEGIN_NAMESPACE
 
 class QCocoaWindow;
 
 class QCocoaMenuBar : public QPlatformMenuBar
 {
+    Q_OBJECT
 public:
     QCocoaMenuBar();
     virtual ~QCocoaMenuBar();

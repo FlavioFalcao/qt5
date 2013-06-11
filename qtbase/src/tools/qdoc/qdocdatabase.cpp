@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -291,16 +291,27 @@ DocNode* QDocDatabase::addToModule(const QString& name, Node* node)
  */
 DocNode* QDocDatabase::addToQmlModule(const QString& name, Node* node)
 {
+    QStringList qmid;
+    QStringList dotSplit;
+    QStringList blankSplit = name.split(QLatin1Char(' '));
+    qmid.append(blankSplit[0]);
+    if (blankSplit.size() > 1) {
+        qmid.append(blankSplit[0] + blankSplit[1]);
+        dotSplit = blankSplit[1].split(QLatin1Char('.'));
+        qmid.append(blankSplit[0] + dotSplit[0]);
+    }
     DocNode* dn = findQmlModule(name);
     dn->addMember(node);
     node->setQmlModuleInfo(name);
     if (node->subType() == Node::QmlClass) {
-        QString t = node->qmlModuleIdentifier() + "::" + node->name();
         QmlClassNode* n = static_cast<QmlClassNode*>(node);
-        if (!qmlTypeMap_.contains(t))
-            qmlTypeMap_.insert(t,n);
-        if (!masterMap_.contains(t))
-            masterMap_.insert(t,node);
+        for (int i=0; i<qmid.size(); ++i) {
+            QString key = qmid[i] + "::" + node->name();
+            if (!qmlTypeMap_.contains(key))
+                qmlTypeMap_.insert(key,n);
+            if (!masterMap_.contains(key))
+                masterMap_.insert(key,node);
+        }
         if (!masterMap_.contains(node->name(),node))
             masterMap_.insert(node->name(),node);
     }
@@ -332,7 +343,45 @@ QmlClassNode* QDocDatabase::findQmlType(const QString& qmid, const QString& name
         }
     }
     return 0;
+}
 
+/*!
+  Looks up the QML type node identified by the Qml module id
+  constructed from the strings in the \a import record and the
+  QML type \a name and returns a pointer to the QML type node.
+  If a QML type node is not found, 0 is returned.
+ */
+QmlClassNode* QDocDatabase::findQmlType(const ImportRec& import, const QString& name) const
+{
+    if (!import.isEmpty()) {
+        QStringList dotSplit;
+        dotSplit = name.split(QLatin1Char('.'));
+        QString qmName;
+        if (import.importUri_.isEmpty())
+            qmName = import.name_;
+        else
+            qmName = import.importUri_;
+        for (int i=0; i<dotSplit.size(); ++i) {
+            QString qmid = qmName + import.version_;
+            QString qualifiedName = qmid + "::" + dotSplit[i];
+            QmlClassNode* qcn = qmlTypeMap_.value(qualifiedName);
+            if (qcn) {
+                return qcn;
+            }
+            if (import.version_.size() > 1) {
+                int dot = import.version_.lastIndexOf(QChar('.'));
+                if (dot > 0) {
+                    qmid = import.name_ + import.version_.left(dot);
+                    qualifiedName = qmid + "::" + dotSplit[i];
+                    qcn = qmlTypeMap_.value(qualifiedName);
+                    if (qcn) {
+                        return qcn;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
 }
 
 /*!
@@ -381,6 +430,7 @@ void QDocDatabase::buildCollections()
     findAllLegaleseTexts(treeRoot());
     findAllNamespaces(treeRoot());
     findAllSince(treeRoot());
+    findAllObsoleteThings(treeRoot());
 }
 
 /*!
@@ -399,18 +449,13 @@ void QDocDatabase::findAllClasses(const InnerNode* node)
                         !(*c)->parent()->name().isEmpty())
                     className = (*c)->parent()->name()+"::"+className;
 
-                if (!(static_cast<const ClassNode *>(*c))->hideFromMainList()) {
-                    if ((*c)->status() == Node::Compat) {
-                        compatClasses_.insert(className, *c);
-                    }
-                    else if ((*c)->status() == Node::Obsolete) {
-                        obsoleteClasses_.insert(className, *c);
-                    }
-                    else {
-                        nonCompatClasses_.insert(className, *c);
-                        if ((*c)->status() == Node::Main)
-                            mainClasses_.insert(className, *c);
-                    }
+                if ((*c)->status() == Node::Compat) {
+                    compatClasses_.insert(className, *c);
+                }
+                else {
+                    nonCompatClasses_.insert(className, *c);
+                    if ((*c)->status() == Node::Main)
+                        mainClasses_.insert(className, *c);
                 }
 
                 QString serviceName = (static_cast<const ClassNode *>(*c))->serviceName();
@@ -494,6 +539,98 @@ void QDocDatabase::findAllNamespaces(const InnerNode* node)
                     if (!(*c)->name().isEmpty())
                         namespaceIndex_.insert((*c)->name(), *c);
                 }
+            }
+        }
+        ++c;
+    }
+}
+
+/*!
+  Finds all nodes with status = Obsolete and sorts them into
+  maps. They can be C++ classes, QML types, or they can be
+  functions, enum types, typedefs, methods, etc.
+ */
+void QDocDatabase::findAllObsoleteThings(const InnerNode* node)
+{
+    NodeList::const_iterator c = node->childNodes().constBegin();
+    while (c != node->childNodes().constEnd()) {
+        if ((*c)->access() != Node::Private) {
+            QString name = (*c)->name();
+            if ((*c)->status() == Node::Obsolete) {
+                if ((*c)->type() == Node::Class) {
+                    if ((*c)->parent() && (*c)->parent()->type() == Node::Namespace &&
+                        !(*c)->parent()->name().isEmpty())
+                        name = (*c)->parent()->name() + "::" + name;
+                    obsoleteClasses_.insert(name, *c);
+                }
+                else if ((*c)->type() == Node::Document && (*c)->subType() == Node::QmlClass) {
+                    if (name.startsWith(QLatin1String("QML:")))
+                        name = name.mid(4);
+                    name = (*c)->qmlModuleIdentifier() + "::" + name;
+                    obsoleteQmlTypes_.insert(name,*c);
+                }
+            }
+            else if ((*c)->type() == Node::Class) {
+                InnerNode* n = static_cast<InnerNode*>(*c);
+                bool inserted = false;
+                NodeList::const_iterator p = n->childNodes().constBegin();
+                while (p != n->childNodes().constEnd()) {
+                    if ((*p)->access() != Node::Private) {
+                        switch ((*p)->type()) {
+                        case Node::Enum:
+                        case Node::Typedef:
+                        case Node::Function:
+                        case Node::Property:
+                        case Node::Variable:
+                            if ((*p)->status() == Node::Obsolete) {
+                                if ((*c)->parent() && (*c)->parent()->type() == Node::Namespace &&
+                                    !(*c)->parent()->name().isEmpty())
+                                    name = (*c)->parent()->name() + "::" + name;
+                                classesWithObsoleteMembers_.insert(name, *c);
+                                inserted = true;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                    if (inserted)
+                        break;
+                    ++p;
+                }
+            }
+            else if ((*c)->type() == Node::Document && (*c)->subType() == Node::QmlClass) {
+                InnerNode* n = static_cast<InnerNode*>(*c);
+                bool inserted = false;
+                NodeList::const_iterator p = n->childNodes().constBegin();
+                while (p != n->childNodes().constEnd()) {
+                    if ((*p)->access() != Node::Private) {
+                        switch ((*c)->type()) {
+                        case Node::QmlProperty:
+                        case Node::QmlSignal:
+                        case Node::QmlSignalHandler:
+                        case Node::QmlMethod:
+                            if ((*c)->parent()) {
+                                Node* parent = (*c)->parent();
+                                if (parent->subType() == Node::QmlPropertyGroup && parent->parent())
+                                    parent = parent->parent();
+                                if (parent && parent->subType() == Node::QmlClass && !parent->name().isEmpty())
+                                    name = parent->name() + "::" + name;
+                            }
+                            qmlTypesWithObsoleteMembers_.insert(name,*c);
+                            inserted = true;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                    if (inserted)
+                        break;
+                    ++p;
+                }
+            }
+            else if ((*c)->isInnerNode()) {
+                findAllObsoleteThings(static_cast<InnerNode*>(*c));
             }
         }
         ++c;
@@ -623,6 +760,7 @@ const NodeMultiMap& QDocDatabase::getSinceMap(const QString& key) const
   to generating documentation.
  */
 void QDocDatabase::resolveIssues() {
+    resolveQmlInheritance(treeRoot());
     resolveTargets(treeRoot());
     tree_->resolveCppToQmlLinks();
 }
@@ -820,6 +958,67 @@ QString QDocDatabase::findTarget(const QString& target, const Node* node) const
     }
     return QString();
 }
+
+/*!
+  For each QML Type node in the tree beginning at \a root,
+  if it has a QML base type name but its QML base type node
+  pointer is 0, use the QML base type name to look up the
+  base type node. If the node is found in the tree, set the
+  node's QML base type node pointer.
+ */
+void QDocDatabase::resolveQmlInheritance(InnerNode* root)
+{
+    // Dop we need recursion?
+    foreach (Node* child, root->childNodes()) {
+        if (child->type() == Node::Document && child->subType() == Node::QmlClass) {
+            QmlClassNode* qcn = static_cast<QmlClassNode*>(child);
+            if ((qcn->qmlBaseNode() == 0) && !qcn->qmlBaseName().isEmpty()) {
+                QmlClassNode* bqcn = 0;
+                if (qcn->qmlBaseName().contains("::")) {
+                    bqcn =  qmlTypeMap_.value(qcn->qmlBaseName());
+                }
+                else {
+                    const ImportList& imports = qcn->importList();
+                    for (int i=0; i<imports.size(); ++i) {
+                        bqcn = findQmlType(imports[i], qcn->qmlBaseName());
+                        if (bqcn)
+                            break;
+                    }
+                }
+                if (bqcn == 0) {
+                    bqcn = findQmlType(QString(), qcn->qmlBaseName());
+                }
+                if (bqcn) {
+                    qcn->setQmlBaseNode(bqcn);
+                }
+#if 0
+                else {
+                    qDebug() << "Temporary error message (ignore): UNABLE to resolve QML base type:"
+                             << qcn->qmlBaseName() << "for QML type:" << qcn->name();
+                }
+#endif
+            }
+        }
+    }
+}
+
+#if 0
+void QDocDatabase::resolveQmlInheritance(InnerNode* root)
+{
+    // Dop we need recursion?
+    foreach (Node* child, root->childNodes()) {
+        if (child->type() == Node::Document && child->subType() == Node::QmlClass) {
+            QmlClassNode* qcn = static_cast<QmlClassNode*>(child);
+            if ((qcn->qmlBaseNode() == 0) && !qcn->qmlBaseName().isEmpty()) {
+                QmlClassNode* bqcn = findQmlType(QString(), qcn->qmlBaseName());
+                if (bqcn) {
+                    qcn->setQmlBaseNode(bqcn);
+                }
+            }
+        }
+    }
+}
+#endif
 
 /*!
  */

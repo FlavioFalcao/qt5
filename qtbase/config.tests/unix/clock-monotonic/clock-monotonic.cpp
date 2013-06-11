@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the config.tests of the Qt Toolkit.
@@ -50,7 +50,7 @@ int main(int, char **)
 #else
 #  error "Feature _POSIX_MONOTONIC_CLOCK not available"
     // MIPSpro doesn't understand #error, so force a compiler error
-    force_compiler_error = true; 
+    force_compiler_error = true;
 #endif
     return 0;
 }

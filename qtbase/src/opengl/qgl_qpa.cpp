@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
@@ -100,7 +100,7 @@ QSurfaceFormat QGLFormat::toSurfaceFormat(const QGLFormat &format)
         retFormat.setRedBufferSize(format.redBufferSize());
     if (format.depth())
         retFormat.setDepthBufferSize(format.depthBufferSize() == -1 ? 1 : format.depthBufferSize());
-    retFormat.setSwapBehavior(format.doubleBuffer() ? QSurfaceFormat::DoubleBuffer : QSurfaceFormat::DefaultSwapBehavior);
+    retFormat.setSwapBehavior(format.doubleBuffer() ? QSurfaceFormat::DoubleBuffer : QSurfaceFormat::SingleBuffer);
     if (format.sampleBuffers())
         retFormat.setSamples(format.samples() == -1 ? 4 : format.samples());
     if (format.stencil())
@@ -146,10 +146,15 @@ bool QGLContext::chooseContext(const QGLContext* shareContext)
         if (widget->testAttribute(Qt::WA_TranslucentBackground))
             winFormat.setAlphaBufferSize(qMax(winFormat.alphaBufferSize(), 8));
 
-        if (!widget->windowHandle()->handle()) {
-            widget->windowHandle()->setSurfaceType(QWindow::OpenGLSurface);
-            widget->windowHandle()->setFormat(winFormat);
-            widget->winId();//make window
+        QWindow *window = widget->windowHandle();
+        if (!window->handle()
+            || window->surfaceType() != QWindow::OpenGLSurface
+            || window->requestedFormat() != winFormat)
+        {
+            window->setSurfaceType(QWindow::OpenGLSurface);
+            window->setFormat(winFormat);
+            window->destroy();
+            window->create();
         }
 
         if (d->ownContext)
@@ -357,6 +362,15 @@ void QGLWidgetPrivate::cleanupColormaps()
 
 bool QGLWidget::event(QEvent *e)
 {
+    Q_D(QGLWidget);
+
+    // A re-parent will destroy the window and re-create it. We should not reset the context while it happens.
+    if (e->type() == QEvent::ParentAboutToChange)
+        d->parent_changing = true;
+
+    if (e->type() == QEvent::ParentChange)
+        d->parent_changing = false;
+
     return QWidget::event(e);
 }
 

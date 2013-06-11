@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -67,13 +67,15 @@ QPaintDevice *QCocoaBackingStore::paintDevice()
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7
         if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_7) {
             QCocoaWindow *cocoaWindow = static_cast<QCocoaWindow *>(window()->handle());
-            if (cocoaWindow && cocoaWindow->m_contentView) {
+            if (cocoaWindow && cocoaWindow->m_contentView && [cocoaWindow->m_contentView window]) {
                 scaleFactor = int([[cocoaWindow->m_contentView window] backingScaleFactor]);
             }
         }
 #endif
 
-        m_qImage = QImage(m_requestedSize * scaleFactor, QImage::Format_ARGB32_Premultiplied);
+        QImage::Format format = window()->format().hasAlpha()
+                ? QImage::Format_ARGB32_Premultiplied : QImage::Format_RGB32;
+        m_qImage = QImage(m_requestedSize * scaleFactor, format);
         m_qImage.setDevicePixelRatio(scaleFactor);
     }
     return &m_qImage;
@@ -90,8 +92,10 @@ void QCocoaBackingStore::flush(QWindow *win, const QRegion &region, const QPoint
     // m_cgImage is only a reference to the data inside m_qImage, it is not a copy.
     CGImageRelease(m_cgImage);
     m_cgImage = 0;
-    if (QCocoaWindow *cocoaWindow = static_cast<QCocoaWindow *>(win->handle()))
-        [cocoaWindow->m_contentView flushBackingStore:this region:region offset:offset];
+    if (!m_qImage.isNull()) {
+        if (QCocoaWindow *cocoaWindow = static_cast<QCocoaWindow *>(win->handle()))
+            [cocoaWindow->m_qtView flushBackingStore:this region:region offset:offset];
+    }
 }
 
 void QCocoaBackingStore::resize(const QSize &size, const QRegion &)

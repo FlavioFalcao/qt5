@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -90,7 +90,7 @@ static int unpackControlTypes(QSizePolicy::ControlTypes controls, QSizePolicy::C
     Qt provides a set of QStyle subclasses that emulate the native
     look of the different platforms supported by Qt (QWindowsStyle,
     QMacStyle, etc.). These styles are built into the
-    QtGui library, other styles can be made available using Qt's
+    Qt GUI module, other styles can be made available using Qt's
     plugin mechansim.
 
     Most functions for drawing style elements take four arguments:
@@ -137,7 +137,7 @@ static int unpackControlTypes(QSizePolicy::ControlTypes controls, QSizePolicy::C
     state.
 
     \endtable
-    
+
     For more information about widget styling and appearance, see the
     \l{Styles and Style Aware Widgets}.
 */
@@ -153,7 +153,7 @@ static int unpackControlTypes(QSizePolicy::ControlTypes controls, QSizePolicy::C
     Qt contains a set of QStyle subclasses that emulate the styles of
     the different platforms supported by Qt (QWindowsStyle,
     QMacStyle etc.). By default, these styles are built
-    into the QtGui library. Styles can also be made available as
+    into the Qt GUI module. Styles can also be made available as
     plugins.
 
     Qt's built-in widgets use QStyle to perform nearly all of their
@@ -1891,6 +1891,9 @@ void QStyle::drawItemPixmap(QPainter *painter, const QRect &rect, int alignment,
     \value SH_ScrollBar_Transient Determines if the style supports transient scroll bars. Transient
            scroll bars appear when the content is scrolled and disappear when they are no longer needed.
 
+    \value SH_Menu_SupportsSections Determines if the style displays sections in menus or treat them as
+           plain separators. Sections are separators with a text and icon hint.
+
     \sa styleHint()
 */
 
@@ -1983,6 +1986,7 @@ void QStyle::drawItemPixmap(QPainter *painter, const QRect &rect, int alignment,
     \value SP_MediaSeekBackward Icon indicating that media should seek backward.
     \value SP_MediaVolume Icon indicating a volume control.
     \value SP_MediaVolumeMuted Icon indicating a muted volume control.
+    \value SP_LineEditClearButton Icon for a standard clear button in a QLineEdit. This enum value was added in Qt 5.2.
     \value SP_CustomBase  Base value for custom standard pixmaps;
     custom values must be greater than this value.
 

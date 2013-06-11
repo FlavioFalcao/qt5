@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -416,12 +416,12 @@ void QTextDocument::redo(QTextCursor *cursor)
 }
 
 /*! \enum QTextDocument::Stacks
-  
+
   \value UndoStack              The undo stack.
   \value RedoStack              The redo stack.
   \value UndoAndRedoStacks      Both the undo and redo stacks.
 */
-        
+
 /*!
     \since 4.7
     Clears the stacks specified by \a stacksToClear.

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -121,6 +121,7 @@ public:
 
     static QList<Printer> availableUnixPrinters();
     static QList<QPrinter::PaperSize> getCupsPrinterPaperSizes(int cupsPrinterIndex);
+    static QList<QPair<QString, QSizeF> > getCupsPrinterPaperSizesWithNames(int cupsPrinterIndex);
 
 private:
     void collectMarkedOptions(QStringList& list, const ppd_group_t* group = 0) const;

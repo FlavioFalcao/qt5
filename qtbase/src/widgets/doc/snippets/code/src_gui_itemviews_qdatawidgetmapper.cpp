@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -57,7 +57,7 @@ mapper->addMapping(ageSpinBox, 1);
 
 
 //! [2]
-QDataWidgetMapper *mapper = new QDataWidgetMapper(); 
+QDataWidgetMapper *mapper = new QDataWidgetMapper();
 connect(myTableView->selectionModel(), SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),
         mapper, SLOT(setCurrentModelIndex(QModelIndex)));
 //! [2]

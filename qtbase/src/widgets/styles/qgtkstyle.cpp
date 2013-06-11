@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -317,7 +317,7 @@ static GdkColor fromQColor(const QColor &color)
     It does this by making use of the GTK+ theme engine, ensuring
     that Qt applications look and feel native on these platforms.
 
-    Note: The style requires GTK+ version 2.10 or later.
+    Note: The style requires GTK+ version 2.18 or later.
           The Qt3-based "Qt" GTK+ theme engine will not work with QGtkStyle.
 
     \sa QWindowsXPStyle, QMacStyle, QWindowsStyle, QFusionStyle
@@ -1881,8 +1881,7 @@ void QGtkStyle::drawComplexControl(ComplexControl control, const QStyleOptionCom
 
             GtkShadowType shadow = (option->state & State_Sunken || option->state & State_On ) ?
                                    GTK_SHADOW_IN : GTK_SHADOW_OUT;
-            const QHashableLatin1Literal comboBoxPath = comboBox->editable && QGtkStylePrivate::gtk_combo_box_entry_new ?
-                        QHashableLatin1Literal("GtkComboBoxEntry") : QHashableLatin1Literal("GtkComboBox");
+            const QHashableLatin1Literal comboBoxPath = comboBox->editable ? QHashableLatin1Literal("GtkComboBoxEntry") : QHashableLatin1Literal("GtkComboBox");
 
             // We use the gtk widget to position arrows and separators for us
             GtkWidget *gtkCombo = d->gtkWidget(comboBoxPath);
@@ -1890,8 +1889,8 @@ void QGtkStyle::drawComplexControl(ComplexControl control, const QStyleOptionCom
             d->gtk_widget_set_direction(gtkCombo, reverse ? GTK_TEXT_DIR_RTL : GTK_TEXT_DIR_LTR);
             d->gtk_widget_size_allocate(gtkCombo, &geometry);
 
-            QHashableLatin1Literal buttonPath = comboBox->editable && QGtkStylePrivate::gtk_combo_box_entry_new ?
-                        QHashableLatin1Literal("GtkComboBoxEntry.GtkToggleButton") : QHashableLatin1Literal("GtkComboBox.GtkToggleButton");
+            QHashableLatin1Literal buttonPath = comboBox->editable ? QHashableLatin1Literal("GtkComboBoxEntry.GtkToggleButton")
+                                : QHashableLatin1Literal("GtkComboBox.GtkToggleButton");
             GtkWidget *gtkToggleButton = d->gtkWidget(buttonPath);
             d->gtk_widget_set_direction(gtkToggleButton, reverse ? GTK_TEXT_DIR_RTL : GTK_TEXT_DIR_LTR);
             if (gtkToggleButton && (appears_as_list || comboBox->editable)) {
@@ -1900,8 +1899,7 @@ void QGtkStyle::drawComplexControl(ComplexControl control, const QStyleOptionCom
                 // Draw the combo box as a line edit with a button next to it
                 if (comboBox->editable || appears_as_list) {
                     GtkStateType frameState = (state == GTK_STATE_PRELIGHT) ? GTK_STATE_NORMAL : state;
-                    QHashableLatin1Literal entryPath = comboBox->editable && QGtkStylePrivate::gtk_combo_box_entry_new ? QHashableLatin1Literal("GtkComboBoxEntry.GtkEntry")
-                            : comboBox->editable ? QHashableLatin1Literal("GtkComboBox.GtkEntry") : QHashableLatin1Literal("GtkComboBox.GtkFrame");
+                    QHashableLatin1Literal entryPath = comboBox->editable ? QHashableLatin1Literal("GtkComboBoxEntry.GtkEntry") : QHashableLatin1Literal("GtkComboBox.GtkFrame");
                     GtkWidget *gtkEntry = d->gtkWidget(entryPath);
                     d->gtk_widget_set_direction(gtkEntry, reverse ? GTK_TEXT_DIR_RTL : GTK_TEXT_DIR_LTR);
                     QRect frameRect = option->rect;
@@ -1969,7 +1967,7 @@ void QGtkStyle::drawComplexControl(ComplexControl control, const QStyleOptionCom
 
 
                 // Draw the separator between label and arrows
-                QHashableLatin1Literal vSeparatorPath = comboBox->editable && QGtkStylePrivate::gtk_combo_box_entry_new
+                QHashableLatin1Literal vSeparatorPath = comboBox->editable
                     ? QHashableLatin1Literal("GtkComboBoxEntry.GtkToggleButton.GtkHBox.GtkVSeparator")
                     : QHashableLatin1Literal("GtkComboBox.GtkToggleButton.GtkHBox.GtkVSeparator");
 
@@ -2006,7 +2004,7 @@ void QGtkStyle::drawComplexControl(ComplexControl control, const QStyleOptionCom
                     state = GTK_STATE_NORMAL;
 
                 QHashableLatin1Literal arrowPath("");
-                if (comboBox->editable && QGtkStylePrivate::gtk_combo_box_entry_new) {
+                if (comboBox->editable) {
                     if (appears_as_list)
                         arrowPath = QHashableLatin1Literal("GtkComboBoxEntry.GtkToggleButton.GtkArrow");
                     else
@@ -2044,7 +2042,7 @@ void QGtkStyle::drawComplexControl(ComplexControl control, const QStyleOptionCom
 
                 if (sunken) {
                     int xoff, yoff;
-                    const QHashableLatin1Literal toggleButtonPath = comboBox->editable && QGtkStylePrivate::gtk_combo_box_entry_new
+                    const QHashableLatin1Literal toggleButtonPath = comboBox->editable
                             ? QHashableLatin1Literal("GtkComboBoxEntry.GtkToggleButton")
                             : QHashableLatin1Literal("GtkComboBox.GtkToggleButton");
 
@@ -2123,7 +2121,7 @@ void QGtkStyle::drawComplexControl(ComplexControl control, const QStyleOptionCom
             label.state = bflags;
             GtkWidget *gtkButton = d->gtkWidget("GtkToolButton.GtkButton");
             QPalette pal = toolbutton->palette;
-            if (option->state & State_Enabled && 
+            if (option->state & State_Enabled &&
                 option->state & State_MouseOver && !(widget && widget->testAttribute(Qt::WA_SetPalette))) {
                 GdkColor gdkText = d->gtk_widget_get_style(gtkButton)->fg[GTK_STATE_PRELIGHT];
                 QColor textColor = QColor(gdkText.red>>8, gdkText.green>>8, gdkText.blue>>8);
@@ -2973,7 +2971,7 @@ void QGtkStyle::drawControl(ControlElement element,
 
             if (option->state & State_Sunken)
                 shadow = GTK_SHADOW_IN;
-            
+
             gtkPainter->paintBox(gtkTreeHeader, "button", option->rect.adjusted(-1, 0, 0, 0), state, shadow, d->gtk_widget_get_style(gtkTreeHeader));
         }
 
@@ -2987,7 +2985,7 @@ void QGtkStyle::drawControl(ControlElement element,
         GtkStyle *gtkStatusbarStyle = d->gtk_widget_get_style(gtkStatusbar);
         QRect gripRect = option->rect.adjusted(0, 0, -gtkStatusbarStyle->xthickness, -gtkStatusbarStyle->ythickness);
         gtkPainter->paintResizeGrip(gtkStatusbar, "statusbar", gripRect, GTK_STATE_NORMAL,
-                                    GTK_SHADOW_OUT, QApplication::isRightToLeft() ?
+                                    GTK_SHADOW_OUT, option->direction == Qt::RightToLeft ?
                                     GDK_WINDOW_EDGE_SOUTH_WEST : GDK_WINDOW_EDGE_SOUTH_EAST,
                                     gtkStatusbarStyle);
     }
@@ -3173,7 +3171,8 @@ void QGtkStyle::drawControl(ControlElement element,
 
 #ifndef QT_NO_COMBOBOX
 
-            if (qobject_cast<const QComboBox*>(widget))
+            if (qobject_cast<const QComboBox*>(widget) ||
+                (option->styleObject && option->styleObject->property("_q_isComboBoxPopupItem").toBool()))
                 ignoreCheckMark = true; // Ignore the checkmarks provided by the QComboMenuDelegate
 
 #endif
@@ -3367,7 +3366,7 @@ void QGtkStyle::drawControl(ControlElement element,
                                                        menuItem->rect.height() / 2 - dim / 2, dim, dim));
                 GtkStateType state = enabled ? (act ? GTK_STATE_PRELIGHT: GTK_STATE_NORMAL) : GTK_STATE_INSENSITIVE;
                 GtkShadowType shadowType = (state == GTK_STATE_PRELIGHT) ? GTK_SHADOW_OUT : GTK_SHADOW_IN;
-                gtkPainter->paintArrow(gtkMenuItem, "menuitem", vSubMenuRect, QApplication::isRightToLeft() ? GTK_ARROW_LEFT : GTK_ARROW_RIGHT, state,
+                gtkPainter->paintArrow(gtkMenuItem, "menuitem", vSubMenuRect, option->direction == Qt::RightToLeft ? GTK_ARROW_LEFT : GTK_ARROW_RIGHT, state,
                                        shadowType, false, style);
             }
         }
@@ -3630,7 +3629,7 @@ QRect QGtkStyle::subControlRect(ComplexControl control, const QStyleOptionComple
 #ifndef QT_NO_GROUPBOX
 
     case CC_GroupBox:
-        if (qstyleoption_cast<const QStyleOptionGroupBox *>(option)) {
+        if (const QStyleOptionGroupBox * groupBox = qstyleoption_cast<const QStyleOptionGroupBox *>(option)) {
             rect = option->rect.adjusted(0, groupBoxTopMargin, 0, -groupBoxBottomMargin);
             int topMargin = 0;
             int topHeight = 0;
@@ -3646,27 +3645,29 @@ QRect QGtkStyle::subControlRect(ComplexControl control, const QStyleOptionComple
                 return frameRect.adjusted(leftMarginExtension + margin, margin + topHeight + groupBoxTitleMargin, -margin, -margin);
             }
 
-            if (const QGroupBox *groupBoxWidget = qobject_cast<const QGroupBox *>(widget)) {
+            QFontMetrics fontMetrics = option->fontMetrics;
+            if (qobject_cast<const QGroupBox *>(widget)) {
                 //Prepare metrics for a bold font
                 QFont font = widget->font();
                 font.setBold(true);
-                QFontMetrics fontMetrics(font);
-                QSize textRect = fontMetrics.boundingRect(groupBoxWidget->title()).size() + QSize(4, 4);
-                int indicatorWidth = proxy()->pixelMetric(PM_IndicatorWidth, option, widget);
-                int indicatorHeight = proxy()->pixelMetric(PM_IndicatorHeight, option, widget);
-
-                if (subControl == SC_GroupBoxCheckBox) {
-                    rect.setWidth(indicatorWidth);
-                    rect.setHeight(indicatorHeight);
-                    rect.moveTop((textRect.height() - indicatorHeight) / 2);
-
-                } else if (subControl == SC_GroupBoxLabel) {
-                    if (groupBoxWidget->isCheckable())
-                        rect.adjust(indicatorWidth + 4, 0, 0, 0);
-                    rect.setSize(textRect);
-                }
-                rect = visualRect(option->direction, option->rect, rect);
+                fontMetrics = QFontMetrics(font);
             }
+
+            QSize textRect = fontMetrics.boundingRect(groupBox->text).size() + QSize(4, 4);
+            int indicatorWidth = proxy()->pixelMetric(PM_IndicatorWidth, option, widget);
+            int indicatorHeight = proxy()->pixelMetric(PM_IndicatorHeight, option, widget);
+
+            if (subControl == SC_GroupBoxCheckBox) {
+                rect.setWidth(indicatorWidth);
+                rect.setHeight(indicatorHeight);
+                rect.moveTop((textRect.height() - indicatorHeight) / 2);
+
+            } else if (subControl == SC_GroupBoxLabel) {
+                if (groupBox->subControls & SC_GroupBoxCheckBox)
+                    rect.adjust(indicatorWidth + 4, 0, 0, 0);
+                rect.setSize(textRect);
+            }
+            rect = visualRect(option->direction, option->rect, rect);
         }
 
         return rect;
@@ -3811,15 +3812,19 @@ QRect QGtkStyle::subControlRect(ComplexControl control, const QStyleOptionComple
     case CC_ComboBox:
         if (const QStyleOptionComboBox *box = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
             // We employ the gtk widget to position arrows and separators for us
-            GtkWidget *gtkCombo = box->editable && QGtkStylePrivate::gtk_combo_box_entry_new ?
-                        d->gtkWidget("GtkComboBoxEntry") : d->gtkWidget("GtkComboBox");
+            GtkWidget *gtkCombo = box->editable ? d->gtkWidget("GtkComboBoxEntry")
+                                                : d->gtkWidget("GtkComboBox");
             d->gtk_widget_set_direction(gtkCombo, (option->direction == Qt::RightToLeft) ? GTK_TEXT_DIR_RTL : GTK_TEXT_DIR_LTR);
             GtkAllocation geometry = {0, 0, qMax(0, option->rect.width()), qMax(0, option->rect.height())};
             d->gtk_widget_size_allocate(gtkCombo, &geometry);
             int appears_as_list = !proxy()->styleHint(QStyle::SH_ComboBox_Popup, option, widget);
-            QHashableLatin1Literal arrowPath = box->editable && QGtkStylePrivate::gtk_combo_box_entry_new ?
-                        QHashableLatin1Literal("GtkComboBoxEntry.GtkToggleButton") : box->editable || appears_as_list ?
-                            QHashableLatin1Literal("GtkComboBox.GtkToggleButton") : QHashableLatin1Literal("GtkComboBox.GtkToggleButton.GtkHBox.GtkArrow");
+            QHashableLatin1Literal arrowPath("GtkComboBoxEntry.GtkToggleButton");
+            if (!box->editable) {
+                if (appears_as_list)
+                    arrowPath = "GtkComboBox.GtkToggleButton";
+                else
+                    arrowPath = "GtkComboBox.GtkToggleButton.GtkHBox.GtkArrow";
+            }
 
             GtkWidget *arrowWidget = d->gtkWidget(arrowPath);
             if (!arrowWidget)
@@ -3910,7 +3915,7 @@ QSize QGtkStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
         break;
     case CT_SpinBox:
         // QSpinBox does some nasty things that depends on CT_LineEdit
-        newSize = size + QSize(0, -d->gtk_widget_get_style(d->gtkWidget("GtkSpinButton"))->ythickness * 2);
+        newSize = newSize + QSize(0, -d->gtk_widget_get_style(d->gtkWidget("GtkSpinButton"))->ythickness * 2);
         break;
     case CT_RadioButton:
     case CT_CheckBox:

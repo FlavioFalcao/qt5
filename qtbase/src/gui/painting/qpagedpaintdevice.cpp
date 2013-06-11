@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -169,7 +169,7 @@ void QPagedPaintDevice::setPageSize(PageSize size)
     if (size >= Custom)
         return;
     d->pageSize = size;
-    d->pageSizeMM = QSizeF(pageSizes[A4].width, pageSizes[A4].height);
+    d->pageSizeMM = QSizeF(pageSizes[size].width, pageSizes[size].height);
 }
 
 /*!

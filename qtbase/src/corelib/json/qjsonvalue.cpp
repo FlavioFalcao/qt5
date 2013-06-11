@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -150,6 +150,18 @@ QJsonValue::QJsonValue(double n)
     Creates a value of type Double, with value \a n.
  */
 QJsonValue::QJsonValue(int n)
+    : d(0), t(Double)
+{
+    this->dbl = n;
+}
+
+/*!
+    \overload
+    Creates a value of type Double, with value \a n.
+    NOTE: the integer limits for IEEE 754 double precision data is 2^53 (-9007199254740992 to +9007199254740992).
+    If you pass in values outside this range expect a loss of precision to occur.
+ */
+QJsonValue::QJsonValue(qint64 n)
     : d(0), t(Double)
 {
     this->dbl = n;

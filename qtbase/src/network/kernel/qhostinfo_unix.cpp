@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -92,7 +92,7 @@ static res_state_ptr local_res = 0;
 
 static void resolveLibrary()
 {
-#ifndef QT_NO_LIBRARY
+#if !defined(QT_NO_LIBRARY) && !defined(Q_OS_QNX)
     QLibrary lib(QLatin1String("resolv"));
     if (!lib.load())
         return;
@@ -323,7 +323,7 @@ QString QHostInfo::localHostName()
 
 QString QHostInfo::localDomainName()
 {
-#if !defined(Q_OS_VXWORKS) && !defined(Q_OS_LINUX_ANDROID)
+#if !defined(Q_OS_VXWORKS) && !defined(Q_OS_ANDROID)
     resolveLibrary();
     if (local_res_ninit) {
         // using thread-safe version

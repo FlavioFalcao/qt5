@@ -1,6 +1,6 @@
 TARGET = qqnx
 
-QT += platformsupport platformsupport-private
+QT += platformsupport-private core-private gui-private
 
 # Uncomment this to build with support for IMF once it becomes available in the BBNDK
 #CONFIG += qqnx_imf
@@ -11,11 +11,11 @@ QT += platformsupport platformsupport-private
 CONFIG(blackberry) {
     CONFIG += qqnx_pps
 
-    # Unomment this to enable screen event handling
-    # through a dedicated thread.
-    # DEFINES += QQNX_SCREENEVENTTHREAD
+    # Uncomment following line to enable screen event
+    # handling through a dedicated thread.
+    # CONFIG += qqnx_screeneventthread
 } else {
-    DEFINES += QQNX_SCREENEVENTTHREAD
+    CONFIG += qqnx_screeneventthread
 }
 
 # Uncomment these to enable debugging output for various aspects of the plugin
@@ -39,11 +39,12 @@ CONFIG(blackberry) {
 #DEFINES += QQNXSCREEN_DEBUG
 #DEFINES += QQNXVIRTUALKEYBOARD_DEBUG
 #DEFINES += QQNXWINDOW_DEBUG
+#DEFINES += QQNXCURSOR_DEBUG
+#DEFINES += QQNXFILEPICKER_DEBUG
 
 
 SOURCES =   main.cpp \
             qqnxbuffer.cpp \
-            qqnxscreeneventthread.cpp \
             qqnxintegration.cpp \
             qqnxscreen.cpp \
             qqnxwindow.cpp \
@@ -54,11 +55,11 @@ SOURCES =   main.cpp \
             qqnxnavigatoreventhandler.cpp \
             qqnxabstractnavigator.cpp \
             qqnxabstractvirtualkeyboard.cpp \
-            qqnxservices.cpp
+            qqnxservices.cpp \
+            qqnxcursor.cpp
 
 HEADERS =   main.h \
             qqnxbuffer.h \
-            qqnxscreeneventthread.h \
             qqnxkeytranslator.h \
             qqnxintegration.h \
             qqnxscreen.h \
@@ -70,7 +71,14 @@ HEADERS =   main.h \
             qqnxnavigatoreventhandler.h \
             qqnxabstractnavigator.h \
             qqnxabstractvirtualkeyboard.h \
-            qqnxservices.h
+            qqnxservices.h \
+            qqnxcursor.h
+
+CONFIG(qqnx_screeneventthread) {
+    DEFINES += QQNX_SCREENEVENTTHREAD
+    SOURCES += qqnxscreeneventthread.cpp
+    HEADERS += qqnxscreeneventthread.h
+}
 
 LIBS += -lscreen
 
@@ -88,8 +96,7 @@ CONFIG(blackberry) {
                qqnxbpseventfilter.cpp \
                qqnxvirtualkeyboardbps.cpp \
                qqnxtheme.cpp \
-               qqnxsystemsettings.cpp \
-               qqnxfiledialoghelper.cpp
+               qqnxsystemsettings.cpp
 
     HEADERS += qqnxnavigatorbps.h \
                qqnxeventdispatcher_blackberry.h \
@@ -100,6 +107,17 @@ CONFIG(blackberry) {
                qqnxfiledialoghelper.h
 
     LIBS += -lbps
+}
+
+CONFIG(blackberry-playbook) {
+    SOURCES += qqnxfiledialoghelper_playbook.cpp
+} else {
+    CONFIG(blackberry) {
+        SOURCES += qqnxfiledialoghelper_bb10.cpp \
+                   qqnxfilepicker.cpp
+
+        HEADERS += qqnxfilepicker.h
+    }
 }
 
 CONFIG(qqnx_pps) {

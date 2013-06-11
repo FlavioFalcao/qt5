@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the test suite of the Qt Toolkit.
@@ -77,7 +77,7 @@ public:
 
 class Q_GUI_EXPORT QStaticTextItem
 {
-public:    
+public:
     QStaticTextItem() : chars(0), numChars(0), useBackendOptimizations(false),
                         userDataNeedsUpdate(0), m_fontEngine(0), m_userData(0) {}
 

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Copyright (C) 2012 Intel Corporation
 ** Contact: http://www.qt-project.org/legal
 **
@@ -94,8 +94,8 @@
 #  define Q_FUNC_INFO __FUNCSIG__
 #  define Q_ALIGNOF(type) __alignof(type)
 #  define Q_DECL_ALIGN(n) __declspec(align(n))
-#  define Q_ASSUME(expr) __assume(expr)
-#  define Q_UNREACHABLE() __assume(0)
+#  define Q_ASSUME_IMPL(expr) __assume(expr)
+#  define Q_UNREACHABLE_IMPL() __assume(0)
 #  define Q_NORETURN __declspec(noreturn)
 #  define Q_DECL_DEPRECATED __declspec(deprecated)
 #  define Q_DECL_EXPORT __declspec(dllexport)
@@ -150,18 +150,22 @@
 #  if defined(__INTEL_COMPILER)
 /* Intel C++ also masquerades as GCC */
 #    define Q_CC_INTEL
-#    define Q_ASSUME(expr)  __assume(expr)
-#    define Q_UNREACHABLE() __assume(0)
+#    define Q_ASSUME_IMPL(expr)  __assume(expr)
+#    define Q_UNREACHABLE_IMPL() __assume(0)
 #  elif defined(__clang__)
 /* Clang also masquerades as GCC */
 #    define Q_CC_CLANG
-#    define Q_ASSUME(expr)  if (expr){} else __builtin_unreachable()
-#    define Q_UNREACHABLE() __builtin_unreachable()
+#    define Q_ASSUME_IMPL(expr)  if (expr){} else __builtin_unreachable()
+#    define Q_UNREACHABLE_IMPL() __builtin_unreachable()
+#    if !defined(__has_extension)
+#      /* Compatibility with older Clang versions */
+#      define __has_extension __has_feature
+#    endif
 #  else
 /* Plain GCC */
 #    if (__GNUC__ * 100 + __GNUC_MINOR__) >= 405
-#      define Q_ASSUME(expr)  if (expr){} else __builtin_unreachable()
-#      define Q_UNREACHABLE() __builtin_unreachable()
+#      define Q_ASSUME_IMPL(expr)  if (expr){} else __builtin_unreachable()
+#      define Q_UNREACHABLE_IMPL() __builtin_unreachable()
 #    endif
 #  endif
 
@@ -179,6 +183,7 @@
 #  define Q_TYPEOF(expr)    __typeof__(expr)
 #  define Q_DECL_DEPRECATED __attribute__ ((__deprecated__))
 #  define Q_DECL_ALIGN(n)   __attribute__((__aligned__(n)))
+#  define Q_DECL_UNUSED     __attribute__((__unused__))
 #  define Q_LIKELY(expr)    __builtin_expect(!!(expr), true)
 #  define Q_UNLIKELY(expr)  __builtin_expect(!!(expr), false)
 #  define Q_NORETURN        __attribute__((__noreturn__))
@@ -613,7 +618,6 @@
 #    endif
 #    if (__GNUC__ * 100 + __GNUC_MINOR__) >= 404
        /* C++11 features supported in GCC 4.4: */
-#      define Q_COMPILER_ATOMICS
 #      define Q_COMPILER_AUTO_FUNCTION
 #      define Q_COMPILER_AUTO_TYPE
 #      define Q_COMPILER_CLASS_ENUM
@@ -637,6 +641,11 @@
 #      define Q_COMPILER_RANGE_FOR
 #    endif
 #    if (__GNUC__ * 100 + __GNUC_MINOR__) >= 407
+       /* GCC 4.4 implemented <atomic> and std::atomic using its old intrinsics.
+        * However, the implementation is incomplete for most platforms until GCC 4.7:
+        * instead, std::atomic would use an external lock. Since we need an std::atomic
+        * that is behavior-compatible with QBasicAtomic, we only enable it here */
+#      define Q_COMPILER_ATOMICS
        /* GCC 4.6.x has problems dealing with noexcept expressions,
         * so turn the feature on for 4.7 and above, only */
 #      define Q_COMPILER_NOEXCEPT
@@ -653,7 +662,11 @@
 #      define Q_COMPILER_ALIGNOF
 #      define Q_COMPILER_INHERITING_CONSTRUCTORS
 #      define Q_COMPILER_THREAD_LOCAL
+#      if (__GNUC__ * 100 + __GNUC_MINOR__) > 408 || __GNUC_PATCHLEVEL__ >= 1
+#         define Q_COMPILER_REF_QUALIFIERS
+#      endif
 #    endif
+     /* C++11 features are complete as of GCC 4.8.1 */
 #  endif
 #endif
 
@@ -789,11 +802,11 @@
 #ifndef Q_UNLIKELY
 #  define Q_UNLIKELY(x) (x)
 #endif
-#ifndef Q_ASSUME
-#  define Q_ASSUME(expr) qt_noop()
+#ifndef Q_ASSUME_IMPL
+#  define Q_ASSUME_IMPL(expr) qt_noop()
 #endif
-#ifndef Q_UNREACHABLE
-#  define Q_UNREACHABLE() qt_noop()
+#ifndef Q_UNREACHABLE_IMPL
+#  define Q_UNREACHABLE_IMPL() qt_noop()
 #endif
 #ifndef Q_ALLOC_SIZE
 #  define Q_ALLOC_SIZE(x)
@@ -815,6 +828,9 @@
 #endif
 #ifndef Q_DECL_HIDDEN
 #  define Q_DECL_HIDDEN
+#endif
+#ifndef Q_DECL_UNUSED
+#  define Q_DECL_UNUSED
 #endif
 #ifndef Q_FUNC_INFO
 #  if defined(Q_OS_SOLARIS) || defined(Q_CC_XLC)
@@ -849,6 +865,42 @@
 #define qMove(x) std::move(x)
 #else
 #define qMove(x) (x)
+#endif
+
+#define Q_UNREACHABLE() \
+    do {\
+        Q_ASSERT_X(false, "Q_UNREACHABLE()", "Q_UNREACHABLE was reached");\
+        Q_UNREACHABLE_IMPL();\
+    } while (0)
+
+#define Q_ASSUME(Expr) \
+    do {\
+        const bool valueOfExpression = Expr;\
+        Q_ASSERT_X(valueOfExpression, "Q_ASSUME()", "Assumption in Q_ASSUME(\"" #Expr "\") was not correct");\
+        Q_ASSUME_IMPL(valueOfExpression);\
+        Q_UNUSED(valueOfExpression); /* the value may not be used if Q_ASSERT_X and Q_ASSUME_IMPL are noop */\
+    } while (0)
+
+
+/*
+    Sanitize compiler feature availability
+*/
+#if !defined(Q_PROCESSOR_X86)
+#  undef QT_COMPILER_SUPPORTS_SSE2
+#  undef QT_COMPILER_SUPPORTS_SSE3
+#  undef QT_COMPILER_SUPPORTS_SSSE3
+#  undef QT_COMPILER_SUPPORTS_SSE4_1
+#  undef QT_COMPILER_SUPPORTS_SSE4_2
+#  undef QT_COMPILER_SUPPORTS_AVX
+#  undef QT_COMPILER_SUPPORTS_AVX2
+#endif
+#if !defined(Q_PROCESSOR_ARM)
+#  undef QT_COMPILER_SUPPORTS_IWMMXT
+#  undef QT_COMPILER_SUPPORTS_NEON
+#endif
+#if !defined(Q_PROCESSOR_MIPS)
+#  undef QT_COMPILER_SUPPORTS_MIPS_DSP
+#  undef QT_COMPILER_SUPPORTS_MIPS_DSPR2
 #endif
 
 #endif // QCOMPILERDETECTION_H

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtTest module of the Qt Toolkit.
@@ -45,8 +45,6 @@
 #include <QtTest/qtest_global.h>
 #include <QtTest/qbenchmarkmetric.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -58,7 +56,7 @@ namespace QTest
 //  -------------
 //
 // The QBenchmarkIterationController class is not a part of the
-// QTestlib API. It exists purely as an implementation detail.
+// Qt Test API. It exists purely as an implementation detail.
 //
 //
 class Q_TESTLIB_EXPORT QBenchmarkIterationController
@@ -93,7 +91,5 @@ namespace QTest
 // --- END public API ---
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QBENCHMARK_H

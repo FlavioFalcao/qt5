@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -40,7 +40,6 @@
 ****************************************************************************/
 
 #include <qglobal.h>
-#include <qlibraryinfo.h>
 #include <stdlib.h>
 #include "codemarker.h"
 #include "codeparser.h"
@@ -96,6 +95,7 @@ bool creationTimeBefore(const QFileInfo &fi1, const QFileInfo &fi2)
 
 static bool highlighting = false;
 static bool showInternal = false;
+static bool redirectDocumentationToDevNull = false;
 static bool noLinkErrors = false;
 static bool obsoleteLinks = false;
 static QStringList defines;
@@ -110,12 +110,12 @@ static QString documentationPath;
  */
 static void printHelp()
 {
-    Location::information(tr("Usage: qdoc [options] file1.qdocconf ...\n"
+    Location::information(QCoreApplication::translate("QDoc", "Usage: qdoc [options] file1.qdocconf ...\n"
                              "Options:\n"
                              "    -D<name>       "
                              "Define <name> as a macro while parsing sources\n"
                              "    -depends       "
-                             "Specify dependant modules\n"
+                             "Specify dependent modules\n"
                              "    -help          "
                              "Display this information and exit\n"
                              "    -highlighting  "
@@ -140,6 +140,8 @@ static void printHelp()
                              "Run qdoc to read the index files and generate the docs\n"
                              "    -showinternal  "
                              "Include content marked internal\n"
+                             "    -redirect-documentation-to-dev-null "
+                             "Save all documentation content to /dev/null. Useful if someone is interested in qdoc errors only.\n"
                              "    -version       "
                              "Display version of qdoc and exit\n") );
 }
@@ -149,7 +151,7 @@ static void printHelp()
  */
 static void printVersion()
 {
-    QString s = tr("qdoc version %1").arg(QT_VERSION_STR);
+    QString s = QCoreApplication::translate("QDoc", "qdoc version %1").arg(QT_VERSION_STR);
     Location::information(s);
 }
 
@@ -250,7 +252,7 @@ static void processQdocconfFile(const QString &fileName)
       All the other classes are initialized with the config. Here we
       initialize the configuration with some default values.
      */
-    Config config(tr("qdoc"));
+    Config config(QCoreApplication::translate("QDoc", "qdoc"));
     int i = 0;
     while (defaults[i].key) {
         config.setStringList(defaults[i].key, QStringList() << defaults[i].value);
@@ -258,19 +260,9 @@ static void processQdocconfFile(const QString &fileName)
     }
     config.setStringList(CONFIG_SYNTAXHIGHLIGHTING, QStringList(highlighting ? "true" : "false"));
     config.setStringList(CONFIG_SHOWINTERNAL, QStringList(showInternal ? "true" : "false"));
+    config.setStringList(CONFIG_REDIRECTDOCUMENTATIONTODEVNULL, QStringList(redirectDocumentationToDevNull ? "true" : "false"));
     config.setStringList(CONFIG_NOLINKERRORS, QStringList(noLinkErrors ? "true" : "false"));
     config.setStringList(CONFIG_OBSOLETELINKS, QStringList(obsoleteLinks ? "true" : "false"));
-
-    /*
-      If QT_INSTALL_DOCS is not set, set it here so it can be used from
-      the qdocconf files.
-    */
-    QString qt_install_docs = qgetenv("QT_INSTALL_DOCS");
-    if (qt_install_docs.isEmpty()) {
-        documentationPath = QLibraryInfo::rawLocation(QLibraryInfo::DocumentationPath,
-                                                      QLibraryInfo::EffectivePaths);
-        qputenv("QT_INSTALL_DOCS", documentationPath.toLatin1());
-    }
 
     /*
       With the default configuration values in place, load
@@ -321,11 +313,11 @@ static void processQdocconfFile(const QString &fileName)
       Load the language translators, if the configuration specifies any.
      */
     QStringList fileNames = config.getStringList(CONFIG_TRANSLATORS);
-    QStringList::Iterator fn = fileNames.constBegin();
+    QStringList::ConstIterator fn = fileNames.constBegin();
     while (fn != fileNames.constEnd()) {
         QTranslator *translator = new QTranslator(0);
         if (!translator->load(*fn))
-            config.lastLocation().error(tr("Cannot load translator '%1'").arg(*fn));
+            config.lastLocation().error(QCoreApplication::translate("QDoc", "Cannot load translator '%1'").arg(*fn));
         QCoreApplication::instance()->installTranslator(translator);
         translators.append(translator);
         ++fn;
@@ -357,8 +349,8 @@ static void processQdocconfFile(const QString &fileName)
     QSet<QString> outputFormats = config.getOutputFormats();
     Location outputFormatsLocation = config.lastLocation();
 
-    if (!Generator::runPrepareOnly())
-        loadIndexFiles(config);
+    //if (!Generator::runPrepareOnly())
+    loadIndexFiles(config);
 
     QSet<QString> excludedDirs;
     QSet<QString> excludedFiles;
@@ -368,10 +360,12 @@ static void processQdocconfFile(const QString &fileName)
     QStringList excludedFilesList;
 
     Generator::debugSegfault("Reading excludedirs");
-    excludedDirsList = config.getCanonicalRelativePathList(CONFIG_EXCLUDEDIRS);
+    excludedDirsList = config.getCanonicalPathList(CONFIG_EXCLUDEDIRS);
     foreach (const QString &excludeDir, excludedDirsList) {
         QString p = QDir::fromNativeSeparators(excludeDir);
-        excludedDirs.insert(p);
+        QDir tmp(p);
+        if (tmp.exists())
+            excludedDirs.insert(p);
     }
 
     Generator::debugSegfault("Reading excludefiles");
@@ -489,7 +483,7 @@ static void processQdocconfFile(const QString &fileName)
     while (of != outputFormats.constEnd()) {
         Generator* generator = Generator::generatorForFormat(*of);
         if (generator == 0)
-            outputFormatsLocation.fatal(tr("Unknown output format '%1'").arg(*of));
+            outputFormatsLocation.fatal(QCoreApplication::translate("QDoc", "Unknown output format '%1'").arg(*of));
         generator->generateTree();
         ++of;
     }
@@ -582,6 +576,9 @@ int main(int argc, char **argv)
         }
         else if (opt == "-showinternal") {
             showInternal = true;
+        }
+        else if (opt == "-redirect-documentation-to-dev-null") {
+            redirectDocumentationToDevNull = true;
         }
         else if (opt == "-no-examples") {
             Config::generateExamples = false;

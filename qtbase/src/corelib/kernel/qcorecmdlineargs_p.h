@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -101,11 +101,8 @@ static QVector<Char*> qWinCmdLine(Char *cmdParam, int length, int &argc)
                     }
                 }
                 if (*p == '\\') {                // escape char?
-                    p++;
-                    if (*p == Char('\"') || *p == Char('\''))
-                        ;                        // yes
-                    else
-                        p--;                        // treat \ literally
+                    if (*(p+1) == quote)
+                        p++;
                 } else {
                     if (!quote && (*p == Char('\"') || *p == Char('\''))) {        // " or ' quote
                         quote = *p++;

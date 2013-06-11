@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -49,6 +49,17 @@
 
 QT_BEGIN_NAMESPACE
 
+QStringList QNetworkAccessFileBackendFactory::supportedSchemes() const
+{
+    QStringList schemes;
+    schemes << QStringLiteral("file")
+            << QStringLiteral("qrc");
+#if defined(Q_OS_ANDROID)
+    schemes << QStringLiteral("assets");
+#endif
+    return schemes;
+}
+
 QNetworkAccessBackend *
 QNetworkAccessFileBackendFactory::create(QNetworkAccessManager::Operation op,
                                          const QNetworkRequest &request) const
@@ -65,7 +76,11 @@ QNetworkAccessFileBackendFactory::create(QNetworkAccessManager::Operation op,
     }
 
     QUrl url = request.url();
-    if (url.scheme().compare(QLatin1String("qrc"), Qt::CaseInsensitive) == 0 || url.isLocalFile()) {
+    if (url.scheme().compare(QLatin1String("qrc"), Qt::CaseInsensitive) == 0
+#if defined(Q_OS_ANDROID)
+            || url.scheme().compare(QLatin1String("assets"), Qt::CaseInsensitive) == 0
+#endif
+            || url.isLocalFile()) {
         return new QNetworkAccessFileBackend;
     } else if (!url.scheme().isEmpty() && url.authority().isEmpty() && (url.scheme().length() > 1)) {
         // check if QFile could, in theory, open this URL via the file engines
@@ -113,10 +128,16 @@ void QNetworkAccessFileBackend::open()
 
     QString fileName = url.toLocalFile();
     if (fileName.isEmpty()) {
-        if (url.scheme() == QLatin1String("qrc"))
+        if (url.scheme() == QLatin1String("qrc")) {
             fileName = QLatin1Char(':') + url.path();
-        else
-            fileName = url.toString(QUrl::RemoveAuthority | QUrl::RemoveFragment | QUrl::RemoveQuery);
+        } else {
+#if defined(Q_OS_ANDROID)
+            if (url.scheme() == QLatin1String("assets"))
+                fileName = QLatin1String("assets:") + url.path();
+            else
+#endif
+                fileName = url.toString(QUrl::RemoveAuthority | QUrl::RemoveFragment | QUrl::RemoveQuery);
+        }
     }
     file.setFileName(fileName);
 

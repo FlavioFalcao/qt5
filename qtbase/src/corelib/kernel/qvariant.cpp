@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -262,6 +262,16 @@ inline bool qt_convertToBool(const QVariant::Private *const d)
 
 /*!
  \internal
+ Returns the internal data pointer from \a d.
+ */
+
+static const void *constData(const QVariant::Private &d)
+{
+    return d.is_shared ? d.data.shared->ptr : reinterpret_cast<const void *>(&d.data.c);
+}
+
+/*!
+ \internal
 
  Converts \a d to type \a t, which is placed in \a result.
  */
@@ -269,6 +279,14 @@ static bool convert(const QVariant::Private *d, int t, void *result, bool *ok)
 {
     Q_ASSERT(d->type != uint(t));
     Q_ASSERT(result);
+
+    if (d->type >= QMetaType::User || t >= QMetaType::User) {
+        const bool isOk = QMetaType::convert(constData(*d), d->type, result, t);
+        if (ok)
+            *ok = isOk;
+        if (isOk)
+            return true;
+    }
 
     bool dummy;
     if (!ok)
@@ -842,8 +860,15 @@ static bool customCompare(const QVariant::Private *a, const QVariant::Private *b
     return !memcmp(a_ptr, b_ptr, QMetaType::sizeOf(a->type));
 }
 
-static bool customConvert(const QVariant::Private *, int, void *, bool *ok)
+static bool customConvert(const QVariant::Private *d, int t, void *result, bool *ok)
 {
+    if (d->type >= QMetaType::User || t >= QMetaType::User) {
+        const bool isOk = QMetaType::convert(constData(*d), d->type, result, t);
+        if (ok)
+            *ok = isOk;
+        return isOk;
+    }
+
     if (ok)
         *ok = false;
     return false;
@@ -949,8 +974,8 @@ Q_CORE_EXPORT void QVariantPrivate::registerHandler(const int /* Modules::Names 
 
     \section1 A Note on GUI Types
 
-    Because QVariant is part of the QtCore library, it cannot provide
-    conversion functions to data types defined in QtGui, such as
+    Because QVariant is part of the Qt Core module, it cannot provide
+    conversion functions to data types defined in Qt GUI, such as
     QColor, QImage, and QPixmap. In other words, there is no \c
     toColor() function. Instead, you can use the QVariant::value() or
     the qvariant_cast() template function. For example:
@@ -971,7 +996,7 @@ Q_CORE_EXPORT void QVariantPrivate::registerHandler(const int /* Modules::Names 
     QVariant to convert between types given suitable data; it is still
     possible to supply data which cannot actually be converted.
 
-    For example, canConvert() would return true when called on a variant
+    For example, canConvert(Int) would return true when called on a variant
     containing a string because, in principle, QVariant is able to convert
     strings of numbers to integers.
     However, if the string contains non-numeric characters, it cannot be
@@ -1529,10 +1554,13 @@ QVariant::QVariant(const QLocale &l)
 QVariant::QVariant(const QRegExp &regExp)
     : d(RegExp)
 { v_construct<QRegExp>(&d, regExp); }
+#endif // QT_NO_REGEXP
 #ifndef QT_BOOTSTRAPPED
+#ifndef QT_NO_REGULAREXPRESSION
 QVariant::QVariant(const QRegularExpression &re)
     : d(RegularExpression)
 { v_construct<QRegularExpression>(&d, re); }
+#endif
 QVariant::QVariant(const QUuid &uuid)
     : d(Uuid)
 { v_construct<QUuid>(&d, uuid); }
@@ -1552,7 +1580,6 @@ QVariant::QVariant(const QJsonDocument &jsonDocument)
     : d(QMetaType::QJsonDocument)
 { v_construct<QJsonDocument>(&d, jsonDocument); }
 #endif // QT_BOOTSTRAPPED
-#endif // QT_NO_REGEXP
 
 /*!
     Returns the storage type of the value stored in the variant.
@@ -1931,6 +1958,12 @@ inline T qVariantToHelper(const QVariant::Private &d, const HandlersManager &han
         return *v_cast<T>(&d);
 
     T ret;
+    if (d.type >= QMetaType::User || targetType >= QMetaType::User) {
+        const void * const from = constData(d);
+        if (QMetaType::convert(from, d.type, &ret, targetType))
+            return ret;
+    }
+
     handlerManager[d.type]->convert(&d, targetType, &ret, 0);
     return ret;
 }
@@ -1938,9 +1971,10 @@ inline T qVariantToHelper(const QVariant::Private &d, const HandlersManager &han
 /*!
     \fn QStringList QVariant::toStringList() const
 
-    Returns the variant as a QStringList if the variant has type()
-    StringList, \l String, or \l List of a type that can be converted
-    to QString; otherwise returns an empty list.
+    Returns the variant as a QStringList if the variant has userType()
+    \l QMetaType::QStringList, \l QMetaType::QString, or
+    \l QMetaType::QVariantList of a type that can be converted to QString;
+    otherwise returns an empty list.
 
     \sa canConvert(), convert()
 */
@@ -1950,10 +1984,12 @@ QStringList QVariant::toStringList() const
 }
 
 /*!
-    Returns the variant as a QString if the variant has type() \l
-    String, \l Bool, \l ByteArray, \l Char, \l Date, \l DateTime, \l
-    Double, \l Int, \l LongLong, \l StringList, \l Time, \l UInt, or
-    \l ULongLong; otherwise returns an empty string.
+    Returns the variant as a QString if the variant has userType() \l
+    QMetaType::QString, \l QMetaType::Bool, \l QMetaType::QByteArray,
+    \l QMetaType::QChar, \l QMetaType::QDate, \l QMetaType::QDateTime,
+    \l QMetaType::Double, \l QMetaType::Int, \l QMetaType::LongLong,
+    \l QMetaType::QStringList, \l QMetaType::QTime, \l QMetaType::UInt, or
+    \l QMetaType::ULongLong; otherwise returns an empty string.
 
     \sa canConvert(), convert()
 */
@@ -1964,7 +2000,7 @@ QString QVariant::toString() const
 
 /*!
     Returns the variant as a QMap<QString, QVariant> if the variant
-    has type() \l Map; otherwise returns an empty map.
+    has type() \l QMetaType::QVariantMap; otherwise returns an empty map.
 
     \sa canConvert(), convert()
 */
@@ -1975,7 +2011,7 @@ QVariantMap QVariant::toMap() const
 
 /*!
     Returns the variant as a QHash<QString, QVariant> if the variant
-    has type() \l Hash; otherwise returns an empty map.
+    has type() \l QMetaType::QVariantHash; otherwise returns an empty map.
 
     \sa canConvert(), convert()
 */
@@ -1987,11 +2023,12 @@ QVariantHash QVariant::toHash() const
 /*!
     \fn QDate QVariant::toDate() const
 
-    Returns the variant as a QDate if the variant has type() \l Date,
-    \l DateTime, or \l String; otherwise returns an invalid date.
+    Returns the variant as a QDate if the variant has userType()
+    \l QMetaType::QDate, \l QMetaType::QDateTime, or \l QMetaType::QString;
+    otherwise returns an invalid date.
 
-    If the type() is \l String, an invalid date will be returned if the
-    string cannot be parsed as a Qt::ISODate format date.
+    If the type() is \l QMetaType::QString, an invalid date will be returned if
+    the string cannot be parsed as a Qt::ISODate format date.
 
     \sa canConvert(), convert()
 */
@@ -2003,10 +2040,11 @@ QDate QVariant::toDate() const
 /*!
     \fn QTime QVariant::toTime() const
 
-    Returns the variant as a QTime if the variant has type() \l Time,
-    \l DateTime, or \l String; otherwise returns an invalid time.
+    Returns the variant as a QTime if the variant has userType()
+    \l QMetaType::QTime, \l QMetaType::QDateTime, or \l QMetaType::QString;
+    otherwise returns an invalid time.
 
-    If the type() is \l String, an invalid time will be returned if
+    If the type() is \l QMetaType::QString, an invalid time will be returned if
     the string cannot be parsed as a Qt::ISODate format time.
 
     \sa canConvert(), convert()
@@ -2019,12 +2057,12 @@ QTime QVariant::toTime() const
 /*!
     \fn QDateTime QVariant::toDateTime() const
 
-    Returns the variant as a QDateTime if the variant has type() \l
-    DateTime, \l Date, or \l String; otherwise returns an invalid
-    date/time.
+    Returns the variant as a QDateTime if the variant has userType()
+    \l QMetaType::QDateTime, \l QMetaType::QDate, or \l QMetaType::QString;
+    otherwise returns an invalid date/time.
 
-    If the type() is \l String, an invalid date/time will be returned
-    if the string cannot be parsed as a Qt::ISODate format date/time.
+    If the type() is \l QMetaType::QString, an invalid date/time will be
+    returned if the string cannot be parsed as a Qt::ISODate format date/time.
 
     \sa canConvert(), convert()
 */
@@ -2037,8 +2075,8 @@ QDateTime QVariant::toDateTime() const
     \since 4.7
     \fn QEasingCurve QVariant::toEasingCurve() const
 
-    Returns the variant as a QEasingCurve if the variant has type() \l
-    EasingCurve; otherwise returns a default easing curve.
+    Returns the variant as a QEasingCurve if the variant has userType()
+    \l QMetaType::QEasingCurve; otherwise returns a default easing curve.
 
     \sa canConvert(), convert()
 */
@@ -2052,9 +2090,9 @@ QEasingCurve QVariant::toEasingCurve() const
 /*!
     \fn QByteArray QVariant::toByteArray() const
 
-    Returns the variant as a QByteArray if the variant has type() \l
-    ByteArray or \l String (converted using QString::fromUtf8());
-    otherwise returns an empty byte array.
+    Returns the variant as a QByteArray if the variant has userType()
+    \l QMetaType::QByteArray or \l QMetaType::QString (converted using
+    QString::fromUtf8()); otherwise returns an empty byte array.
 
     \sa canConvert(), convert()
 */
@@ -2067,8 +2105,9 @@ QByteArray QVariant::toByteArray() const
 /*!
     \fn QPoint QVariant::toPoint() const
 
-    Returns the variant as a QPoint if the variant has type()
-    \l Point or \l PointF; otherwise returns a null QPoint.
+    Returns the variant as a QPoint if the variant has userType()
+    \l QMetaType::QPointF or \l QMetaType::QPointF; otherwise returns a null
+    QPoint.
 
     \sa canConvert(), convert()
 */
@@ -2080,8 +2119,8 @@ QPoint QVariant::toPoint() const
 /*!
     \fn QRect QVariant::toRect() const
 
-    Returns the variant as a QRect if the variant has type() \l Rect;
-    otherwise returns an invalid QRect.
+    Returns the variant as a QRect if the variant has userType()
+    \l QMetaType::QRect; otherwise returns an invalid QRect.
 
     \sa canConvert(), convert()
 */
@@ -2093,8 +2132,8 @@ QRect QVariant::toRect() const
 /*!
     \fn QSize QVariant::toSize() const
 
-    Returns the variant as a QSize if the variant has type() \l Size;
-    otherwise returns an invalid QSize.
+    Returns the variant as a QSize if the variant has userType()
+    \l QMetaType::QSize; otherwise returns an invalid QSize.
 
     \sa canConvert(), convert()
 */
@@ -2106,8 +2145,8 @@ QSize QVariant::toSize() const
 /*!
     \fn QSizeF QVariant::toSizeF() const
 
-    Returns the variant as a QSizeF if the variant has type() \l
-    SizeF; otherwise returns an invalid QSizeF.
+    Returns the variant as a QSizeF if the variant has userType() \l
+    QMetaType::QSizeF; otherwise returns an invalid QSizeF.
 
     \sa canConvert(), convert()
 */
@@ -2119,8 +2158,9 @@ QSizeF QVariant::toSizeF() const
 /*!
     \fn QRectF QVariant::toRectF() const
 
-    Returns the variant as a QRectF if the variant has type() \l Rect
-    or \l RectF; otherwise returns an invalid QRectF.
+    Returns the variant as a QRectF if the variant has userType()
+    \l QMetaType::QRect or \l QMetaType::QRectF; otherwise returns an invalid
+    QRectF.
 
     \sa canConvert(), convert()
 */
@@ -2132,8 +2172,8 @@ QRectF QVariant::toRectF() const
 /*!
     \fn QLineF QVariant::toLineF() const
 
-    Returns the variant as a QLineF if the variant has type() \l
-    LineF; otherwise returns an invalid QLineF.
+    Returns the variant as a QLineF if the variant has userType()
+    \l QMetaType::QLineF; otherwise returns an invalid QLineF.
 
     \sa canConvert(), convert()
 */
@@ -2145,8 +2185,8 @@ QLineF QVariant::toLineF() const
 /*!
     \fn QLine QVariant::toLine() const
 
-    Returns the variant as a QLine if the variant has type() \l Line;
-    otherwise returns an invalid QLine.
+    Returns the variant as a QLine if the variant has userType()
+    \l QMetaType::QLine; otherwise returns an invalid QLine.
 
     \sa canConvert(), convert()
 */
@@ -2158,8 +2198,9 @@ QLine QVariant::toLine() const
 /*!
     \fn QPointF QVariant::toPointF() const
 
-    Returns the variant as a QPointF if the variant has type() \l
-    Point or \l PointF; otherwise returns a null QPointF.
+    Returns the variant as a QPointF if the variant has userType() \l
+    QMetaType::QPoint or \l QMetaType::QPointF; otherwise returns a null
+    QPointF.
 
     \sa canConvert(), convert()
 */
@@ -2174,8 +2215,8 @@ QPointF QVariant::toPointF() const
 /*!
     \fn QUrl QVariant::toUrl() const
 
-    Returns the variant as a QUrl if the variant has type()
-    \l Url; otherwise returns an invalid QUrl.
+    Returns the variant as a QUrl if the variant has userType()
+    \l QMetaType::QUrl; otherwise returns an invalid QUrl.
 
     \sa canConvert(), convert()
 */
@@ -2188,8 +2229,8 @@ QUrl QVariant::toUrl() const
 /*!
     \fn QLocale QVariant::toLocale() const
 
-    Returns the variant as a QLocale if the variant has type()
-    \l Locale; otherwise returns an invalid QLocale.
+    Returns the variant as a QLocale if the variant has userType()
+    \l QMetaType::QLocale; otherwise returns an invalid QLocale.
 
     \sa canConvert(), convert()
 */
@@ -2202,8 +2243,8 @@ QLocale QVariant::toLocale() const
     \fn QRegExp QVariant::toRegExp() const
     \since 4.1
 
-    Returns the variant as a QRegExp if the variant has type() \l
-    RegExp; otherwise returns an empty QRegExp.
+    Returns the variant as a QRegExp if the variant has userType()
+    \l QMetaType::QRegExp; otherwise returns an empty QRegExp.
 
     \sa canConvert(), convert()
 */
@@ -2214,27 +2255,27 @@ QRegExp QVariant::toRegExp() const
 }
 #endif
 
+#ifndef QT_BOOTSTRAPPED
 /*!
     \fn QRegularExpression QVariant::toRegularExpression() const
     \since 5.0
 
-    Returns the variant as a QRegularExpression if the variant has type() \l
+    Returns the variant as a QRegularExpression if the variant has userType() \l
     QRegularExpression; otherwise returns an empty QRegularExpression.
 
     \sa canConvert(), convert()
 */
-#ifndef QT_BOOTSTRAPPED
-#ifndef QT_NO_REGEXP
+#ifndef QT_NO_REGULAREXPRESSION
 QRegularExpression QVariant::toRegularExpression() const
 {
     return qVariantToHelper<QRegularExpression>(d, handlerManager);
 }
-#endif
+#endif // QT_NO_REGULAREXPRESSION
 
 /*!
     \since 5.0
 
-    Returns the variant as a QUuid if the variant has type() \l
+    Returns the variant as a QUuid if the variant has userType() \l
     QUuid; otherwise returns a default constructed QUuid.
 
     \sa canConvert(), convert()
@@ -2247,7 +2288,7 @@ QUuid QVariant::toUuid() const
 /*!
     \since 5.0
 
-    Returns the variant as a QModelIndex if the variant has type() \l
+    Returns the variant as a QModelIndex if the variant has userType() \l
     QModelIndex; otherwise returns a default constructed QModelIndex.
 
     \sa canConvert(), convert()
@@ -2260,7 +2301,7 @@ QModelIndex QVariant::toModelIndex() const
 /*!
     \since 5.0
 
-    Returns the variant as a QJsonValue if the variant has type() \l
+    Returns the variant as a QJsonValue if the variant has userType() \l
     QJsonValue; otherwise returns a default constructed QJsonValue.
 
     \sa canConvert(), convert()
@@ -2273,7 +2314,7 @@ QJsonValue QVariant::toJsonValue() const
 /*!
     \since 5.0
 
-    Returns the variant as a QJsonObject if the variant has type() \l
+    Returns the variant as a QJsonObject if the variant has userType() \l
     QJsonObject; otherwise returns a default constructed QJsonObject.
 
     \sa canConvert(), convert()
@@ -2286,7 +2327,7 @@ QJsonObject QVariant::toJsonObject() const
 /*!
     \since 5.0
 
-    Returns the variant as a QJsonArray if the variant has type() \l
+    Returns the variant as a QJsonArray if the variant has userType() \l
     QJsonArray; otherwise returns a default constructed QJsonArray.
 
     \sa canConvert(), convert()
@@ -2299,7 +2340,7 @@ QJsonArray QVariant::toJsonArray() const
 /*!
     \since 5.0
 
-    Returns the variant as a QJsonDocument if the variant has type() \l
+    Returns the variant as a QJsonDocument if the variant has userType() \l
     QJsonDocument; otherwise returns a default constructed QJsonDocument.
 
     \sa canConvert(), convert()
@@ -2313,8 +2354,9 @@ QJsonDocument QVariant::toJsonDocument() const
 /*!
     \fn QChar QVariant::toChar() const
 
-    Returns the variant as a QChar if the variant has type() \l Char,
-    \l Int, or \l UInt; otherwise returns an invalid QChar.
+    Returns the variant as a QChar if the variant has userType()
+    \l QMetaType::QChar, \l QMetaType::Int, or \l QMetaType::UInt; otherwise
+    returns an invalid QChar.
 
     \sa canConvert(), convert()
 */
@@ -2324,8 +2366,8 @@ QChar QVariant::toChar() const
 }
 
 /*!
-    Returns the variant as a QBitArray if the variant has type()
-    \l BitArray; otherwise returns an empty bit array.
+    Returns the variant as a QBitArray if the variant has userType()
+    \l QMetaType::QBitArray; otherwise returns an empty bit array.
 
     \sa canConvert(), convert()
 */
@@ -2338,29 +2380,38 @@ template <typename T>
 inline T qNumVariantToHelper(const QVariant::Private &d,
                              const HandlersManager &handlerManager, bool *ok, const T& val)
 {
-    uint t = qMetaTypeId<T>();
+    const uint t = qMetaTypeId<T>();
     if (ok)
         *ok = true;
+
     if (d.type == t)
         return val;
 
     T ret = 0;
+    if ((d.type >= QMetaType::User || t >= QMetaType::User)
+        && QMetaType::convert(&val, d.type, &ret, t)) {
+        return ret;
+    }
+
     if (!handlerManager[d.type]->convert(&d, t, &ret, ok) && ok)
         *ok = false;
     return ret;
 }
 
 /*!
-    Returns the variant as an int if the variant has type() \l Int,
-    \l Bool, \l ByteArray, \l Char, \l Double, \l LongLong, \l
-    String, \l UInt, or \l ULongLong; otherwise returns 0.
+    Returns the variant as an int if the variant has userType()
+    \l QMetaType::Int, \l QMetaType::Bool, \l QMetaType::QByteArray,
+    \l QMetaType::QChar, \l QMetaType::Double, \l QMetaType::LongLong,
+    \l QMetaType::QString, \l QMetaType::UInt, or \l QMetaType::ULongLong;
+    otherwise returns 0.
 
     If \a ok is non-null: \c{*}\a{ok} is set to true if the value could be
     converted to an int; otherwise \c{*}\a{ok} is set to false.
 
-    \b{Warning:} If the value is convertible to a \l LongLong but is too
-    large to be represented in an int, the resulting arithmetic overflow will
-    not be reflected in \a ok. A simple workaround is to use QString::toInt().
+    \b{Warning:} If the value is convertible to a \l QMetaType::LongLong but is
+    too large to be represented in an int, the resulting arithmetic overflow
+    will not be reflected in \a ok. A simple workaround is to use
+    QString::toInt().
 
     \sa canConvert(), convert()
 */
@@ -2370,16 +2421,19 @@ int QVariant::toInt(bool *ok) const
 }
 
 /*!
-    Returns the variant as an unsigned int if the variant has type()
-    \l UInt,  \l Bool, \l ByteArray, \l Char, \l Double, \l Int, \l
-    LongLong, \l String, or \l ULongLong; otherwise returns 0.
+    Returns the variant as an unsigned int if the variant has userType()
+    \l QMetaType::UInt, \l QMetaType::Bool, \l QMetaType::QByteArray,
+    \l QMetaType::QChar, \l QMetaType::Double, \l QMetaType::Int,
+    \l QMetaType::LongLong, \l QMetaType::QString, or \l QMetaType::ULongLong;
+    otherwise returns 0.
 
     If \a ok is non-null: \c{*}\a{ok} is set to true if the value could be
     converted to an unsigned int; otherwise \c{*}\a{ok} is set to false.
 
-    \b{Warning:} If the value is convertible to a \l ULongLong but is too
-    large to be represented in an unsigned int, the resulting arithmetic overflow will
-    not be reflected in \a ok. A simple workaround is to use QString::toUInt().
+    \b{Warning:} If the value is convertible to a \l QMetaType::ULongLong but is
+    too large to be represented in an unsigned int, the resulting arithmetic
+    overflow will not be reflected in \a ok. A simple workaround is to use
+    QString::toUInt().
 
     \sa canConvert(), convert()
 */
@@ -2389,9 +2443,11 @@ uint QVariant::toUInt(bool *ok) const
 }
 
 /*!
-    Returns the variant as a long long int if the variant has type()
-    \l LongLong, \l Bool, \l ByteArray, \l Char, \l Double, \l Int,
-    \l String, \l UInt, or \l ULongLong; otherwise returns 0.
+    Returns the variant as a long long int if the variant has userType()
+    \l QMetaType::LongLong, \l QMetaType::Bool, \l QMetaType::QByteArray,
+    \l QMetaType::QChar, \l QMetaType::Double, \l QMetaType::Int,
+    \l QMetaType::QString, \l QMetaType::UInt, or \l QMetaType::ULongLong;
+    otherwise returns 0.
 
     If \a ok is non-null: \c{*}\c{ok} is set to true if the value could be
     converted to an int; otherwise \c{*}\c{ok} is set to false.
@@ -2405,9 +2461,10 @@ qlonglong QVariant::toLongLong(bool *ok) const
 
 /*!
     Returns the variant as as an unsigned long long int if the
-    variant has type() \l ULongLong, \l Bool, \l ByteArray, \l Char,
-    \l Double, \l Int, \l LongLong, \l String, or \l UInt; otherwise
-    returns 0.
+    variant has type() \l QMetaType::ULongLong, \l QMetaType::Bool,
+    \l QMetaType::QByteArray, \l QMetaType::QChar, \l QMetaType::Double,
+    \l QMetaType::Int, \l QMetaType::LongLong, \l QMetaType::QString, or
+    \l QMetaType::UInt; otherwise returns 0.
 
     If \a ok is non-null: \c{*}\a{ok} is set to true if the value could be
     converted to an int; otherwise \c{*}\a{ok} is set to false.
@@ -2420,13 +2477,14 @@ qulonglong QVariant::toULongLong(bool *ok) const
 }
 
 /*!
-    Returns the variant as a bool if the variant has type() Bool.
+    Returns the variant as a bool if the variant has userType() Bool.
 
-    Returns true if the variant has type() \l Bool, \l Char, \l Double,
-    \l Int, \l LongLong, \l UInt, or \l ULongLong and the value is
-    non-zero, or if the variant has type \l String or \l ByteArray and
-    its lower-case content is not one of the following: empty, "0"
-    or "false"; otherwise returns false.
+    Returns true if the variant has userType() \l QMetaType::Bool,
+    \l QMetaType::QChar, \l QMetaType::Double, \l QMetaType::Int,
+    \l QMetaType::LongLong, \l QMetaType::UInt, or \l QMetaType::ULongLong and
+    the value is non-zero, or if the variant has type \l QMetaType::QString or
+    \l QMetaType::QByteArray and its lower-case content is not one of the
+    following: empty, "0" or "false"; otherwise returns false.
 
     \sa canConvert(), convert()
 */
@@ -2442,9 +2500,11 @@ bool QVariant::toBool() const
 }
 
 /*!
-    Returns the variant as a double if the variant has type() \l
-    Double, \l QMetaType::Float, \l Bool, \l ByteArray, \l Int, \l LongLong, \l String, \l
-    UInt, or \l ULongLong; otherwise returns 0.0.
+    Returns the variant as a double if the variant has userType()
+    \l QMetaType::Double, \l QMetaType::Float, \l QMetaType::Bool,
+    \l QMetaType::QByteArray, \l QMetaType::Int, \l QMetaType::LongLong,
+    \l QMetaType::QString, \l QMetaType::UInt, or \l QMetaType::ULongLong;
+    otherwise returns 0.0.
 
     If \a ok is non-null: \c{*}\a{ok} is set to true if the value could be
     converted to a double; otherwise \c{*}\a{ok} is set to false.
@@ -2457,9 +2517,11 @@ double QVariant::toDouble(bool *ok) const
 }
 
 /*!
-    Returns the variant as a float if the variant has type() \l
-    Double, \l QMetaType::Float, \l Bool, \l ByteArray, \l Int, \l LongLong, \l String, \l
-    UInt, or \l ULongLong; otherwise returns 0.0.
+    Returns the variant as a float if the variant has userType()
+    \l QMetaType::Double, \l QMetaType::Float, \l QMetaType::Bool,
+    \l QMetaType::QByteArray, \l QMetaType::Int, \l QMetaType::LongLong,
+    \l QMetaType::QString, \l QMetaType::UInt, or \l QMetaType::ULongLong;
+    otherwise returns 0.0.
 
     \since 4.6
 
@@ -2474,9 +2536,11 @@ float QVariant::toFloat(bool *ok) const
 }
 
 /*!
-    Returns the variant as a qreal if the variant has type() \l
-    Double, \l QMetaType::Float, \l Bool, \l ByteArray, \l Int, \l LongLong, \l String, \l
-    UInt, or \l ULongLong; otherwise returns 0.0.
+    Returns the variant as a qreal if the variant has userType()
+    \l QMetaType::Double, \l QMetaType::Float, \l QMetaType::Bool,
+    \l QMetaType::QByteArray, \l QMetaType::Int, \l QMetaType::LongLong,
+    \l QMetaType::QString, \l QMetaType::UInt, or \l QMetaType::ULongLong;
+    otherwise returns 0.0.
 
     \since 4.6
 
@@ -2491,8 +2555,9 @@ qreal QVariant::toReal(bool *ok) const
 }
 
 /*!
-    Returns the variant as a QVariantList if the variant has type()
-    \l List or \l StringList; otherwise returns an empty list.
+    Returns the variant as a QVariantList if the variant has userType()
+    \l QMetaType::QVariantList or \l QMetaType::QStringList; otherwise returns
+    an empty list.
 
     \sa canConvert(), convert()
 */
@@ -2631,37 +2696,103 @@ static bool canConvertMetaObject(int fromId, int toId, QObject *fromObject)
 
     \table
     \header \li Type \li Automatically Cast To
-    \row \li \l Bool \li \l Char, \l Double, \l Int, \l LongLong, \l String, \l UInt, \l ULongLong
-    \row \li \l ByteArray \li \l Double, \l Int, \l LongLong, \l String, \l UInt, \l ULongLong
-    \row \li \l Char \li \l Bool, \l Int, \l UInt, \l LongLong, \l ULongLong
-    \row \li \l Color \li \l String
-    \row \li \l Date \li \l DateTime, \l String
-    \row \li \l DateTime \li \l Date, \l String, \l Time
-    \row \li \l Double \li \l Bool, \l Int, \l LongLong, \l String, \l UInt, \l ULongLong
-    \row \li \l Font \li \l String
-    \row \li \l Int \li \l Bool, \l Char, \l Double, \l LongLong, \l String, \l UInt, \l ULongLong
-    \row \li \l KeySequence \li \l Int, \l String
-    \row \li \l List \li \l StringList (if the list's items can be converted to strings)
-    \row \li \l LongLong \li \l Bool, \l ByteArray, \l Char, \l Double, \l Int, \l String, \l UInt, \l ULongLong
-    \row \li \l Point \li PointF
-    \row \li \l Rect \li RectF
-    \row \li \l String \li \l Bool, \l ByteArray, \l Char, \l Color, \l Date, \l DateTime, \l Double,
-                         \l Font, \l Int, \l KeySequence, \l LongLong, \l StringList, \l Time, \l UInt,
-                         \l ULongLong
-    \row \li \l StringList \li \l List, \l String (if the list contains exactly one item)
-    \row \li \l Time \li \l String
-    \row \li \l UInt \li \l Bool, \l Char, \l Double, \l Int, \l LongLong, \l String, \l ULongLong
-    \row \li \l ULongLong \li \l Bool, \l Char, \l Double, \l Int, \l LongLong, \l String, \l UInt
+    \row \li \l QMetaType::Bool \li \l QMetaType::QChar, \l QMetaType::Double,
+        \l QMetaType::Int, \l QMetaType::LongLong, \l QMetaType::QString,
+        \l QMetaType::UInt, \l QMetaType::ULongLong
+    \row \li \l QMetaType::QByteArray \li \l QMetaType::Double,
+        \l QMetaType::Int, \l QMetaType::LongLong, \l QMetaType::QString,
+        \l QMetaType::UInt, \l QMetaType::ULongLong
+    \row \li \l QMetaType::QChar \li \l QMetaType::Bool, \l QMetaType::Int,
+        \l QMetaType::UInt, \l QMetaType::LongLong, \l QMetaType::ULongLong
+    \row \li \l QMetaType::QColor \li \l QMetaType::QString
+    \row \li \l QMetaType::QDate \li \l QMetaType::QDateTime,
+        \l QMetaType::QString
+    \row \li \l QMetaType::QDateTime \li \l QMetaType::QDate,
+        \l QMetaType::QString, \l QMetaType::QTime
+    \row \li \l QMetaType::Double \li \l QMetaType::Bool, \l QMetaType::Int,
+        \l QMetaType::LongLong, \l QMetaType::QString, \l QMetaType::UInt,
+        \l QMetaType::ULongLong
+    \row \li \l QMetaType::QFont \li \l QMetaType::QString
+    \row \li \l QMetaType::Int \li \l QMetaType::Bool, \l QMetaType::QChar,
+        \l QMetaType::Double, \l QMetaType::LongLong, \l QMetaType::QString,
+        \l QMetaType::UInt, \l QMetaType::ULongLong
+    \row \li \l QMetaType::QKeySequence \li \l QMetaType::Int,
+        \l QMetaType::QString
+    \row \li \l QMetaType::QVariantList \li \l QMetaType::QStringList (if the
+        list's items can be converted to QStrings)
+    \row \li \l QMetaType::LongLong \li \l QMetaType::Bool,
+        \l QMetaType::QByteArray, \l QMetaType::QChar, \l QMetaType::Double,
+        \l QMetaType::Int, \l QMetaType::QString, \l QMetaType::UInt,
+        \l QMetaType::ULongLong
+    \row \li \l QMetaType::QPoint \li QMetaType::QPointF
+    \row \li \l QMetaType::QRect \li QMetaType::QRectF
+    \row \li \l QMetaType::QString \li \l QMetaType::Bool,
+        \l QMetaType::QByteArray, \l QMetaType::QChar, \l QMetaType::QColor,
+        \l QMetaType::QDate, \l QMetaType::QDateTime, \l QMetaType::Double,
+        \l QMetaType::QFont, \l QMetaType::Int, \l QMetaType::QKeySequence,
+        \l QMetaType::LongLong, \l QMetaType::QStringList, \l QMetaType::QTime,
+        \l QMetaType::UInt, \l QMetaType::ULongLong
+    \row \li \l QMetaType::QStringList \li \l QMetaType::QVariantList,
+        \l QMetaType::QString (if the list contains exactly one item)
+    \row \li \l QMetaType::QTime \li \l QMetaType::QString
+    \row \li \l QMetaType::UInt \li \l QMetaType::Bool, \l QMetaType::QChar,
+        \l QMetaType::Double, \l QMetaType::Int, \l QMetaType::LongLong,
+        \l QMetaType::QString, \l QMetaType::ULongLong
+    \row \li \l QMetaType::ULongLong \li \l QMetaType::Bool,
+        \l QMetaType::QChar, \l QMetaType::Double, \l QMetaType::Int,
+        \l QMetaType::LongLong, \l QMetaType::QString, \l QMetaType::UInt
     \endtable
 
     A QVariant containing a pointer to a type derived from QObject will also return true for this
     function if a qobject_cast to the type described by \a targetTypeId would succeed. Note that
     this only works for QObject subclasses which use the Q_OBJECT macro.
 
-    \sa convert()
+    A QVariant containing a sequential container will also return true for this
+    function if the \a targetTypeId is QVariantList. It is possible to iterate over
+    the contents of the container without extracting it as a (copied) QVariantList:
+
+    \snippet code/src_corelib_kernel_qvariant.cpp 9
+
+    This requires that the value_type of the container is itself a metatype.
+
+    Similarly, a QVariant containing a sequential container will also return true for this
+    function the \a targetTypeId is QVariantHash or QVariantMap. It is possible to iterate over
+    the contents of the container without extracting it as a (copied) QVariantHash or QVariantMap:
+
+    \snippet code/src_corelib_kernel_qvariant.cpp 10
+
+    \sa convert(), QSequentialIterable, qRegisterSequentialConverter(), QAssociativeIterable,
+        qRegisterAssociativeConverter()
 */
 bool QVariant::canConvert(int targetTypeId) const
 {
+    if (targetTypeId == QMetaType::QVariantList
+            && (d.type == QMetaType::QVariantList
+              || d.type == QMetaType::QStringList
+              || QMetaType::hasRegisteredConverterFunction(d.type,
+                    qMetaTypeId<QtMetaTypePrivate::QSequentialIterableImpl>()))) {
+        return true;
+    }
+
+    if ((targetTypeId == QMetaType::QVariantHash || targetTypeId == QMetaType::QVariantMap)
+            && (d.type == QMetaType::QVariantMap
+              || d.type == QMetaType::QVariantHash
+              || QMetaType::hasRegisteredConverterFunction(d.type,
+                    qMetaTypeId<QtMetaTypePrivate::QAssociativeIterableImpl>()))) {
+        return true;
+    }
+
+    if (targetTypeId == qMetaTypeId<QPair<QVariant, QVariant> >() &&
+              QMetaType::hasRegisteredConverterFunction(d.type,
+                    qMetaTypeId<QtMetaTypePrivate::QPairVariantInterfaceImpl>())) {
+        return true;
+    }
+
+    if ((d.type >= QMetaType::User || targetTypeId >= QMetaType::User)
+        && QMetaType::hasRegisteredConverterFunction(d.type, targetTypeId)) {
+        return true;
+    }
+
     // TODO Reimplement this function, currently it works but it is a historical mess.
     uint currentType = ((d.type == QMetaType::Float) ? QVariant::Double : d.type);
     if (currentType == QMetaType::SChar || currentType == QMetaType::Char)
@@ -2786,7 +2917,6 @@ bool QVariant::convert(int targetTypeId)
 */
 bool QVariant::convert(const int type, void *ptr) const
 {
-    Q_ASSERT(type < int(QMetaType::User));
     return handlerManager[type]->convert(&d, type, ptr, 0);
 }
 
@@ -2958,7 +3088,7 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
 
     Returns the stored value converted to the template type \c{T}.
     Call canConvert() to find out whether a type can be converted.
-    If the value cannot be converted, \l{default-constructed value}
+    If the value cannot be converted, a \l{default-constructed value}
     will be returned.
 
     If the type \c{T} is supported by QVariant, this function behaves
@@ -2974,7 +3104,12 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
     returned. Note that this only works for QObject subclasses which use the
     Q_OBJECT macro.
 
-    \sa setValue(), fromValue(), canConvert()
+    If the QVariant contains a sequential container and \c{T} is QVariantList, the
+    elements of the container will be converted into QVariants and returned as a QVariantList.
+
+    \snippet code/src_corelib_kernel_qvariant.cpp 9
+
+    \sa setValue(), fromValue(), canConvert(), qRegisterSequentialConverter()
 */
 
 /*! \fn bool QVariant::canConvert() const
@@ -3124,6 +3259,361 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
 /*!
     \fn const DataPtr &QVariant::data_ptr() const
     \internal
+*/
+
+/*!
+    \class QSequentialIterable
+
+    \inmodule QtCore
+    \brief The QSequentialIterable class is an iterable interface for a container in a QVariant.
+
+    This class allows several methods of accessing the elements of a container held within
+    a QVariant. An instance of QSequentialIterable can be extracted from a QVariant if it can
+    be converted to a QVariantList.
+
+    \snippet code/src_corelib_kernel_qvariant.cpp 9
+
+    The container itself is not copied before iterating over it.
+
+    \sa QVariant
+*/
+
+/*! \fn QSequentialIterable::QSequentialIterable(QtMetaTypePrivate::QSequentialIterableImpl)
+
+    \internal
+*/
+
+/*! \fn QSequentialIterable::const_iterator QSequentialIterable::begin() const
+
+    Returns a QSequentialIterable::const_iterator for the beginning of the container. This
+    can be used in stl-style iteration.
+
+    \sa end()
+*/
+
+/*! \fn QSequentialIterable::const_iterator QSequentialIterable::end() const
+
+    Returns a QSequentialIterable::const_iterator for the end of the container. This
+    can be used in stl-style iteration.
+
+    \sa begin()
+*/
+
+/*! \fn QVariant QSequentialIterable::at(int idx) const
+
+    Returns the element at position \a idx in the container.
+*/
+
+/*! \fn int QSequentialIterable::size() const
+
+    Returns the number of elements in the container.
+*/
+
+/*! \fn bool QSequentialIterable::canReverseIterate() const
+
+    Returns whether it is possible to iterate over the container in reverse. This
+    corresponds to the std::bidirectional_iterator_tag iterator trait of the
+    const_iterator of the container.
+*/
+
+/*!
+    \class QSequentialIterable::const_iterator
+
+    \inmodule QtCore
+    \brief The QSequentialIterable::const_iterator allows iteration over a container in a QVariant.
+
+    A QSequentialIterable::const_iterator can only be created by a QSequentialIterable instance,
+    and can be used in a way similar to other stl-style iterators.
+
+    \snippet code/src_corelib_kernel_qvariant.cpp 9
+
+    \sa QSequentialIterable
+*/
+
+
+/*! \fn QSequentialIterable::const_iterator::~const_iterator()
+
+    Destroys the QSequentialIterable::const_iterator.
+*/
+
+/*! \fn QSequentialIterable::const_iterator::const_iterator(const const_iterator &other)
+
+    Creates a copy of \a other.
+*/
+
+/*! \fn QVariant QSequentialIterable::const_iterator::operator*() const
+
+    Returns the current item, converted to a QVariant.
+*/
+
+/*! \fn bool QSequentialIterable::const_iterator::operator==(const const_iterator &other) const
+
+    Returns true if \a other points to the same item as this
+    iterator; otherwise returns false.
+
+    \sa operator!=()
+*/
+
+/*! \fn bool QSequentialIterable::const_iterator::operator!=(const const_iterator &other) const
+
+    Returns true if \a other points to a different item than this
+    iterator; otherwise returns false.
+
+    \sa operator==()
+*/
+
+/*! \fn QSequentialIterable::const_iterator &QSequentialIterable::const_iterator::operator++()
+
+    The prefix ++ operator (\c{++it}) advances the iterator to the
+    next item in the container and returns an iterator to the new current
+    item.
+
+    Calling this function on QSequentialIterable::end() leads to undefined results.
+
+    \sa operator--()
+*/
+
+/*! \fn QSequentialIterable::const_iterator QSequentialIterable::const_iterator::operator++(int)
+
+    \overload
+
+    The postfix ++ operator (\c{it++}) advances the iterator to the
+    next item in the container and returns an iterator to the previously
+    current item.
+*/
+
+/*! \fn QSequentialIterable::const_iterator &QSequentialIterable::const_iterator::operator--()
+
+    The prefix -- operator (\c{--it}) makes the preceding item
+    current and returns an iterator to the new current item.
+
+    Calling this function on QSequentialIterable::begin() leads to undefined results.
+
+    If the container in the QVariant does not support bi-directional iteration, calling this function
+    leads to undefined results.
+
+    \sa operator++(), canReverseIterate()
+*/
+
+/*! \fn QSequentialIterable::const_iterator QSequentialIterable::const_iterator::operator--(int)
+
+    \overload
+
+    The postfix -- operator (\c{it--}) makes the preceding item
+    current and returns an iterator to the previously current item.
+
+    If the container in the QVariant does not support bi-directional iteration, calling this function
+    leads to undefined results.
+
+    \sa canReverseIterate()
+*/
+
+/*! \fn QSequentialIterable::const_iterator &QSequentialIterable::const_iterator::operator+=(int j)
+
+    Advances the iterator by \a j items.
+
+    \sa operator-=(), operator+()
+*/
+
+/*! \fn QSequentialIterable::const_iterator &QSequentialIterable::const_iterator::operator-=(int j)
+
+    Makes the iterator go back by \a j items.
+
+    If the container in the QVariant does not support bi-directional iteration, calling this function
+    leads to undefined results.
+
+    \sa operator+=(), operator-(), canReverseIterate()
+*/
+
+/*! \fn QSequentialIterable::const_iterator QSequentialIterable::const_iterator::operator+(int j) const
+
+    Returns an iterator to the item at \a j positions forward from
+    this iterator.
+
+    \sa operator-(), operator+=()
+*/
+
+/*! \fn QSequentialIterable::const_iterator QSequentialIterable::const_iterator::operator-(int j) const
+
+    Returns an iterator to the item at \a j positions backward from
+    this iterator.
+
+    If the container in the QVariant does not support bi-directional iteration, calling this function
+    leads to undefined results.
+
+    \sa operator+(), operator-=(), canReverseIterate()
+*/
+
+/*!
+    \class QAssociativeIterable
+
+    \inmodule QtCore
+    \brief The QAssociativeIterable class is an iterable interface for an associative container in a QVariant.
+
+    This class allows several methods of accessing the elements of an associative container held within
+    a QVariant. An instance of QAssociativeIterable can be extracted from a QVariant if it can
+    be converted to a QVariantHash or QVariantMap.
+
+    \snippet code/src_corelib_kernel_qvariant.cpp 10
+
+    The container itself is not copied before iterating over it.
+
+    \sa QVariant
+*/
+
+/*! \fn QAssociativeIterable::QAssociativeIterable(QtMetaTypePrivate::QAssociativeIterableImpl)
+
+    \internal
+*/
+
+/*! \fn QAssociativeIterable::const_iterator QAssociativeIterable::begin() const
+
+    Returns a QAssociativeIterable::const_iterator for the beginning of the container. This
+    can be used in stl-style iteration.
+
+    \sa end()
+*/
+
+/*! \fn QAssociativeIterable::const_iterator QAssociativeIterable::end() const
+
+    Returns a QAssociativeIterable::const_iterator for the end of the container. This
+    can be used in stl-style iteration.
+
+    \sa begin()
+*/
+
+/*! \fn QVariant QAssociativeIterable::value(const QVariant &key) const
+
+    Returns the value for the given \a key in the container, if the types are convertible.
+*/
+
+/*! \fn int QAssociativeIterable::size() const
+
+    Returns the number of elements in the container.
+*/
+
+/*!
+    \class QAssociativeIterable::const_iterator
+
+    \inmodule QtCore
+    \brief The QAssociativeIterable::const_iterator allows iteration over a container in a QVariant.
+
+    A QAssociativeIterable::const_iterator can only be created by a QAssociativeIterable instance,
+    and can be used in a way similar to other stl-style iterators.
+
+    \snippet code/src_corelib_kernel_qvariant.cpp 10
+
+    \sa QAssociativeIterable
+*/
+
+
+/*! \fn QAssociativeIterable::const_iterator::~const_iterator()
+
+    Destroys the QAssociativeIterable::const_iterator.
+*/
+
+/*! \fn QAssociativeIterable::const_iterator::const_iterator(const const_iterator &other)
+
+    Creates a copy of \a other.
+*/
+
+/*! \fn QVariant QAssociativeIterable::const_iterator::operator*() const
+
+    Returns the current value, converted to a QVariant.
+*/
+
+/*! \fn QVariant QAssociativeIterable::const_iterator::key() const
+
+    Returns the current key, converted to a QVariant.
+*/
+
+/*! \fn QVariant QAssociativeIterable::const_iterator::value() const
+
+    Returns the current value, converted to a QVariant.
+*/
+
+/*! \fn bool QAssociativeIterable::const_iterator::operator==(const const_iterator &other) const
+
+    Returns true if \a other points to the same item as this
+    iterator; otherwise returns false.
+
+    \sa operator!=()
+*/
+
+/*! \fn bool QAssociativeIterable::const_iterator::operator!=(const const_iterator &other) const
+
+    Returns true if \a other points to a different item than this
+    iterator; otherwise returns false.
+
+    \sa operator==()
+*/
+
+/*! \fn QAssociativeIterable::const_iterator &QAssociativeIterable::const_iterator::operator++()
+
+    The prefix ++ operator (\c{++it}) advances the iterator to the
+    next item in the container and returns an iterator to the new current
+    item.
+
+    Calling this function on QAssociativeIterable::end() leads to undefined results.
+
+    \sa operator--()
+*/
+
+/*! \fn QAssociativeIterable::const_iterator QAssociativeIterable::const_iterator::operator++(int)
+
+    \overload
+
+    The postfix ++ operator (\c{it++}) advances the iterator to the
+    next item in the container and returns an iterator to the previously
+    current item.
+*/
+
+/*! \fn QAssociativeIterable::const_iterator &QAssociativeIterable::const_iterator::operator--()
+
+    The prefix -- operator (\c{--it}) makes the preceding item
+    current and returns an iterator to the new current item.
+
+    Calling this function on QAssociativeIterable::begin() leads to undefined results.
+
+    \sa operator++()
+*/
+
+/*! \fn QAssociativeIterable::const_iterator QAssociativeIterable::const_iterator::operator--(int)
+
+    \overload
+
+    The postfix -- operator (\c{it--}) makes the preceding item
+    current and returns an iterator to the previously current item.
+*/
+
+/*! \fn QAssociativeIterable::const_iterator &QAssociativeIterable::const_iterator::operator+=(int j)
+
+    Advances the iterator by \a j items.
+
+    \sa operator-=(), operator+()
+*/
+
+/*! \fn QAssociativeIterable::const_iterator &QAssociativeIterable::const_iterator::operator-=(int j)
+
+    Makes the iterator go back by \a j items.
+
+    \sa operator+=(), operator-()
+*/
+
+/*! \fn QAssociativeIterable::const_iterator QAssociativeIterable::const_iterator::operator+(int j) const
+
+    Returns an iterator to the item at \a j positions forward from
+    this iterator.
+
+    \sa operator-(), operator+=()
+*/
+
+/*! \fn QAssociativeIterable::const_iterator QAssociativeIterable::const_iterator::operator-(int j) const
+
+    Returns an iterator to the item at \a j positions backward from
+    this iterator.
+
+    \sa operator+(), operator-=()
 */
 
 QT_END_NAMESPACE

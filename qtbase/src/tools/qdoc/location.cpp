@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -229,15 +229,13 @@ QString Location::fileName() const
 
 
 /*!
- * \brief  Returns \a path which is canonicalized and relative to the config file.
- *
- *         QDir::relativeFilePath does not canonicalize the paths, so
- *         if the config file is located at qtbase\src\widgets\doc\qtwidgets.qdocconf
- *         and it has a reference to any ancestor folder (e.g. ".." or even "../doc")
- * \param path
- * \return
+  \brief  Returns \a path which is canonicalized and relative to the config file.
+
+  QDir::relativeFilePath does not canonicalize the paths, so
+  if the config file is located at qtbase\src\widgets\doc\qtwidgets.qdocconf
+  and it has a reference to any ancestor folder (e.g. ".." or even "../doc")
  */
-QString Location::canonicalRelativePath(const QString &path) const
+QString Location::canonicalRelativePath(const QString &path)
 {
     QDir configFileDir(QDir::current());
     QDir dir(path);

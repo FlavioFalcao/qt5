@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -41,10 +41,10 @@
 
 /****************************************************************************
 **
-** In addition, as a special exception, Nokia gives permission to link
-** the code of its release of Qt with the OpenSSL project's "OpenSSL" library
-** (or modified versions of the "OpenSSL" library that use the same license
-** as the original version), and distribute the linked executables.
+** In addition, as a special exception, the copyright holders listed above give
+** permission to link the code of its release of Qt with the OpenSSL project's
+** "OpenSSL" library (or modified versions of the "OpenSSL" library that use the
+** same license as the original version), and distribute the linked executables.
 **
 ** You must comply with the GNU General Public License version 2 in all
 ** respects for all of the code used other than the "OpenSSL" code.  If you
@@ -60,8 +60,6 @@
 #include <QtCore/qshareddata.h>
 #include <QtNetwork/qsslsocket.h>
 #include <QtNetwork/qssl.h>
-
-QT_BEGIN_HEADER
 
 #ifndef QT_NO_SSL
 
@@ -101,6 +99,9 @@ public:
     void setPeerVerifyDepth(int depth);
 
     // Certificate & cipher configuration
+    QList<QSslCertificate> localCertificateChain() const;
+    void setLocalCertificateChain(const QList<QSslCertificate> &localChain);
+
     QSslCertificate localCertificate() const;
     void setLocalCertificate(const QSslCertificate &certificate);
 
@@ -123,12 +124,18 @@ public:
     void setSslOption(QSsl::SslOption option, bool on);
     bool testSslOption(QSsl::SslOption option) const;
 
+    QByteArray session() const;
+    void setSession(const QByteArray &session);
+    int sessionTicketLifeTimeHint() const;
+
     static QSslConfiguration defaultConfiguration();
     static void setDefaultConfiguration(const QSslConfiguration &configuration);
 
 private:
     friend class QSslSocket;
     friend class QSslConfigurationPrivate;
+    friend class QSslSocketBackendPrivate;
+    friend class QSslContext;
     QSslConfiguration(QSslConfigurationPrivate *dd);
     QSharedDataPointer<QSslConfigurationPrivate> d;
 };
@@ -140,7 +147,5 @@ QT_END_NAMESPACE
 Q_DECLARE_METATYPE(QSslConfiguration)
 
 #endif  // QT_NO_SSL
-
-QT_END_HEADER
 
 #endif

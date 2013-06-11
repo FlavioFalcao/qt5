@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -50,7 +50,7 @@
 
 XVisualInfo *qglx_findVisualInfo(Display *display, int screen, QSurfaceFormat *format);
 GLXFBConfig qglx_findConfig(Display *display, int screen, const QSurfaceFormat &format, int drawableBit = GLX_WINDOW_BIT);
-QSurfaceFormat qglx_surfaceFormatFromGLXFBConfig(Display *display, GLXFBConfig config, GLXContext context = 0);
+void qglx_surfaceFormatFromGLXFBConfig(QSurfaceFormat *format, Display *display, GLXFBConfig config, GLXContext context = 0);
 QVector<int> qglx_buildSpec(const QSurfaceFormat &format, int drawableBit = GLX_WINDOW_BIT);
 QSurfaceFormat qglx_reduceSurfaceFormat(const QSurfaceFormat &format, bool *reduced);
 

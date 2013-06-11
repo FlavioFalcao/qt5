@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the test suite of the Qt Toolkit.
@@ -50,14 +50,12 @@
 #include <QtGui/qfont.h>
 #include <QtGui/qtextoption.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
 class QStaticTextPrivate;
 class Q_GUI_EXPORT QStaticText
-{    
+{
 public:
     enum PerformanceHint {
         ModerateCaching,
@@ -106,7 +104,5 @@ Q_DECLARE_SHARED(QStaticText)
 QT_END_NAMESPACE
 
 Q_DECLARE_METATYPE(QStaticText)
-
-QT_END_HEADER
 
 #endif // QSTATICTEXT_H

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -42,8 +42,8 @@
 #ifndef RANGECONTROLS_H
 #define RANGECONTROLS_H
 
-#include <QtWidgets/qaccessiblewidget.h>
-#include <QtGui/qaccessible2.h>
+#include <QtWidgets/private/qaccessiblewidget_p.h>
+#include <QtGui/private/qaccessible2_p.h>
 
 QT_BEGIN_NAMESPACE
 

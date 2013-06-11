@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -91,6 +91,11 @@ QPaintEngine *QWindowsPrinterSupport::createPaintEngine(QPrintEngine *engine, QP
 QList<QPrinter::PaperSize> QWindowsPrinterSupport::supportedPaperSizes(const QPrinterInfo &printerInfo) const
 {
     return QWin32PrintEngine::supportedPaperSizes(printerInfo);
+}
+
+QList<QPair<QString, QSizeF> >QWindowsPrinterSupport::supportedSizesWithNames(const QPrinterInfo &printerInfo) const
+{
+    return QWin32PrintEngine::supportedSizesWithNames(printerInfo);
 }
 
 QT_END_NAMESPACE

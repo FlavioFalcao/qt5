@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -555,7 +555,7 @@ QNetworkInterface QNetworkInterface::interfaceFromIndex(int index)
 
 /*!
     Returns a listing of all the network interfaces found on the host
-    machine.
+    machine.  In case of failure it returns a list with zero elements.
 */
 QList<QNetworkInterface> QNetworkInterface::allInterfaces()
 {

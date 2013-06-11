@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
@@ -46,8 +46,6 @@
 #include <QtCore/qstring.h>
 #include <QtCore/qstringlist.h>
 #include <QtSql/qsql.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -128,6 +126,7 @@ Q_SIGNALS:
     void notification(const QString &name, QSqlDriver::NotificationSource source, const QVariant &payload);
 
 protected:
+    QSqlDriver(QSqlDriverPrivate &dd, QObject *parent = 0);
     virtual void setOpen(bool o);
     virtual void setOpenError(bool e);
     virtual void setLastError(const QSqlError& e);
@@ -138,7 +137,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QSQLDRIVER_H

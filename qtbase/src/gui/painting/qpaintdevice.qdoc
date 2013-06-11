@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -31,6 +31,7 @@
     can be painted on with QPainter.
 
     \ingroup painting
+    \inmodule QtGui
 
     A paint device is an abstraction of a two-dimensional space that
     can be drawn on using a QPainter.  Its default coordinate system has
@@ -112,6 +113,10 @@
 
     \value PdmPhysicalDpiY The vertical resolution of the device in
     dots per inch. See also physicalDpiY().
+
+    \value PdmDevicePixelRatio The device pixel ratio for device. Common
+    values are 1 for normal-dpi displays and 2 for high-dpi "retina"
+    displays.
 
     \sa metric()
 */
@@ -271,4 +276,13 @@
     the corresponding QPaintEngine must handle the resolution mapping.
 
     \sa physicalDpiX(), logicalDpiY()
+*/
+
+/*!
+    \fn int QPaintDevice::devicePixelRatio() const
+
+    Returns the device pixel ratio for device.
+
+    Common values are 1 for normal-dpi displays and 2 for high-dpi
+    "retina" displays.
 */

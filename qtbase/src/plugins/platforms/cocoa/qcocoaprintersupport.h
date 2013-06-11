@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtPrintSupport module of the Qt Toolkit.
@@ -55,6 +55,7 @@ public:
     QPrintEngine *createNativePrintEngine(QPrinter::PrinterMode printerMode) Q_DECL_OVERRIDE;
     QPaintEngine *createPaintEngine(QPrintEngine *, QPrinter::PrinterMode printerMode) Q_DECL_OVERRIDE;
     QList<QPrinter::PaperSize> supportedPaperSizes(const QPrinterInfo &) const Q_DECL_OVERRIDE;
+    QList<QPair<QString, QSizeF> > supportedSizesWithNames(const QPrinterInfo &) const Q_DECL_OVERRIDE;
 
     QList<QPrinterInfo> availablePrinters() Q_DECL_OVERRIDE;
     QPrinterInfo printerInfo(const QString &printerName) Q_DECL_OVERRIDE;

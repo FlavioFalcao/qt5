@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtPrintSupport module of the Qt Toolkit.
@@ -137,4 +137,35 @@ QPrinterInfo QCocoaPrinterSupport::printerInfoFromPMPrinter(const PMPrinter &pri
     bool isDefault = PMPrinterIsDefault(printer);
 
     return createPrinterInfo(name, description, location, makeAndModel, isDefault, 0);
+}
+
+QList<QPair<QString, QSizeF> > QCocoaPrinterSupport::supportedSizesWithNames(const QPrinterInfo &printerInfo) const
+{
+    QList<QPair<QString, QSizeF> > returnValue;
+    if (printerInfo.isNull())
+        return returnValue;
+
+    PMPrinter printer = PMPrinterCreateFromPrinterID(QCFString::toCFStringRef(printerInfo.printerName()));
+    if (!printer)
+        return returnValue;
+
+    CFArrayRef array;
+    if (PMPrinterGetPaperList(printer, &array) != noErr) {
+        PMRelease(printer);
+        return returnValue;
+    }
+
+    int count = CFArrayGetCount(array);
+    for (int i = 0; i < count; ++i) {
+        PMPaper paper = static_cast<PMPaper>(const_cast<void *>(CFArrayGetValueAtIndex(array, i)));
+        double width, height;
+        if (PMPaperGetWidth(paper, &width) == noErr && PMPaperGetHeight(paper, &height) == noErr) {
+            static const double OnePointInMillimeters = 1.0 / 72.0 * 25.4;
+            QCFString paperName;
+            if (PMPaperCreateLocalizedName(paper, printer, &paperName) == noErr)
+                returnValue.append(qMakePair(QString(paperName), QSizeF(width * OnePointInMillimeters, height * OnePointInMillimeters)));
+        }
+    }
+    PMRelease(printer);
+    return returnValue;
 }

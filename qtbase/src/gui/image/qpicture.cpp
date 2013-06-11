@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -956,6 +956,9 @@ int QPicture::metric(PaintDeviceMetric m) const
         case PdmDepth:
             val = 24;
             break;
+        case PdmDevicePixelRatio:
+            val = 1;
+            break;
         default:
             val = 0;
             qWarning("QPicture::metric: Invalid metric command");
@@ -1278,6 +1281,7 @@ QList<QByteArray> QPicture::outputFormats()
 
     \ingroup painting
     \ingroup io
+    \inmodule QtGui
 
     QPictureIO contains a QIODevice object that is used for picture data
     I/O. The programmer can install new picture file formats in addition

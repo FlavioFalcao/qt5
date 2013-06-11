@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -48,8 +48,6 @@
 
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkAccessManager>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -150,6 +148,7 @@ Q_SIGNALS:
     void finished();
     void error(QNetworkReply::NetworkError);
 #ifndef QT_NO_SSL
+    void encrypted();
     void sslErrors(const QList<QSslError> &errors);
 #endif
 
@@ -181,7 +180,5 @@ private:
 QT_END_NAMESPACE
 
 Q_DECLARE_METATYPE(QNetworkReply::NetworkError)
-
-QT_END_HEADER
 
 #endif

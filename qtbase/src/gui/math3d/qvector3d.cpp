@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -345,6 +345,19 @@ QVector3D QVector3D::normal
         (const QVector3D& v1, const QVector3D& v2, const QVector3D& v3)
 {
     return crossProduct((v2 - v1), (v3 - v1)).normalized();
+}
+
+/*!
+    \since 5.1
+
+    Returns the distance from this vertex to a point defined by
+    the vertex \a point.
+
+    \sa distanceToPlane(), distanceToLine()
+*/
+float QVector3D::distanceToPoint(const QVector3D& point) const
+{
+    return (*this - point).length();
 }
 
 /*!

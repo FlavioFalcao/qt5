@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
@@ -461,6 +461,9 @@ int QGLPixelBuffer::metric(PaintDeviceMetric metric) const
 
     case PdmPhysicalDpiY:
         return qRound(dpmy * 0.0254);
+
+    case QPaintDevice::PdmDevicePixelRatio:
+        return 1;
 
     default:
         qWarning("QGLPixelBuffer::metric(), Unhandled metric type: %d\n", metric);

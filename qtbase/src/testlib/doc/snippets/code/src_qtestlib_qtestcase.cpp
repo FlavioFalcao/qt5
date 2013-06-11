@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -229,8 +229,8 @@ QTest::touchEvent(&widget)
     .move(0, QPoint(12, 12))
     .move(1, QPoint(45, 5));
 QTest::touchEvent(&widget)
-    .release(0)
-    .release(1);
+    .release(0, QPoint(12, 12))
+    .release(1, QPoint(45, 5));
 //! [25]
 
 

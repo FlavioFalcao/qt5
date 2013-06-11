@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -167,6 +167,7 @@ QT_BEGIN_NAMESPACE
 
 QAbstractScrollAreaPrivate::QAbstractScrollAreaPrivate()
     :hbar(0), vbar(0), vbarpolicy(Qt::ScrollBarAsNeeded), hbarpolicy(Qt::ScrollBarAsNeeded),
+     shownOnce(false), sizeAdjustPolicy(QAbstractScrollArea::AdjustIgnored),
      viewport(0), cornerWidget(0), left(0), top(0), right(0), bottom(0),
      xoffset(0), yoffset(0), viewportFilter(0)
 #ifdef Q_WS_WIN
@@ -329,13 +330,13 @@ void QAbstractScrollAreaPrivate::layoutChildren()
 {
     Q_Q(QAbstractScrollArea);
     bool transient = q->style()->styleHint(QStyle::SH_ScrollBar_Transient, 0, vbar ? vbar : hbar);
-    bool needh = (hbarpolicy == Qt::ScrollBarAlwaysOn && !transient)
+    bool needh = (hbarpolicy != Qt::ScrollBarAlwaysOff) && ((hbarpolicy == Qt::ScrollBarAlwaysOn && !transient)
                  || ((hbarpolicy == Qt::ScrollBarAsNeeded || transient)
-                     && hbar->minimum() < hbar->maximum() && !hbar->sizeHint().isEmpty());
+                     && hbar->minimum() < hbar->maximum() && !hbar->sizeHint().isEmpty()));
 
-    bool needv = (vbarpolicy == Qt::ScrollBarAlwaysOn && !transient)
+    bool needv = (vbarpolicy != Qt::ScrollBarAlwaysOff) && ((vbarpolicy == Qt::ScrollBarAlwaysOn && !transient)
                  || ((vbarpolicy == Qt::ScrollBarAsNeeded || transient)
-                     && vbar->minimum() < vbar->maximum() && !vbar->sizeHint().isEmpty());
+                     && vbar->minimum() < vbar->maximum() && !vbar->sizeHint().isEmpty()));
 
     QStyleOption opt(0);
     opt.init(q);
@@ -452,7 +453,7 @@ void QAbstractScrollAreaPrivate::layoutChildren()
     // no corner widget. Also, on the Mac we paint if there is a native
     // (transparent) sizegrip in the area where a corner widget would be.
     if ((needv && needh && hasCornerWidget == false && scrollOverlap == 0)
-        || ((needv || needh) 
+        || ((needv || needh)
 #ifdef Q_WS_MAC
         && hasMacSizeGrip
 #endif
@@ -525,6 +526,19 @@ void QAbstractScrollAreaPrivate::layoutChildren()
 
     viewport->setGeometry(QStyle::visualRect(opt.direction, opt.rect, viewportRect)); // resize the viewport last
 }
+
+/*!
+    \enum QAbstractScrollArea::SizeAdjustPolicy
+    \since 5.2
+
+    This enum specifies how the size hint of the QAbstractScrollArea should
+    adjust when the size of the viewport changes.
+
+    \value AdjustIgnored                 The scroll area will behave like before - and not do any adjust.
+    \value AdjustToContents              The scroll area will always adjust to the viewport
+    \value AdjustToContentsOnFirstShow   The scroll area will adjust to its viewport the first time it is shown.
+*/
+
 
 /*!
     \internal
@@ -983,6 +997,13 @@ bool QAbstractScrollArea::event(QEvent *e)
     case QEvent::Resize:
             d->layoutChildren();
             break;
+    case QEvent::Show:
+        if (!d->shownOnce && d->sizeAdjustPolicy == QAbstractScrollArea::AdjustToContentsOnFirstShow) {
+            d->sizeHint = QSize();
+            updateGeometry();
+        }
+        d->shownOnce = true;
+        return QFrame::event(e);
     case QEvent::Paint: {
         QStyleOption option;
         option.initFrom(this);
@@ -1456,9 +1477,9 @@ void QAbstractScrollAreaPrivate::flashScrollBars()
 {
     Q_Q(QAbstractScrollArea);
     bool transient =  q->style()->styleHint(QStyle::SH_ScrollBar_Transient, 0, vbar ? vbar : hbar);
-    if (hbarpolicy == Qt::ScrollBarAsNeeded || transient)
+    if ((hbarpolicy != Qt::ScrollBarAlwaysOff) && (hbarpolicy == Qt::ScrollBarAsNeeded || transient))
         hbar->d_func()->flash();
-    if (vbarpolicy == Qt::ScrollBarAsNeeded || transient)
+    if ((vbarpolicy != Qt::ScrollBarAlwaysOff) && (vbarpolicy == Qt::ScrollBarAsNeeded || transient))
         vbar->d_func()->flash();
 }
 
@@ -1533,17 +1554,70 @@ QSize QAbstractScrollArea::minimumSizeHint() const
 }
 
 /*!
+    Returns the sizeHint property of the scroll area. The size is determined by using
+    viewportSizeHint() plus some extra space for scroll bars, if needed.
     \reimp
 */
 QSize QAbstractScrollArea::sizeHint() const
 {
-    return QSize(256, 192);
-#if 0
     Q_D(const QAbstractScrollArea);
-    int h = qMax(10, fontMetrics().height());
-    int f = 2 * d->frameWidth;
-    return QSize((6 * h) + f, (4 * h) + f);
-#endif
+    if (d->sizeAdjustPolicy == QAbstractScrollArea::AdjustIgnored)
+        return QSize(256, 192);
+
+    if (!d->sizeHint.isValid() || d->sizeAdjustPolicy == QAbstractScrollArea::AdjustToContents) {
+        const int f = 2 * d->frameWidth;
+        const QSize frame( f, f );
+        const QSize scrollbars(d->vbarpolicy == Qt::ScrollBarAlwaysOn ? d->vbar->sizeHint().width() : 0,
+                               d->hbarpolicy == Qt::ScrollBarAlwaysOn ? d->hbar->sizeHint().height() : 0);
+        d->sizeHint = frame + scrollbars + viewportSizeHint();
+    }
+    return d->sizeHint;
+}
+
+/*!
+   \since 5.2
+   Returns the recommended size for the viewport.
+   The default implementation returns viewport()->sizeHint().
+   Note that the size is just the viewport's size, without any scroll bars visible.
+ */
+QSize QAbstractScrollArea::viewportSizeHint() const
+{
+    Q_D(const QAbstractScrollArea);
+    if (d->viewport) {
+        const QSize sh = d->viewport->sizeHint();
+        if (sh.isValid()) {
+            return sh;
+        }
+    }
+    const int h = qMax(10, fontMetrics().height());
+    return QSize(6 * h, 4 * h);
+}
+
+/*!
+    \since 5.2
+    \property QAbstractScrollArea::sizeAdjustPolicy
+    This property holds the policy describing how the size of the scroll area changes when the
+    size of the viewport changes.
+
+    The default policy is QAbstractScrollArea::AdjustIgnored.
+    Changing this property might actually resize the scrollarea.
+*/
+
+QAbstractScrollArea::SizeAdjustPolicy QAbstractScrollArea::sizeAdjustPolicy() const
+{
+    Q_D(const QAbstractScrollArea);
+    return d->sizeAdjustPolicy;
+}
+
+void QAbstractScrollArea::setSizeAdjustPolicy(SizeAdjustPolicy policy)
+{
+    Q_D(QAbstractScrollArea);
+    if (d->sizeAdjustPolicy == policy)
+        return;
+
+    d->sizeAdjustPolicy = policy;
+    d->sizeHint = QSize();
+    updateGeometry();
 }
 
 /*!
@@ -1557,16 +1631,6 @@ QSize QAbstractScrollArea::sizeHint() const
 void QAbstractScrollArea::setupViewport(QWidget *viewport)
 {
     Q_UNUSED(viewport);
-}
-
-/*!
-    \internal
-
-    This method is reserved for future use.
-*/
-QSize QAbstractScrollArea::viewportSizeHint() const
-{
-    return QSize();
 }
 
 QT_END_NAMESPACE

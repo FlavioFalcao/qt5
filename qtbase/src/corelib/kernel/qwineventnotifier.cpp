@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -135,7 +135,7 @@ QWinEventNotifier::QWinEventNotifier(HANDLE hEvent, QObject *parent)
  : QObject(*new QWinEventNotifierPrivate(hEvent, false), parent)
 {
     Q_D(QWinEventNotifier);
-    QAbstractEventDispatcher *eventDispatcher = d->threadData->eventDispatcher;
+    QAbstractEventDispatcher *eventDispatcher = d->threadData->eventDispatcher.load();
     if (!eventDispatcher) {
         qWarning("QWinEventNotifier: Can only be used with threads started with QThread");
     } else {
@@ -208,7 +208,7 @@ void QWinEventNotifier::setEnabled(bool enable)
         return;
     d->enabled = enable;
 
-    QAbstractEventDispatcher *eventDispatcher = d->threadData->eventDispatcher;
+    QAbstractEventDispatcher *eventDispatcher = d->threadData->eventDispatcher.load();
     if (!eventDispatcher) // perhaps application is shutting down
         return;
 

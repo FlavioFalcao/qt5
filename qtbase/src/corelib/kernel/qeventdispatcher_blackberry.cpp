@@ -50,6 +50,7 @@
 //#define QEVENTDISPATCHERBLACKBERRY_DEBUG
 
 #ifdef QEVENTDISPATCHERBLACKBERRY_DEBUG
+#include <QThread>
 #define qEventDispatcherDebug qDebug() << QThread::currentThread()
 #else
 #define qEventDispatcherDebug QT_NO_QDEBUG_MACRO()
@@ -126,16 +127,16 @@ static int bpsIOHandler(int fd, int io_events, void *data)
         // create unblock event
         bps_event_t *event;
         int result = bps_event_create(&event, bpsUnblockDomain, 0, NULL, NULL);
-        if (result != BPS_SUCCESS) {
-            qWarning("QEventDispatcherBlackberryPrivate::QEventDispatcherBlackberry: bps_event_create() failed");
+        if (Q_UNLIKELY(result != BPS_SUCCESS)) {
+            qWarning("QEventDispatcherBlackberry: bps_event_create failed");
             return BPS_FAILURE;
         }
 
         // post unblock event to our thread; in this callback the bps channel is
         // guaranteed to be the same that was active when bps_add_fd was called
         result = bps_push_event(event);
-        if (result != BPS_SUCCESS) {
-            qWarning("QEventDispatcherBlackberryPrivate::QEventDispatcherBlackberry: bps_push_event() failed");
+        if (Q_UNLIKELY(result != BPS_SUCCESS)) {
+            qWarning("QEventDispatcherBlackberry: bps_push_event failed");
             bps_event_destroy(event);
             return BPS_FAILURE;
         }
@@ -149,16 +150,16 @@ QEventDispatcherBlackberryPrivate::QEventDispatcherBlackberryPrivate()
 {
     // prepare to use BPS
     int result = bps_initialize();
-    if (result != BPS_SUCCESS)
-        qFatal("QEventDispatcherBlackberryPrivate::QEventDispatcherBlackberry: bps_initialize() failed");
+    if (Q_UNLIKELY(result != BPS_SUCCESS))
+        qFatal("QEventDispatcherBlackberry: bps_initialize failed");
 
     bps_channel = bps_channel_get_active();
 
     // get domain for IO ready and wake up events - ignoring race condition here for now
     if (bpsUnblockDomain == -1) {
         bpsUnblockDomain = bps_register_domain();
-        if (bpsUnblockDomain == -1)
-            qWarning("QEventDispatcherBlackberryPrivate::QEventDispatcherBlackberry: bps_register_domain() failed");
+        if (Q_UNLIKELY(bpsUnblockDomain == -1))
+            qWarning("QEventDispatcherBlackberry: bps_register_domain failed");
     }
 }
 
@@ -200,20 +201,25 @@ void QEventDispatcherBlackberry::registerSocketNotifier(QSocketNotifier *notifie
     Q_ASSERT(notifier);
     Q_D(QEventDispatcherBlackberry);
 
-    BpsChannelScopeSwitcher channelSwitcher(d->bps_channel);
-
-    // Register the fd with bps
     int sockfd = notifier->socket();
     int type = notifier->type();
+
     qEventDispatcherDebug << Q_FUNC_INFO << "fd =" << sockfd;
 
-    int io_events = ioEvents(sockfd);
-
-    if (io_events)
-        bps_remove_fd(sockfd);
+    if (Q_UNLIKELY(sockfd >= FD_SETSIZE)) {
+        qWarning() << "QEventDispatcherBlackberry: cannot register QSocketNotifier (fd too high)"
+                   << sockfd;
+        return;
+    }
 
     // Call the base Unix implementation. Needed to allow select() to be called correctly
     QEventDispatcherUNIX::registerSocketNotifier(notifier);
+
+    // Register the fd with bps
+    BpsChannelScopeSwitcher channelSwitcher(d->bps_channel);
+    int io_events = ioEvents(sockfd);
+    if (io_events)
+        bps_remove_fd(sockfd);
 
     switch (type) {
     case QSocketNotifier::Read:
@@ -231,53 +237,50 @@ void QEventDispatcherBlackberry::registerSocketNotifier(QSocketNotifier *notifie
         break;
     }
 
-    errno = 0;
-    int result = bps_add_fd(sockfd, io_events, &bpsIOHandler, d->ioData.data());
-
-    if (result != BPS_SUCCESS)
-        qWarning() << Q_FUNC_INFO << "bps_add_fd() failed" << strerror(errno) << "code:" << errno;
+    const int result = bps_add_fd(sockfd, io_events, &bpsIOHandler, d->ioData.data());
+    if (Q_UNLIKELY(result != BPS_SUCCESS))
+        qWarning() << "QEventDispatcherBlackberry: bps_add_fd failed";
 }
 
 void QEventDispatcherBlackberry::unregisterSocketNotifier(QSocketNotifier *notifier)
 {
     Q_D(QEventDispatcherBlackberry);
 
-    BpsChannelScopeSwitcher channelSwitcher(d->bps_channel);
+    int sockfd = notifier->socket();
+
+    qEventDispatcherDebug << Q_FUNC_INFO << "fd =" << sockfd;
+
+    if (Q_UNLIKELY(sockfd >= FD_SETSIZE)) {
+        qWarning() << "QEventDispatcherBlackberry: cannot unregister QSocketNotifier" << sockfd;
+        return;
+    }
 
     // Allow the base Unix implementation to unregister the fd too
     QEventDispatcherUNIX::unregisterSocketNotifier(notifier);
 
     // Unregister the fd with bps
-    int sockfd = notifier->socket();
-    qEventDispatcherDebug << Q_FUNC_INFO << "fd =" << sockfd;
-
+    BpsChannelScopeSwitcher channelSwitcher(d->bps_channel);
     const int io_events = ioEvents(sockfd);
-
     int result = bps_remove_fd(sockfd);
-    if (result != BPS_SUCCESS)
-        qWarning() << Q_FUNC_INFO << "bps_remove_fd() failed" << sockfd;
+    if (Q_UNLIKELY(result != BPS_SUCCESS))
+        qWarning() << "QEventDispatcherBlackberry: bps_remove_fd failed" << sockfd;
 
-
-    /* if no other socket notifier is
-     * watching sockfd, our job ends here
-     */
+    // if no other socket notifier is watching sockfd, our job ends here
     if (!io_events)
         return;
 
-    errno = 0;
     result = bps_add_fd(sockfd, io_events, &bpsIOHandler, d->ioData.data());
-    if (result != BPS_SUCCESS) {
-        qWarning() << Q_FUNC_INFO << "bps_add_fd() failed" << strerror(errno) << "code:" << errno;
-    }
+    if (Q_UNLIKELY(result != BPS_SUCCESS))
+        qWarning("QEventDispatcherBlackberry: bps_add_fd error");
 }
 
-static inline int timevalToMillisecs(const timeval &tv)
+static inline int timespecToMillisecs(const timespec &tv)
 {
-    return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+    return (tv.tv_sec * 1000) + (tv.tv_nsec / 1000000);
 }
 
 int QEventDispatcherBlackberry::select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-                                       timeval *timeout)
+                                       timespec *timeout)
 {
     Q_UNUSED(nfds);
     Q_D(QEventDispatcherBlackberry);
@@ -306,9 +309,9 @@ int QEventDispatcherBlackberry::select(int nfds, fd_set *readfds, fd_set *writef
     // Convert timeout to milliseconds
     int timeoutTotal = -1;
     if (timeout)
-        timeoutTotal = timevalToMillisecs(*timeout);
+        timeoutTotal = timespecToMillisecs(*timeout);
     int timeoutLeft = timeoutTotal;
-    timeval startTime = qt_gettime();
+    timespec startTime = qt_gettime();
 
     // This loop exists such that we can drain the bps event queue of all native events
     // more efficiently than if we were to return control to Qt after each event. This
@@ -332,16 +335,16 @@ int QEventDispatcherBlackberry::select(int nfds, fd_set *readfds, fd_set *writef
             // Update the timeout
             // Clock source is monotonic, so we can recalculate how much timeout is left
             if (timeoutTotal != -1) {
-                timeval t2 = qt_gettime();
+                timespec t2 = qt_gettime();
                 timeoutLeft = timeoutTotal
-                              - (timevalToMillisecs(t2) - timevalToMillisecs(startTime));
+                              - (timespecToMillisecs(t2) - timespecToMillisecs(startTime));
                 if (timeoutLeft < 0)
                     timeoutLeft = 0;
             }
 
-            timeval tnext;
+            timespec tnext;
             if (d->timerList.timerWait(tnext)) {
-                int timeoutNext = timevalToMillisecs(tnext);
+                int timeoutNext = timespecToMillisecs(tnext);
                 if (timeoutNext < timeoutLeft || timeoutTotal == -1) {
                     timeoutTotal = timeoutLeft = timeoutNext;
                     startTime = qt_gettime();
@@ -352,8 +355,8 @@ int QEventDispatcherBlackberry::select(int nfds, fd_set *readfds, fd_set *writef
         // Wait for event or file to be ready
         event = 0;
         const int result = bps_get_event(&event, timeoutLeft);
-        if (result != BPS_SUCCESS)
-            qWarning("QEventDispatcherBlackberry::select: bps_get_event() failed");
+        if (Q_UNLIKELY(result != BPS_SUCCESS))
+            qWarning("QEventDispatcherBlackberry bps_get_event failed");
 
         if (!event)    // In case of !event, we break out of the loop to let Qt process the timers
             break;     // (since timeout has expired) and socket notifiers that are now ready.
@@ -385,13 +388,13 @@ void QEventDispatcherBlackberry::wakeUp()
     Q_D(QEventDispatcherBlackberry);
     if (d->wakeUps.testAndSetAcquire(0, 1)) {
         bps_event_t *event;
-        if (bps_event_create(&event, bpsUnblockDomain, 0, 0, 0) == BPS_SUCCESS) {
-            if (bps_channel_push_event(d->bps_channel, event) == BPS_SUCCESS)
+        if (Q_LIKELY(bps_event_create(&event, bpsUnblockDomain, 0, 0, 0) == BPS_SUCCESS)) {
+            if (Q_LIKELY(bps_channel_push_event(d->bps_channel, event) == BPS_SUCCESS))
                 return;
             else
                 bps_event_destroy(event);
         }
-        qWarning("QEventDispatcherBlackberryPrivate::wakeUp failed");
+        qWarning("QEventDispatcherBlackberry: wakeUp failed");
     }
 }
 

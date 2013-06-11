@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -1372,7 +1372,7 @@ qint64 QIODevice::write(const char *data, qint64 maxSize)
     \since 4.5
 
     \overload
- 
+
     Writes data from a zero-terminated string of 8-bit characters to the
     device. Returns the number of bytes that were actually written, or
     -1 if an error occurred. This is equivalent to
@@ -1640,8 +1640,8 @@ QString QIODevice::errorString() const
     all the requested information was read and therefore does not retry reading
     if there was a problem.
 
-    This function will be called with maxSize 0 when the device is
-    buffered and the buffer was emptied by a call to read().
+    This function might be called with a maxSize of 0, which can be used to
+    perform post-reading operations.
 
     \sa read(), readLine(), writeData()
 */

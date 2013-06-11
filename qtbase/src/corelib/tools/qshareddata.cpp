@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -43,7 +43,7 @@
 
 QT_BEGIN_NAMESPACE
 
-/*! 
+/*!
     \class QSharedData
     \inmodule QtCore
     \brief The QSharedData class is a base class for shared data objects.
@@ -66,7 +66,7 @@ QT_BEGIN_NAMESPACE
     \a other is ignored.
 */
 
-/*! 
+/*!
     \class QSharedDataPointer
     \inmodule QtCore
     \brief The QSharedDataPointer class represents a pointer to an implicitly shared object.
@@ -395,7 +395,7 @@ QT_BEGIN_NAMESPACE
     return the proper polymorphic type.
 */
 
-/*! 
+/*!
     \class QExplicitlySharedDataPointer
     \inmodule QtCore
     \brief The QExplicitlySharedDataPointer class represents a pointer to an explicitly shared object.

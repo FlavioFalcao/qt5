@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -361,7 +361,7 @@ void QNetworkReplyImplPrivate::setup(QNetworkAccessManager::Operation op, const 
 
     q->QIODevice::open(QIODevice::ReadOnly);
     // Internal code that does a HTTP reply for the synchronous Ajax
-    // in QtWebKit.
+    // in Qt WebKit.
     QVariant synchronousHttpAttribute = req.attribute(
             static_cast<QNetworkRequest::Attribute>(QNetworkRequest::SynchronousRequestAttribute));
     // The synchronous HTTP is a corner case, we will put all upload data in one big QByteArray in the outgoingDataBuffer.
@@ -877,6 +877,14 @@ void QNetworkReplyImplPrivate::metaDataChanged()
 void QNetworkReplyImplPrivate::redirectionRequested(const QUrl &target)
 {
     attributes.insert(QNetworkRequest::RedirectionTargetAttribute, target);
+}
+
+void QNetworkReplyImplPrivate::encrypted()
+{
+#ifndef QT_NO_SSL
+    Q_Q(QNetworkReplyImpl);
+    emit q->encrypted();
+#endif
 }
 
 void QNetworkReplyImplPrivate::sslErrors(const QList<QSslError> &errors)

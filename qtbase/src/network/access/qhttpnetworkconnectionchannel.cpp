@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -231,7 +231,7 @@ bool QHttpNetworkConnectionChannel::sendRequest()
             url.setUserInfo(QString());
             request.setUrl(url);
         }
-        // Will only be false if QtWebKit is performing a cross-origin XMLHttpRequest
+        // Will only be false if Qt WebKit is performing a cross-origin XMLHttpRequest
         // and withCredentials has not been set to true.
         if (request.withCredentials())
             connection->d_func()->createAuthorization(socket, request);
@@ -622,6 +622,13 @@ bool QHttpNetworkConnectionChannel::ensureConnection()
         if (ssl) {
 #ifndef QT_NO_SSL
             QSslSocket *sslSocket = qobject_cast<QSslSocket*>(socket);
+
+            // check whether we can re-use an existing SSL session
+            // (meaning another socket in this connection has already
+            // performed a full handshake)
+            if (!connection->sslContext().isNull())
+                QSslSocketPrivate::checkSettingSslContext(sslSocket, connection->sslContext());
+
             sslSocket->connectToHostEncrypted(connectHost, connectPort, QIODevice::ReadWrite, networkLayerPreference);
             if (ignoreAllSslErrors)
                 sslSocket->ignoreSslErrors();
@@ -1065,7 +1072,17 @@ void QHttpNetworkConnectionChannel::_q_connected()
 
     // ### FIXME: if the server closes the connection unexpectedly, we shouldn't send the same broken request again!
     //channels[i].reconnectAttempts = 2;
-    if (!pendingEncrypt) {
+    if (pendingEncrypt) {
+#ifndef QT_NO_SSL
+        if (connection->sslContext().isNull()) {
+            // this socket is making the 1st handshake for this connection,
+            // we need to set the SSL context so new sockets can reuse it
+            QSharedPointer<QSslContext> socketSslContext = QSslSocketPrivate::sslContext(static_cast<QSslSocket*>(socket));
+            if (!socketSslContext.isNull())
+                connection->setSslContext(socketSslContext);
+        }
+#endif
+    } else {
         state = QHttpNetworkConnectionChannel::IdleState;
         if (!reply)
             connection->d_func()->dequeueRequest(socket);
@@ -1207,6 +1224,8 @@ void QHttpNetworkConnectionChannel::_q_encrypted()
     pendingEncrypt = false;
     if (!reply)
         connection->d_func()->dequeueRequest(socket);
+    if (reply)
+        emit reply->encrypted();
     if (reply)
         sendRequest();
 }

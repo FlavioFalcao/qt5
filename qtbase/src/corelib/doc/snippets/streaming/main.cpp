@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -85,12 +85,12 @@ int main(int argc, char *argv[])
     QByteArray byteArray;
     QDataStream stream(&byteArray, QIODevice::WriteOnly);
     stream << m;
-    
+
     // display
     qDebug() << m.id << m.releaseDate << m.title;
 
     Movie m2;
-    
+
     int id2;
     QString title2;
     QDate date2;

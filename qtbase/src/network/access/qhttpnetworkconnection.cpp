@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -470,7 +470,7 @@ bool QHttpNetworkConnectionPrivate::handleAuthenticateChallenge(QAbstractSocket 
         }
         // - Changing values in QAuthenticator will reset the 'phase'. Therefore if it is still "Done"
         //   then nothing was filled in by the user or the cache
-        // - If withCredentials has been set to false (e.g. by QtWebKit for a cross-origin XMLHttpRequest) then
+        // - If withCredentials has been set to false (e.g. by Qt WebKit for a cross-origin XMLHttpRequest) then
         //   we need to bail out if authentication is required.
         if (priv->phase == QAuthenticatorPrivate::Done || !reply->request().withCredentials()) {
             // Reset authenticator so the next request on that channel does not get messed up
@@ -923,7 +923,7 @@ void QHttpNetworkConnectionPrivate::_q_startNextRequest()
             fillPipeline(channels[i].socket);
 
     // If there is not already any connected channels we need to connect a new one.
-    // We do not pair the channel with the request until we know if it is 
+    // We do not pair the channel with the request until we know if it is
     // connected or not. This is to reuse connected channels before we connect new once.
     int queuedRequest = highPriorityQueue.count() + lowPriorityQueue.count();
     for (int i = 0; i < channelCount; ++i) {
@@ -1222,6 +1222,18 @@ void QHttpNetworkConnection::setSslConfiguration(const QSslConfiguration &config
     // set the config on all channels
     for (int i = 0; i < d->channelCount; ++i)
         d->channels[i].setSslConfiguration(config);
+}
+
+QSharedPointer<QSslContext> QHttpNetworkConnection::sslContext()
+{
+    Q_D(QHttpNetworkConnection);
+    return d->sslContext;
+}
+
+void QHttpNetworkConnection::setSslContext(QSharedPointer<QSslContext> context)
+{
+    Q_D(QHttpNetworkConnection);
+    d->sslContext = context;
 }
 
 void QHttpNetworkConnection::ignoreSslErrors(int channel)

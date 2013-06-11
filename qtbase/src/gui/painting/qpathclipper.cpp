@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -713,8 +713,7 @@ class QKdPointFinder
 {
 public:
     QKdPointFinder(int point, const QPathSegments &segments, QKdPointTree &tree)
-        : m_point(point)
-        , m_result(-1)
+        : m_result(-1)
         , m_segments(&segments)
         , m_tree(&tree)
     {
@@ -759,7 +758,6 @@ public:
     }
 
 private:
-    int m_point;
     qreal pointComponents[2];
     int m_result;
     const QPathSegments *m_segments;

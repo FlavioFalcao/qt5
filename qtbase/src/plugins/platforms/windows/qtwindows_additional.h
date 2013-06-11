@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -47,6 +47,10 @@
 
 #ifndef WM_THEMECHANGED
 #    define WM_THEMECHANGED 0x031A
+#endif
+
+#ifndef GWL_HWNDPARENT
+#    define GWL_HWNDPARENT (-8)
 #endif
 
 /* Complement the definitions and declarations missing
@@ -125,6 +129,10 @@ typedef struct tagUPDATELAYEREDWINDOWINFO {
 
 // IME.
 #define IMR_CONFIRMRECONVERTSTRING      0x0005
+
+#ifndef MAPVK_VK_TO_CHAR
+#  define MAPVK_VK_TO_CHAR 2
+#endif
 
 #endif // if defined(Q_CC_MINGW)
 

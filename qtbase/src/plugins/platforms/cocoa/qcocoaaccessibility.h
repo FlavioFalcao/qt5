@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -44,9 +44,6 @@
 #include <Cocoa/Cocoa.h>
 
 #include <QtGui>
-
-#ifndef QT_NO_COCOA_ACCESSIBILITY
-
 #include <qpa/qplatformaccessibility.h>
 
 class QCococaAccessibility : public QPlatformAccessibility
@@ -81,7 +78,7 @@ namespace QCocoaAccessible {
 */
 
 NSString *macRole(QAccessibleInterface *interface);
-bool shouldBeIgnrored(QAccessibleInterface *interface);
+bool shouldBeIgnored(QAccessibleInterface *interface);
 NSString *getTranslatedAction(const QString &qtAction);
 NSMutableArray *createTranslatedActionsList(const QStringList &qtActions);
 QString translateAction(NSString *nsAction);
@@ -89,7 +86,5 @@ bool hasValueAttribute(QAccessibleInterface *interface);
 id getValueAttribute(QAccessibleInterface *interface);
 
 }
-
-#endif // QT_NO_COCOA_ACCESSIBILITY
 
 #endif

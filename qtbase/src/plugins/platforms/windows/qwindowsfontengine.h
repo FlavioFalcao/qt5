@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -123,6 +123,7 @@ public:
     virtual QImage alphaRGBMapForGlyph(glyph_t t, QFixed subPixelPosition, const QTransform &xform);
 
     virtual QFontEngine *cloneWithSize(qreal pixelSize) const;
+    virtual bool supportsTransformation(const QTransform &transform) const;
 
 #ifndef Q_CC_MINGW
     virtual void getGlyphBearings(glyph_t glyph, qreal *leftBearing = 0, qreal *rightBearing = 0);
@@ -135,7 +136,7 @@ public:
 
     const QSharedPointer<QWindowsFontEngineData> &fontEngineData() const { return m_fontEngineData; }
 
-    // Properties accessed by QWin32PrintEngine (QtPrintSupport)
+    // Properties accessed by QWin32PrintEngine (Qt Print Support)
     LOGFONT logFont() const { return m_logfont; }
     HFONT hFont() const     { return hfont; }
     bool trueType() const   { return ttf; }
@@ -145,6 +146,7 @@ public:
 private:
     QWindowsNativeImage *drawGDIGlyph(HFONT font, glyph_t, int margin, const QTransform &xform,
                                       QImage::Format mask_format);
+    bool hasCFFTable() const;
 
     const QSharedPointer<QWindowsFontEngineData> m_fontEngineData;
 
@@ -155,6 +157,7 @@ private:
     uint        stockFont  : 1;
     uint        ttf        : 1;
     uint        hasOutline : 1;
+    uint        cffTable   : 1;
     TEXTMETRIC  tm;
     int         lw;
     const unsigned char *cmap;

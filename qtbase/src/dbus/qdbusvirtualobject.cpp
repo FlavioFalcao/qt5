@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtDBus module of the Qt Toolkit.
@@ -58,16 +58,14 @@ QT_END_NAMESPACE
 
 
 /*!
-    \internal
     \class QDBusVirtualObject
     \inmodule QtDBus
-    \since 4.8
+    \since 5.1
 
     \brief The QDBusVirtualObject class is used to handle several DBus paths with one class.
 */
 
 /*!
-    \internal
     \fn bool QDBusVirtualObject::handleMessage(const QDBusMessage &message, const QDBusConnection &connection) = 0
 
     This function needs to handle all messages to the path of the
@@ -78,7 +76,6 @@ QT_END_NAMESPACE
 
 
 /*!
-    \internal
     \fn QString QDBusVirtualObject::introspect(const QString &path) const
 
     This function needs to handle the introspection of the

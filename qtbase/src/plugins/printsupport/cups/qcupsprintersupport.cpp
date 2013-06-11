@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -84,6 +84,11 @@ QPaintEngine *QCupsPrinterSupport::createPaintEngine(QPrintEngine *engine, QPrin
 QList<QPrinter::PaperSize> QCupsPrinterSupport::supportedPaperSizes(const QPrinterInfo &printerInfo) const
 {
     return QCUPSSupport::getCupsPrinterPaperSizes(printerIndex(printerInfo));
+}
+
+QList<QPair<QString, QSizeF> > QCupsPrinterSupport::supportedSizesWithNames(const QPrinterInfo &printerInfo) const
+{
+    return QCUPSSupport::getCupsPrinterPaperSizesWithNames(printerIndex(printerInfo));
 }
 
 void QCupsPrinterSupport::loadCups()

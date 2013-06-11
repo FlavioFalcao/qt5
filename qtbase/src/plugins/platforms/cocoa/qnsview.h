@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -59,16 +59,18 @@ QT_END_NAMESPACE
     QPoint m_backingStoreOffset;
     CGImageRef m_maskImage;
     uchar *m_maskData;
+    bool m_shouldInvalidateWindowShadow;
     QWindow *m_window;
     QCocoaWindow *m_platformWindow;
     Qt::MouseButtons m_buttons;
-    QAccessibleInterface *m_accessibleRoot;
     QString m_composingText;
     bool m_sendKeyEvent;
     QStringList *currentCustomDragTypes;
     bool m_sendUpAsRightButton;
     Qt::KeyboardModifiers currentWheelModifiers;
     bool m_subscribesForGlobalFrameNotifications;
+    QCocoaGLContext *m_glContext;
+    bool m_shouldSetGLContextinDrawRect;
 }
 
 - (id)init;
@@ -76,12 +78,20 @@ QT_END_NAMESPACE
 - (void)setQCocoaGLContext:(QCocoaGLContext *)context;
 - (void)flushBackingStore:(QCocoaBackingStore *)backingStore region:(const QRegion &)region offset:(QPoint)offset;
 - (void)setMaskRegion:(const QRegion *)region;
+- (void)invalidateWindowShadowIfNeeded;
 - (void)drawRect:(NSRect)dirtyRect;
 - (void)updateGeometry;
 - (void)windowNotification : (NSNotification *) windowNotification;
+- (void)viewDidHide;
+- (void)viewDidUnhide;
 
 - (BOOL)isFlipped;
 - (BOOL)acceptsFirstResponder;
+- (BOOL)becomeFirstResponder;
+- (BOOL)hasMask;
+- (BOOL)isOpaque;
+
+- (void)resetMouseButtons;
 
 - (void)handleMouseEvent:(NSEvent *)theEvent;
 - (void)mouseDown:(NSEvent *)theEvent;
@@ -99,7 +109,7 @@ QT_END_NAMESPACE
 - (void)handleFrameStrutMouseEvent:(NSEvent *)theEvent;
 
 - (int) convertKeyCode : (QChar)keyCode;
-- (Qt::KeyboardModifiers) convertKeyModifiers : (ulong)modifierFlags;
++ (Qt::KeyboardModifiers) convertKeyModifiers : (ulong)modifierFlags;
 - (void)handleKeyEvent:(NSEvent *)theEvent eventType:(int)eventType;
 - (void)keyDown:(NSEvent *)theEvent;
 - (void)keyUp:(NSEvent *)theEvent;

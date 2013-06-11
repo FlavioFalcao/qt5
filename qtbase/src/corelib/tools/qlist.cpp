@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -511,7 +511,8 @@ void **QListData::erase(void **xi)
 
     Construct a list from the std::initializer_list specified by \a args.
 
-    This constructor is only enabled if the compiler supports C++0x
+    This constructor is only enabled if the compiler supports C++11 initializer
+    lists.
 */
 
 /*! \fn QList::~QList()

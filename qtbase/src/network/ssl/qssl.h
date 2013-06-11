@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -45,8 +45,6 @@
 
 #include <QtCore/qglobal.h>
 #include <QtCore/QFlags>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -97,7 +95,9 @@ namespace QSsl {
         SslOptionDisableSessionTickets = 0x02,
         SslOptionDisableCompression = 0x04,
         SslOptionDisableServerNameIndication = 0x08,
-        SslOptionDisableLegacyRenegotiation = 0x10
+        SslOptionDisableLegacyRenegotiation = 0x10,
+        SslOptionDisableSessionSharing = 0x20,
+        SslOptionDisableSessionPersistence = 0x40
     };
     Q_DECLARE_FLAGS(SslOptions, SslOption)
 }
@@ -105,7 +105,5 @@ namespace QSsl {
 Q_DECLARE_OPERATORS_FOR_FLAGS(QSsl::SslOptions)
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QSSL_H

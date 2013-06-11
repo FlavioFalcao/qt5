@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -78,16 +78,46 @@
 #elif defined(XCB_USE_EGL)
 #include "qxcbeglsurface.h"
 #include <QtPlatformSupport/private/qeglplatformcontext_p.h>
+#include <QtPlatformSupport/private/qeglpbuffer_p.h>
 #endif
 
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QScreen>
+#include <QtGui/QOffscreenSurface>
 #ifndef QT_NO_ACCESSIBILITY
 #include <qpa/qplatformaccessibility.h>
+#ifndef QT_NO_ACCESSIBILITY_ATSPI_BRIDGE
 #include "../../../platformsupport/linuxaccessibility/bridge_p.h"
 #endif
+#endif
+
+#include <QtCore/QFileInfo>
 
 QT_BEGIN_NAMESPACE
+
+#if defined(QT_DEBUG) && defined(Q_OS_LINUX)
+// Find out if our parent process is gdb by looking at the 'exe' symlink under /proc,.
+// or, for older Linuxes, read out 'cmdline'.
+static bool runningUnderDebugger()
+{
+    const QString parentProc = QLatin1String("/proc/") + QString::number(getppid());
+    const QFileInfo parentProcExe(parentProc + QLatin1String("/exe"));
+    if (parentProcExe.isSymLink())
+        return parentProcExe.symLinkTarget().endsWith(QLatin1String("/gdb"));
+    QFile f(parentProc + QLatin1String("/cmdline"));
+    if (!f.open(QIODevice::ReadOnly))
+        return false;
+    QByteArray s;
+    char c;
+    while (f.getChar(&c) && c) {
+        if (c == '/')
+            s.clear();
+        else
+            s += c;
+    }
+    return s == "gdb";
+}
+#endif
 
 QXcbIntegration::QXcbIntegration(const QStringList &parameters)
     : m_eventDispatcher(createUnixEventDispatcher())
@@ -100,7 +130,15 @@ QXcbIntegration::QXcbIntegration(const QStringList &parameters)
 #endif
     m_nativeInterface.reset(new QXcbNativeInterface);
 
-    m_connections << new QXcbConnection(m_nativeInterface.data());
+    bool canGrab = true;
+    #if defined(QT_DEBUG) && defined(Q_OS_LINUX)
+    canGrab = !runningUnderDebugger();
+    #endif
+    static bool canNotGrabEnv = qgetenv("QT_XCB_NO_GRAB_SERVER").length();
+    if (canNotGrabEnv)
+        canGrab = false;
+
+    m_connections << new QXcbConnection(m_nativeInterface.data(), canGrab);
 
     for (int i = 0; i < parameters.size() - 1; i += 2) {
 #ifdef Q_XCB_DEBUG
@@ -112,16 +150,13 @@ QXcbIntegration::QXcbIntegration(const QStringList &parameters)
 
     m_fontDatabase.reset(new QGenericUnixFontDatabase());
     m_inputContext.reset(QPlatformInputContextFactory::create());
-#ifndef QT_NO_ACCESSIBILITY
+#if !defined(QT_NO_ACCESSIBILITY) && !defined(QT_NO_ACCESSIBILITY_ATSPI_BRIDGE)
     m_accessibility.reset(new QSpiAccessibleBridge());
 #endif
 }
 
 QXcbIntegration::~QXcbIntegration()
 {
-#if !defined(QT_NO_OPENGL) && defined(XCB_USE_GLX)
-    qDeleteAll(m_defaultContextInfos);
-#endif
     qDeleteAll(m_connections);
 }
 
@@ -166,7 +201,10 @@ public:
 
     EGLSurface eglSurfaceForPlatformSurface(QPlatformSurface *surface)
     {
-        return static_cast<QXcbWindow *>(surface)->eglSurface()->surface();
+        if (surface->surface()->surfaceClass() == QSurface::Window)
+            return static_cast<QXcbWindow *>(surface)->eglSurface()->surface();
+        else
+            return static_cast<QEGLPbuffer *>(surface)->pbuffer();
     }
 
 private:
@@ -179,14 +217,7 @@ QPlatformOpenGLContext *QXcbIntegration::createPlatformOpenGLContext(QOpenGLCont
 {
     QXcbScreen *screen = static_cast<QXcbScreen *>(context->screen()->handle());
 #if defined(XCB_USE_GLX)
-    QOpenGLDefaultContextInfo *defaultContextInfo;
-    if (m_defaultContextInfos.contains(screen)) {
-        defaultContextInfo = m_defaultContextInfos.value(screen);
-    } else {
-        defaultContextInfo = QOpenGLDefaultContextInfo::create(screen);
-        m_defaultContextInfos.insert(screen, defaultContextInfo);
-    }
-    return new QGLXContext(screen, context->format(), context->shareHandle(), defaultContextInfo);
+    return new QGLXContext(screen, context->format(), context->shareHandle());
 #elif defined(XCB_USE_EGL)
     return new QEGLXcbPlatformContext(context->format(), context->shareHandle(),
         screen->connection()->egl_display(), screen->connection());
@@ -203,6 +234,20 @@ QPlatformBackingStore *QXcbIntegration::createPlatformBackingStore(QWindow *wind
     return new QXcbBackingStore(window);
 }
 
+QPlatformOffscreenSurface *QXcbIntegration::createPlatformOffscreenSurface(QOffscreenSurface *surface) const
+{
+#if defined(XCB_USE_GLX)
+    return new QGLXPbuffer(surface);
+#elif defined(XCB_USE_EGL)
+    QXcbScreen *screen = static_cast<QXcbScreen *>(surface->screen()->handle());
+    return new QEGLPbuffer(screen->connection()->egl_display(), surface->requestedFormat(), surface);
+#else
+    Q_UNUSED(surface);
+    qWarning("QXcbIntegration: Cannot create platform offscreen surface, neither GLX nor EGL are enabled");
+    return 0;
+#endif
+}
+
 bool QXcbIntegration::hasCapability(QPlatformIntegration::Capability cap) const
 {
     switch (cap) {
@@ -217,6 +262,7 @@ bool QXcbIntegration::hasCapability(QPlatformIntegration::Capability cap) const
     case ThreadedOpenGL: return m_connections.at(0)->supportsThreadedRendering();
     case WindowMasks: return true;
     case MultipleWindows: return true;
+    case ForeignWindows: return true;
     default: return QPlatformIntegration::hasCapability(cap);
     }
 }
@@ -281,6 +327,11 @@ Qt::KeyboardModifiers QXcbIntegration::queryKeyboardModifiers() const
     return conn->keyboard()->translateModifiers(keybMask);
 }
 
+QList<int> QXcbIntegration::possibleKeys(const QKeyEvent *e) const
+{
+    return m_connections.at(0)->keyboard()->possibleKeys(e);
+}
+
 QStringList QXcbIntegration::themeNames() const
 {
     return QGenericUnixTheme::themeNames();
@@ -291,21 +342,31 @@ QPlatformTheme *QXcbIntegration::createPlatformTheme(const QString &name) const
     return QGenericUnixTheme::createUnixTheme(name);
 }
 
-/*!
-  Called by QXcbConnection prior to a QQnxScreen being deleted.
-
-  Destroys and cleans up any default OpenGL context info for this screen.
-*/
-void QXcbIntegration::removeDefaultOpenGLContextInfo(QXcbScreen *screen)
+QVariant QXcbIntegration::styleHint(QPlatformIntegration::StyleHint hint) const
 {
-#if !defined(QT_NO_OPENGL) && defined(XCB_USE_GLX)
-    if (!m_defaultContextInfos.contains(screen))
-        return;
-    QOpenGLDefaultContextInfo* info = m_defaultContextInfos.take(screen);
-    delete info;
-#else
-    Q_UNUSED(screen);
-#endif
+    switch (hint) {
+    case QPlatformIntegration::CursorFlashTime:
+    case QPlatformIntegration::KeyboardInputInterval:
+    case QPlatformIntegration::MouseDoubleClickInterval:
+    case QPlatformIntegration::StartDragDistance:
+    case QPlatformIntegration::StartDragTime:
+    case QPlatformIntegration::KeyboardAutoRepeatRate:
+    case QPlatformIntegration::PasswordMaskDelay:
+    case QPlatformIntegration::FontSmoothingGamma:
+    case QPlatformIntegration::StartDragVelocity:
+    case QPlatformIntegration::UseRtlExtensions:
+    case QPlatformIntegration::PasswordMaskCharacter:
+        // TODO using various xcb, gnome or KDE settings
+        break; // Not implemented, use defaults
+    case QPlatformIntegration::ShowIsFullScreen:
+        // X11 always has support for windows, but the
+        // window manager could prevent it (e.g. matchbox)
+        return false;
+    case QPlatformIntegration::SynthesizeMouseFromTouchEvents:
+        // We do not want Qt to synthesize mouse events if X11 already does it.
+        return m_connections.at(0)->hasTouchWithoutMouseEmulation();
+    }
+    return QPlatformIntegration::styleHint(hint);
 }
 
 QT_END_NAMESPACE

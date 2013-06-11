@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -49,7 +49,7 @@
 
     For atomic operations on pointers, see the QAtomicPointer class.
 
-    An \e atomic operation is a complex operation that completes without interruption. 
+    An \e atomic operation is a complex operation that completes without interruption.
     The QAtomicInt class provides atomic reference counting, test-and-set, fetch-and-store,
     and fetch-and-add for integers.
 

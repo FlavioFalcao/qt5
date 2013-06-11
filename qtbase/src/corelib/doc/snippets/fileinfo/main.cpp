@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -54,12 +54,12 @@ int main(int argc, char *argv[])
     QFileInfo fileInfo1("~/examples/191697/.");
     QFileInfo fileInfo2("~/examples/191697/..");
     QFileInfo fileInfo3("~/examples/191697/main.cpp");
-//! [0]    
-//! [1]    
+//! [0]
+//! [1]
     QFileInfo fileInfo4(".");
     QFileInfo fileInfo5("..");
     QFileInfo fileInfo6("main.cpp");
-//! [1]    
+//! [1]
 
     qDebug() << fileInfo1.fileName();
     qDebug() << fileInfo2.fileName();

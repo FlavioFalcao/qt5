@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -58,7 +58,7 @@ public:
     virtual void raise();
     virtual void lower();
 
-    void setGeometry(const QRect &rect);
+    virtual void setGeometry(const QRect &rect);
 
     virtual void setWindowFlags(Qt::WindowFlags type);
     virtual Qt::WindowFlags windowFlags() const;

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -68,7 +68,9 @@ public:
     const QPalette *palette(Palette type = SystemPalette) const;
     const QFont *font(Font type = SystemFont) const;
     QPixmap standardPixmap(StandardPixmap sp, const QSizeF &size) const;
-    QPixmap fileIconPixmap(const QFileInfo &fileInfo, const QSizeF &size) const;
+    QPixmap fileIconPixmap(const QFileInfo &fileInfo,
+                           const QSizeF &size,
+                           QPlatformTheme::IconOptions options = 0) const;
 
     QVariant themeHint(ThemeHint hint) const;
 

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -170,9 +170,9 @@ QVariant QStringListModel::data(const QModelIndex &index, int role) const
 Qt::ItemFlags QStringListModel::flags(const QModelIndex &index) const
 {
     if (!index.isValid())
-        return QAbstractItemModel::flags(index) | Qt::ItemIsDropEnabled;
+        return QAbstractListModel::flags(index) | Qt::ItemIsDropEnabled;
 
-    return QAbstractItemModel::flags(index) | Qt::ItemIsEditable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
+    return QAbstractListModel::flags(index) | Qt::ItemIsEditable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
 }
 
 /*!
@@ -189,7 +189,7 @@ bool QStringListModel::setData(const QModelIndex &index, const QVariant &value, 
     if (index.row() >= 0 && index.row() < lst.size()
         && (role == Qt::EditRole || role == Qt::DisplayRole)) {
         lst.replace(index.row(), value.toString());
-        emit dataChanged(index, index);
+        emit dataChanged(index, index, QVector<int>() << role);
         return true;
     }
     return false;

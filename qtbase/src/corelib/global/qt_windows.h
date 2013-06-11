@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -41,6 +41,11 @@
 
 #ifndef QT_WINDOWS_H
 #define QT_WINDOWS_H
+
+#if 0
+#pragma qt_sync_skip_header_check
+#pragma qt_sync_stop_processing
+#endif
 
 #if defined(Q_CC_BOR)
 // Borland's windows.h does not set these correctly, resulting in

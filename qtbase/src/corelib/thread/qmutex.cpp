@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Copyright (C) 2012 Intel Corporation
 ** Copyright (C) 2012 Olivier Goffart <ogoffart@woboq.com>
 ** Contact: http://www.qt-project.org/legal
@@ -467,8 +467,6 @@ bool QBasicMutex::lockInternal(int timeout) QT_MUTEX_LOCK_NOEXCEPT
                 // we try to acquire the mutex by changing to dummyLocked()
                 if (d_ptr.testAndSetAcquire(d, dummyLocked())) {
                     // Mutex acquired
-                    Q_ASSERT(d->waiters.load() == -QMutexPrivate::BigNumber || d->waiters.load() == 0);
-                    d->waiters.store(0);
                     d->deref();
                     return true;
                 } else {

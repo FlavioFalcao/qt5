@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -76,7 +76,7 @@ public:
 
     //called by QNetworkSession constructor and ensures
     //that the state is immediately updated (w/o actually opening
-    //a session). Also this function should take care of 
+    //a session). Also this function should take care of
     //notification hooks to discover future state changes.
     virtual void syncStateWithInterface() = 0;
 

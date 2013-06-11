@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -677,13 +677,13 @@ void QTextOdfWriter::writeFrameFormat(QXmlStreamWriter &writer, QTextFrameFormat
     writer.writeEndElement(); // style
 
 // TODO consider putting the following properties in a qt-namespace.
-// Position   position () const 
-// qreal   border () const 
-// QBrush   borderBrush () const 
-// BorderStyle   borderStyle () const 
-// qreal   padding () const 
-// QTextLength   width () const 
-// QTextLength   height () const 
+// Position   position () const
+// qreal   border () const
+// QBrush   borderBrush () const
+// BorderStyle   borderStyle () const
+// qreal   padding () const
+// QTextLength   width () const
+// QTextLength   height () const
 // PageBreakFlags   pageBreakPolicy () const
 }
 

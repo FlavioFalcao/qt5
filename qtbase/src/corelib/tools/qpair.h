@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -44,8 +44,6 @@
 
 #include <QtCore/qglobal.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -58,6 +56,19 @@ struct QPair
     QPair() : first(), second() {}
     QPair(const T1 &t1, const T2 &t2) : first(t1), second(t2) {}
     // compiler-generated copy/move ctor/assignment operators are fine!
+
+    template <typename TT1, typename TT2>
+    QPair(const QPair<TT1, TT2> &p) : first(p.first), second(p.second) {}
+    template <typename TT1, typename TT2>
+    QPair &operator=(const QPair<TT1, TT2> &p)
+    { first = p.first; second = p.second; return *this; }
+#ifdef Q_COMPILER_RVALUE_REFS
+    template <typename TT1, typename TT2>
+    QPair(QPair<TT1, TT2> &&p) : first(std::move(p.first)), second(std::move(p.second)) {}
+    template <typename TT1, typename TT2>
+    QPair &operator=(QPair<TT1, TT2> &&p)
+    { first = std::move(p.first); second = std::move(p.second); return *this; }
+#endif
 
     T1 first;
     T2 second;
@@ -107,7 +118,5 @@ Q_OUTOFLINE_TEMPLATE QPair<T1, T2> qMakePair(const T1 &x, const T2 &y)
 }
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QPAIR_H

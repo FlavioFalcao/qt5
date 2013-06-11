@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     title->setBackgroundRole(QPalette::Base);
     title->setMargin(8);
     layout->addWidget(title);
-    
+
 //! [0]
     QFileSystemModel *model = new QFileSystemModel;
     QModelIndex parentIndex = model->index(QDir::currentPath());

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -55,7 +55,11 @@ QT_BEGIN_NAMESPACE
 
 static bool ignoreProxyFor(const QNetworkProxyQuery &query)
 {
-    const QList<QByteArray> noProxyTokens = qgetenv("no_proxy").split(',');
+    const QByteArray noProxy = qgetenv("no_proxy").trimmed();
+    if (noProxy.isEmpty())
+        return false;
+
+    const QList<QByteArray> noProxyTokens = noProxy.split(',');
 
     foreach (const QByteArray &rawToken, noProxyTokens) {
         QByteArray token = rawToken.trimmed();

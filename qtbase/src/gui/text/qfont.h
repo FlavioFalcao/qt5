@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -46,8 +46,6 @@
 #include <QtCore/qstring.h>
 #include <QtCore/qsharedpointer.h>
 
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -287,7 +285,6 @@ private:
     friend class QFontInfo;
     friend class QPainter;
     friend class QPainterPrivate;
-    friend class QPSPrintEngineFont;
     friend class QApplication;
     friend class QWidget;
     friend class QWidgetPrivate;
@@ -349,7 +346,5 @@ Q_GUI_EXPORT QDebug operator<<(QDebug, const QFont &);
 #endif
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QFONT_H

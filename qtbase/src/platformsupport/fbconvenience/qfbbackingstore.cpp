@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -51,7 +51,10 @@ QT_BEGIN_NAMESPACE
 QFbBackingStore::QFbBackingStore(QWindow *window)
     : QPlatformBackingStore(window)
 {
-    (static_cast<QFbWindow *>(window->handle()))->setBackingStore(this);
+    if (window->handle())
+        (static_cast<QFbWindow *>(window->handle()))->setBackingStore(this);
+    else
+        (static_cast<QFbScreen *>(window->screen()->handle()))->addBackingStore(this);
 }
 
 QFbBackingStore::~QFbBackingStore()

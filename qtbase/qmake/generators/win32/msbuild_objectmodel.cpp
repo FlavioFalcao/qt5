@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the qmake application of the Qt Toolkit.
@@ -476,11 +476,7 @@ void VCXProjectWriter::write(XmlOutput &xml, VCProjectSingleConfig &tool)
             << attrTag("Condition", condition)
             << valueTag(tool.Configuration.PrimaryOutput);
     }
-    if (!tool.Configuration.PrimaryOutputExtension.isEmpty()) {
-        xml<< tag("TargetExt")
-            << attrTag("Condition", condition)
-            << valueTag(tool.Configuration.PrimaryOutputExtension);
-    }
+
     if ( tool.Configuration.linker.IgnoreImportLibrary != unset) {
         xml<< tag("IgnoreImportLibrary")
             << attrTag("Condition", condition)
@@ -681,11 +677,7 @@ void VCXProjectWriter::write(XmlOutput &xml, VCProject &tool)
                 << attrTag("Condition", condition)
                 << valueTag(config.PrimaryOutput);
         }
-        if (!config.PrimaryOutputExtension.isEmpty()) {
-            xml << tag("TargetExt")
-                << attrTag("Condition", condition)
-                << valueTag(config.PrimaryOutputExtension);
-        }
+
         if (config.linker.IgnoreImportLibrary != unset) {
             xml << tag("IgnoreImportLibrary")
                 << attrTag("Condition", condition)
@@ -1420,7 +1412,7 @@ void VCXProjectWriter::write(XmlOutput &xml, const VCCLCompilerTool &tool)
             << attrTagT(_StringPooling, tool.StringPooling)
             << attrTagS(_StructMemberAlignment, toString(tool.StructMemberAlignment))
             << attrTagT(_SuppressStartupBanner, tool.SuppressStartupBanner)
-//unused    << attrTagS(_TreatSpecificWarningsAsErrors, tool.TreatSpecificWarningsAsErrors)
+            << attrTagX(_TreatSpecificWarningsAsErrors, tool.TreatSpecificWarningsAsErrors, ";")
             << attrTagT(_TreatWarningAsError, tool.WarnAsError)
             << attrTagT(_TreatWChar_tAsBuiltInType, tool.TreatWChar_tAsBuiltInType)
             << attrTagT(_UndefineAllPreprocessorDefinitions, tool.UndefineAllPreprocessorDefinitions)
@@ -1542,7 +1534,7 @@ void VCXProjectWriter::write(XmlOutput &xml, const VCMIDLTool &tool)
             << attrTagL(_LocaleID, tool.LocaleID, /*ifNot*/ -1)
             << attrTagT(_MkTypLibCompatible, tool.MkTypLibCompatible)
             << attrTagS(_OutputDirectory, tool.OutputDirectory)
-            << attrTagX(_PreprocessorDefinitions, unquote(tool.PreprocessorDefinitions), ";")
+            << attrTagX(_PreprocessorDefinitions, tool.PreprocessorDefinitions, ";")
             << attrTagS(_ProxyFileName, tool.ProxyFileName)
             << attrTagS(_RedirectOutputAndErrors, tool.RedirectOutputAndErrors)
             << attrTagS(_ServerStubFile, tool.ServerStubFile)
@@ -1627,7 +1619,7 @@ void VCXProjectWriter::write(XmlOutput &xml, const VCResourceCompilerTool &tool)
             << attrTagS(_Culture, toString(tool.Culture))
             << attrTagT(_IgnoreStandardIncludePath, tool.IgnoreStandardIncludePath)
 //unused    << attrTagT(_NullTerminateStrings, tool.NullTerminateStrings)
-            << attrTagX(_PreprocessorDefinitions, unquote(tool.PreprocessorDefinitions), ";")
+            << attrTagX(_PreprocessorDefinitions, tool.PreprocessorDefinitions, ";")
             << attrTagS(_ResourceOutputFileName, tool.ResourceOutputFileName)
             << attrTagT(_ShowProgress, toTriState(tool.ShowProgress))
             << attrTagT(_SuppressStartupBanner, tool.SuppressStartupBanner)

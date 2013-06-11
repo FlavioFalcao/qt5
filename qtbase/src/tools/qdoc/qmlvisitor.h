@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -45,7 +45,6 @@
 #include <qstring.h>
 #include "qqmljsastvisitor_p.h"
 #include "node.h"
-#include "tree.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -66,6 +65,8 @@ struct QmlPropArgs
 
 class QmlDocVisitor : public QQmlJS::AST::Visitor
 {
+    Q_DECLARE_TR_FUNCTIONS(QDoc::QmlDocVisitor)
+
 public:
     QmlDocVisitor(const QString &filePath,
                   const QString &code,
@@ -83,6 +84,11 @@ public:
     bool visit(QQmlJS::AST::UiPublicMember *member);
     void endVisit(QQmlJS::AST::UiPublicMember *definition);
 
+    virtual bool visit(QQmlJS::AST::UiObjectBinding *);
+    virtual void endVisit(QQmlJS::AST::UiObjectBinding *);
+    virtual void endVisit(QQmlJS::AST::UiArrayBinding *);
+    virtual bool visit(QQmlJS::AST::UiArrayBinding *);
+
     bool visit(QQmlJS::AST::IdentifierPropertyName *idproperty);
 
     bool visit(QQmlJS::AST::FunctionDeclaration *);
@@ -95,6 +101,7 @@ public:
     void endVisit(QQmlJS::AST::UiQualifiedId *);
 
 private:
+    QString getFullyQualifiedId(QQmlJS::AST::UiQualifiedId *id);
     QQmlJS::AST::SourceLocation precedingComment(quint32 offset) const;
     bool applyDocumentation(QQmlJS::AST::SourceLocation location, Node *node);
     void applyMetacommands(QQmlJS::AST::SourceLocation location, Node* node, Doc& doc);
@@ -108,11 +115,10 @@ private:
     QString filePath;
     QString name;
     QString document;
-    QList<QPair<QString, QString> > importList;
+    ImportList importList;
     QSet<QString> commands;
     QSet<QString> topics;
     QSet<quint32> usedComments;
-    Tree *tree;
     InnerNode *current;
 };
 

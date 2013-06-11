@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -146,7 +146,7 @@ Compiler Environment::compilerFromQMakeSpec(const QString &qmakeSpec)
 {
     if (qmakeSpec == QLatin1String("win32-msvc2012"))
         return CC_NET2012;
-    if (qmakeSpec == QLatin1String("win32-msvc2012"))
+    if (qmakeSpec == QLatin1String("win32-msvc2010"))
         return CC_NET2010;
     if (qmakeSpec == QLatin1String("win32-msvc2008"))
         return CC_NET2008;

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -41,10 +41,10 @@
 
 /****************************************************************************
 **
-** In addition, as a special exception, Nokia gives permission to link
-** the code of its release of Qt with the OpenSSL project's "OpenSSL" library
-** (or modified versions of the "OpenSSL" library that use the same license
-** as the original version), and distribute the linked executables.
+** In addition, as a special exception, the copyright holders listed above give
+** permission to link the code of its release of Qt with the OpenSSL project's
+** "OpenSSL" library (or modified versions of the "OpenSSL" library that use the
+** same license as the original version), and distribute the linked executables.
 **
 ** You must comply with the GNU General Public License version 2 in all
 ** respects for all of the code used other than the "OpenSSL" code.  If you
@@ -83,12 +83,16 @@ public:
         : protocol(QSsl::SecureProtocols),
           peerVerifyMode(QSslSocket::AutoVerifyPeer),
           peerVerifyDepth(0),
-          sslOptions(QSslConfigurationPrivate::defaultSslOptions)
+          allowRootCertOnDemandLoading(true),
+          peerSessionShared(false),
+          sslOptions(QSslConfigurationPrivate::defaultSslOptions),
+          sslSessionTicketLifeTimeHint(-1)
     { }
 
     QSslCertificate peerCertificate;
     QList<QSslCertificate> peerCertificateChain;
-    QSslCertificate localCertificate;
+
+    QList<QSslCertificate> localCertificateChain;
 
     QSslKey privateKey;
     QSslCipher sessionCipher;
@@ -98,10 +102,17 @@ public:
     QSsl::SslProtocol protocol;
     QSslSocket::PeerVerifyMode peerVerifyMode;
     int peerVerifyDepth;
+    bool allowRootCertOnDemandLoading;
+    bool peerSessionShared;
+
+    Q_AUTOTEST_EXPORT static bool peerSessionWasShared(const QSslConfiguration &configuration);
 
     QSsl::SslOptions sslOptions;
 
     Q_AUTOTEST_EXPORT static const QSsl::SslOptions defaultSslOptions;
+
+    QByteArray sslSession;
+    int sslSessionTicketLifeTimeHint;
 
     // in qsslsocket.cpp:
     static QSslConfiguration defaultConfiguration();

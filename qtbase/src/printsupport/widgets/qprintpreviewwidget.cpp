@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -162,7 +162,9 @@ signals:
 protected:
     void resizeEvent(QResizeEvent* e)
     {
+        const bool blocked = verticalScrollBar()->blockSignals(true); // Don't change page, QTBUG-14517
         QGraphicsView::resizeEvent(e);
+        verticalScrollBar()->blockSignals(blocked);
         emit resized();
     }
 

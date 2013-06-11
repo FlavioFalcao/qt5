@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -55,6 +55,8 @@ QT_BEGIN_NAMESPACE
 
 class Quoter
 {
+    Q_DECLARE_TR_FUNCTIONS(QDoc::Quoter)
+
 public:
     Quoter();
 
@@ -81,7 +83,6 @@ private:
                                int unindent = 0);
 
     bool silent;
-    bool validRegExp;
     QStringList plainLines;
     QStringList markedLines;
     Location codeLocation;

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the qmake application of the Qt Toolkit.
@@ -109,7 +109,6 @@ struct Option
     static QString pro_ext;
     static QString res_ext;
     static char field_sep;
-    static const char *application_argv0;
 
     enum CmdLineFlags {
         QMAKE_CMDLINE_SUCCESS       = 0x00,
@@ -207,7 +206,7 @@ struct Option
     };
 
 private:
-    static int parseCommandLine(QStringList &args);
+    static int parseCommandLine(QStringList &args, QMakeCmdLineParserState &state);
 };
 
 inline QString fixEnvVariables(const QString &x) { return Option::fixString(x, Option::FixEnvVars); }

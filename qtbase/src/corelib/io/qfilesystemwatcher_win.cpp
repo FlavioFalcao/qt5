@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -207,7 +207,7 @@ QStringList QWindowsFileSystemWatcherEngine::addPaths(const QStringList &paths,
                         this, SIGNAL(fileChanged(QString,bool)));
                 connect(thread, SIGNAL(directoryChanged(QString,bool)),
                         this, SIGNAL(directoryChanged(QString,bool)));
-                
+
                 thread->msg = '@';
                 thread->start();
                 threads.append(thread);

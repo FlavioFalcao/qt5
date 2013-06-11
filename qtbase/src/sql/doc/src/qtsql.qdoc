@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -54,13 +54,13 @@
     \section1 Reference
     These are links to the API reference materials.
     \list
-    \li \l{Qt SQL Module C++ Classes}{C++ classes}
+    \li \l{Qt SQL C++ Classes}{C++ Classes}
     \endlist
 */
 
 /*!
     \module QtSql
-    \title Qt SQL Module C++ Classes
+    \title Qt SQL C++ Classes
     \ingroup modules
     \brief Provides a driver layer, SQL API layer, and a user
     interface layer for SQL databases.

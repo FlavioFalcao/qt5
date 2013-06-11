@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -44,8 +44,6 @@
 
 #include <QtWidgets/qabstractscrollarea.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -71,6 +69,8 @@ public:
     void setWidgetResizable(bool resizable);
 
     QSize sizeHint() const;
+    QSize viewportSizeHint() const;
+
     bool focusNextPrevChild(bool next);
 
     Qt::Alignment alignment() const;
@@ -94,7 +94,5 @@ private:
 #endif // QT_NO_SCROLLAREA
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QSCROLLAREA_H

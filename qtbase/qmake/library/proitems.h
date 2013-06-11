@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the qmake application of the Qt Toolkit.
@@ -275,6 +275,7 @@ enum ProToken {
     TokRemove,          // variable -=
     TokReplace,         // variable ~=
                         // previous literal/expansion is a variable manipulation
+                        // - lower bound for expected output length (1)
                         // - value expression + TokValueTerminator
     TokValueTerminator, // assignment value terminator
     TokLiteral,         // literal string (fully dequoted)

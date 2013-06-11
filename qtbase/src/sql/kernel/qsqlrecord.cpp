@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
@@ -523,5 +523,20 @@ QDebug operator<<(QDebug dbg, const QSqlRecord &r)
     return dbg;
 }
 #endif
+
+/*!
+    \since 5.1
+    Returns a record containing the fields represented in \a keyFields set to values
+    that match by field name.
+*/
+QSqlRecord QSqlRecord::keyValues(const QSqlRecord &keyFields) const
+{
+    QSqlRecord retValues(keyFields);
+
+    for (int i = retValues.count() - 1; i >= 0; --i)
+        retValues.setValue(i, value(retValues.fieldName(i)));
+
+    return retValues;
+}
 
 QT_END_NAMESPACE

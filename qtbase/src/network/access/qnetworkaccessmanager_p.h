@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -60,6 +60,9 @@
 #include "QtNetwork/qnetworkproxy.h"
 #include "QtNetwork/qnetworksession.h"
 #include "qnetworkaccessauthenticationmanager_p.h"
+#ifndef QT_NO_BEARERMANAGEMENT
+#include "QtNetwork/qnetworkconfigmanager.h"
+#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -79,6 +82,10 @@ public:
 #endif
 #ifndef QT_NO_BEARERMANAGEMENT
           lastSessionState(QNetworkSession::Invalid),
+          networkConfiguration(networkConfigurationManager.defaultConfiguration()),
+          customNetworkConfiguration(false),
+          networkSessionRequired(networkConfigurationManager.capabilities()
+                                 & QNetworkConfigurationManager::NetworkSessionRequired),
           networkAccessible(QNetworkAccessManager::Accessible),
           activeReplyCount(0),
           online(false),
@@ -90,6 +97,7 @@ public:
     ~QNetworkAccessManagerPrivate();
 
     void _q_replyFinished();
+    void _q_replyEncrypted();
     void _q_replySslErrors(const QList<QSslError> &errors);
     QNetworkReply *postProcess(QNetworkReply *reply);
     void createCookieJar() const;
@@ -116,6 +124,7 @@ public:
 #endif
 
     QNetworkAccessBackend *findBackend(QNetworkAccessManager::Operation op, const QNetworkRequest &request);
+    QStringList backendSupportedSchemes() const;
 
 #ifndef QT_NO_BEARERMANAGEMENT
     void createSession(const QNetworkConfiguration &config);
@@ -126,6 +135,7 @@ public:
     void _q_networkSessionPreferredConfigurationChanged(const QNetworkConfiguration &config,
                                                         bool isSeamless);
     void _q_networkSessionStateChanged(QNetworkSession::State state);
+    void _q_onlineStateChanged(bool isOnline);
 #endif
 
     QNetworkRequest prepareMultipart(const QNetworkRequest &request, QHttpMultiPart *multiPart);
@@ -147,7 +157,12 @@ public:
     QSharedPointer<QNetworkSession> networkSessionStrongRef;
     QWeakPointer<QNetworkSession> networkSessionWeakRef;
     QNetworkSession::State lastSessionState;
-    QString networkConfiguration;
+    QNetworkConfigurationManager networkConfigurationManager;
+    QNetworkConfiguration networkConfiguration;
+    // we need to track whether the user set a config or not,
+    // because the default config might change
+    bool customNetworkConfiguration;
+    bool networkSessionRequired;
     QNetworkAccessManager::NetworkAccessibility networkAccessible;
     int activeReplyCount;
     bool online;

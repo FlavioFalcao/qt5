@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -69,7 +69,7 @@ protected:
         StringEvent *se = static_cast<StringEvent*>(e);
         return (m_value == se->value);
     }
-    
+
     virtual void onTransition(QEvent *) {}
 
 private:

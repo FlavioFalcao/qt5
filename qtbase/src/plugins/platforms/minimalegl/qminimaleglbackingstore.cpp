@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the plugins of the Qt Toolkit.
@@ -49,6 +49,7 @@ QT_BEGIN_NAMESPACE
 QMinimalEglBackingStore::QMinimalEglBackingStore(QWindow *window)
     : QPlatformBackingStore(window)
     , m_context(new QOpenGLContext)
+    , m_device(0)
 {
     m_context->setFormat(window->requestedFormat());
     m_context->setScreen(window->screen());

@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -46,12 +46,8 @@
 #include <QtCore/qscopedpointer.h>
 #include <QtGui/qicon.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
-
-#ifndef QT_NO_FILEICONPROVIDER
 
 class QFileIconProviderPrivate;
 
@@ -61,9 +57,18 @@ public:
     QFileIconProvider();
     virtual ~QFileIconProvider();
     enum IconType { Computer, Desktop, Trashcan, Network, Drive, Folder, File };
+
+    enum Option {
+        DontUseCustomDirectoryIcons = 0x00000001
+    };
+    Q_DECLARE_FLAGS(Options, Option)
+
     virtual QIcon icon(IconType type) const;
     virtual QIcon icon(const QFileInfo &info) const;
     virtual QString type(const QFileInfo &info) const;
+
+    void setOptions(Options options);
+    Options options() const;
 
 private:
     Q_DECLARE_PRIVATE(QFileIconProvider)
@@ -71,11 +76,8 @@ private:
     Q_DISABLE_COPY(QFileIconProvider)
 };
 
-#endif // QT_NO_FILEICONPROVIDER
+Q_DECLARE_OPERATORS_FOR_FLAGS(QFileIconProvider::Options)
 
 QT_END_NAMESPACE
 
-QT_END_HEADER
-
 #endif // QFILEICONPROVIDER_H
-

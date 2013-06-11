@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the QtGui module of the Qt Toolkit.
+** This file is part of the QtWidgets module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -80,7 +80,7 @@ public:
    be shown during application startup.
 
    \inmodule QtWidgets
- 
+
    A splash screen is a widget that is usually displayed when an
    application is being started. Splash screens are often used for
    applications that have long start up times (e.g. database or
@@ -200,7 +200,7 @@ void QSplashScreen::repaint()
     is kept up to date with what your application is doing (e.g.,
     loading files).
 
-    \sa Qt::Alignment, clearMessage()
+    \sa Qt::Alignment, clearMessage(), message()
 */
 void QSplashScreen::showMessage(const QString &message, int alignment,
                                 const QColor &color)
@@ -211,6 +211,20 @@ void QSplashScreen::showMessage(const QString &message, int alignment,
     d->currColor = color;
     emit messageChanged(d->currStatus);
     repaint();
+}
+
+/*!
+    \since 5.2
+
+    Returns the message that is currently displayed on the splash screen.
+
+    \sa showMessage(), clearMessage()
+*/
+
+QString QSplashScreen::message() const
+{
+    Q_D(const QSplashScreen);
+    return d->currStatus;
 }
 
 /*!
@@ -225,7 +239,7 @@ void QSplashScreen::clearMessage()
     repaint();
 }
 
-// A copy of QTestLib's qWaitForWindowExposed() and qSleep().
+// A copy of Qt Test's qWaitForWindowExposed() and qSleep().
 inline static bool waitForWindowExposed(QWindow *window, int timeout = 1000)
 {
     enum { TimeOutMs = 10 };

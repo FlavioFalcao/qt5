@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -80,6 +80,11 @@ QPaintEngine *QPlatformPrinterSupport::createPaintEngine(QPrintEngine *, QPrinte
 QList<QPrinter::PaperSize> QPlatformPrinterSupport::supportedPaperSizes(const QPrinterInfo &) const
 {
     return QList<QPrinter::PaperSize>();
+}
+
+QList<QPair<QString, QSizeF> > QPlatformPrinterSupport::supportedSizesWithNames(const QPrinterInfo &) const
+{
+    return QList<QPair<QString, QSizeF> >();
 }
 
 QList<QPrinterInfo> QPlatformPrinterSupport::availablePrinters()

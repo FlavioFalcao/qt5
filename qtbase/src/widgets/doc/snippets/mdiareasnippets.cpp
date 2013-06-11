@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -57,7 +57,7 @@ void addingSubWindowsExample()
 {
     QWidget *internalWidget1 = new QWidget;
     QWidget *internalWidget2 = new QWidget;
-    
+
 //! [1]
     QMdiArea mdiArea;
     QMdiSubWindow *subWindow1 = new QMdiSubWindow;

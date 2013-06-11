@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtNetwork module of the Qt Toolkit.
@@ -46,7 +46,7 @@ QT_BEGIN_NAMESPACE
 
 /*! \namespace QSsl
 
-    \brief The QSsl namespace declares enums common to all SSL classes in QtNetwork.
+    \brief The QSsl namespace declares enums common to all SSL classes in Qt Network.
     \since 4.3
 
     \ingroup network
@@ -58,7 +58,7 @@ QT_BEGIN_NAMESPACE
     \enum QSsl::KeyType
 
     Describes the two types of keys QSslKey supports.
-    
+
     \value PrivateKey A private key.
     \value PublicKey A public key.
 */
@@ -161,12 +161,20 @@ QT_BEGIN_NAMESPACE
     mechanism for renegotiating the connection parameters. When enabled, this
     option can allow connections for legacy servers, but it introduces the
     possibility that an attacker could inject plaintext into the SSL session.
+    \value SslOptionDisableSessionSharing Disables SSL session sharing via
+    the session ID handshake attribute.
+    \value SslOptionDisableSessionPersistence Disables storing the SSL session
+    in ASN.1 format as returned by QSslConfiguration::session(). Enabling
+    this feature adds memory overhead of approximately 1K per used session
+    ticket.
 
     By default, SslOptionDisableEmptyFragments is turned on since this causes
     problems with a large number of servers. SslOptionDisableLegacyRenegotiation
     is also turned on, since it introduces a security risk.
     SslOptionDisableCompression is turned on to prevent the attack publicised by
-    CRIME. The other options are turned off.
+    CRIME.
+    SslOptionDisableSessionPersistence is turned on to optimize memory usage.
+    The other options are turned off.
 
     Note: Availability of above options depends on the version of the SSL
     backend in use.

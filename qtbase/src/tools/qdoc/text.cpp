@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
@@ -149,6 +149,11 @@ void Text::stripLastAtom()
     }
 }
 
+/*!
+  This function traverses the atom list of the Text object,
+  extracting all the string parts. It concatenates them to
+  a result string and returns it.
+ */
 QString Text::toString() const
 {
     QString str;
