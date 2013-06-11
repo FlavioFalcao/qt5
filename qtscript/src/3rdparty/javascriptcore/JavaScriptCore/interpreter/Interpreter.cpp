@@ -852,7 +852,7 @@ JSValue Interpreter::execute(EvalExecutable* eval, CallFrame* callFrame, JSObjec
     }
 
     Register* oldEnd = m_registerFile.end();
-#ifdef  QT_BUILD_SCRIPT_LIB //with QtScript, we do not necesserly start from scratch
+#ifdef  QT_BUILD_SCRIPT_LIB //with Qt Script, we do not necesserly start from scratch
     Register* newEnd = oldEnd + globalRegisterOffset + codeBlock->m_numCalleeRegisters;
 #else
     Register* newEnd = m_registerFile.start() + globalRegisterOffset + codeBlock->m_numCalleeRegisters;
@@ -862,7 +862,7 @@ JSValue Interpreter::execute(EvalExecutable* eval, CallFrame* callFrame, JSObjec
         return jsNull();
     }
 
-#ifdef QT_BUILD_SCRIPT_LIB //with QtScript, we do not necesserly start from scratch
+#ifdef QT_BUILD_SCRIPT_LIB //with Qt Script, we do not necesserly start from scratch
     CallFrame* newCallFrame = CallFrame::create(oldEnd + globalRegisterOffset);
 #else
     CallFrame* newCallFrame = CallFrame::create(m_registerFile.start() + globalRegisterOffset);
@@ -2495,8 +2495,10 @@ JSValue Interpreter::privateExecute(ExecutionFlag flag, RegisterFile* registerFi
             vPC += OPCODE_LENGTH(op_get_by_pname);
             NEXT_INSTRUCTION();
         }
-        Identifier propertyName(callFrame, subscript.toString(callFrame));
-        result = baseValue.get(callFrame, propertyName);
+        {
+            Identifier propertyName(callFrame, subscript.toString(callFrame));
+            result = baseValue.get(callFrame, propertyName);
+        }
         CHECK_FOR_EXCEPTION();
         callFrame->r(dst) = result;
         vPC += OPCODE_LENGTH(op_get_by_pname);

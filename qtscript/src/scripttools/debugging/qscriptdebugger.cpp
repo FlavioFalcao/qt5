@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtSCriptTools module of the Qt Toolkit.
@@ -1021,7 +1021,7 @@ class SyncBreakpointsJob : public QScriptDebuggerCommandSchedulerJob
 public:
     SyncBreakpointsJob(QScriptDebuggerPrivate *debugger)
         : QScriptDebuggerCommandSchedulerJob(debugger),
-          m_debugger(debugger), m_index(-1) {}
+          m_debugger(debugger) {}
     void start()
     {
         QScriptDebuggerCommandSchedulerFrontend frontend(commandScheduler(), this);
@@ -1044,7 +1044,6 @@ public:
 
 private:
     QScriptDebuggerPrivate *m_debugger;
-    int m_index;
     QList<QScriptContextInfo> m_infos;
 };
 
