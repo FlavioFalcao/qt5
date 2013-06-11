@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
@@ -89,6 +89,7 @@ struct QMakeStatics {
     QString strforever;
     QString strhost_build;
     ProKey strTEMPLATE;
+    ProKey strQMAKE_PLATFORM;
 #ifdef PROEVALUATOR_FULL
     ProKey strREQUIRES;
 #endif

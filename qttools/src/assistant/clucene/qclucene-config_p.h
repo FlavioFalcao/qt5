@@ -3,7 +3,7 @@
 ** Copyright (C) 2003-2006 Ben van Klinken and the CLucene Team.
 ** All rights reserved.
 **
-** Portion Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Portion Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** All rights reserved.
 **
 ** This file may be used under the terms of the GNU Lesser General Public
@@ -416,7 +416,7 @@ configure.
 #define _CL_HAVE_WCSTOD  1
 #endif
 
-#if !defined(__SUNPRO_CC) && !defined(__SUNPRO_C) && !defined(__HP_aCC)
+#if !defined(__SUNPRO_CC) && !defined(__SUNPRO_C) && !defined(__HP_aCC) && !defined(Q_OS_ANDROID)
     /* Define to 1 if you have the `wcstoll' function. */
 #   ifndef _CL_HAVE_WCSTOLL
 #   define _CL_HAVE_WCSTOLL  1

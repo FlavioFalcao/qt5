@@ -1,6 +1,6 @@
 .TH lupdate 1 "18 October 2001" "Digia Plc and/or its subsidiary(-ies)" \" -*- nroff -*-
 .\"
-.\" Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+.\" Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 .\" Contact: http://www.qt-project.org/legal
 .\"
 .\" This file is part of the QtGui module of the Qt Toolkit.
@@ -107,6 +107,12 @@ POSIX if not specified and the file does not name it yet.
 Specify/override the language of the translation.
 The target language is guessed from the file name if this option
 is not specified and the file contents name no language yet.
+.TP
+.I "-tr-function-alias <function>{+=,=}<alias>[,<function>{+=,=}<alias>]..."
+With +=, recognize <alias> as an alternative spelling of <function>.
+With  =, recognize <alias>> as the only spelling of <function>.
+See lupdate -h for a list of available function names.
+.TP
 .I "-version"
 Display the version of
 .B lupdate

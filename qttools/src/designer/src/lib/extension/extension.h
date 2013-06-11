@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
@@ -44,8 +44,6 @@
 
 #include <QtCore/QString>
 #include <QtCore/QObject>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -103,7 +101,5 @@ template <> inline IFace *qt_extension<IFace *>(QAbstractExtensionManager *manag
 #endif
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // EXTENSION_H

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
@@ -837,7 +837,7 @@ int initXLIFF()
 {
     Translator::FileFormat format;
     format.extension = QLatin1String("xlf");
-    format.description = QObject::tr("XLIFF localization files");
+    format.description = FMT::tr("XLIFF localization files");
     format.fileType = Translator::FileFormat::TranslationSource;
     format.priority = 1;
     format.loader = &loadXLIFF;

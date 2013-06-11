@@ -1,13 +1,8 @@
-TEMPLATE = app
-LANGUAGE = C++
-TARGET = assistant
-DESTDIR = $$QT.help.bins
-qtHaveModule(webkitwidgets) {
+qtHaveModule(webkitwidgets):!contains(QT_CONFIG, static) {
     QT += webkitwidgets
 } else {
     DEFINES += QT_NO_WEBKIT
 }
-!build_pass:contains(QT_CONFIG, build_all): CONFIG += release
 QT += widgets network help sql help
 qtHaveModule(printsupport): QT += printsupport
 PROJECTNAME = Assistant
@@ -79,7 +74,7 @@ SOURCES += aboutdialog.cpp \
     openpageswidget.cpp \
     openpagesmanager.cpp \
     openpagesswitcher.cpp
-qtHaveModule(webkitwidgets) {
+qtHaveModule(webkitwidgets):!contains(QT_CONFIG, static) {
     SOURCES += helpviewer_qwv.cpp
 } else {
     SOURCES += helpviewer_qtb.cpp
@@ -107,13 +102,6 @@ mac {
     QMAKE_INFO_PLIST = Info_mac.plist
 }
 
-contains(CONFIG, static): {
-    SQLPLUGINS = $$unique(sql-plugins)
-    contains(SQLPLUGINS, sqlite): {
-        QTPLUGIN += qsqlite
-        DEFINES += USE_STATIC_SQLITE_PLUGIN
-    }
-}
+contains(SQLPLUGINS, sqlite):QTPLUGIN += qsqlite
 
-target.path=$$[QT_INSTALL_BINS]
-INSTALLS += target
+load(qt_app)

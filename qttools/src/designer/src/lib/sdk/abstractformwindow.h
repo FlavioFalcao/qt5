@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
@@ -45,8 +45,6 @@
 #include <QtDesigner/sdk_global.h>
 
 #include <QtWidgets/QWidget>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -195,7 +193,5 @@ Q_SIGNALS:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // ABSTRACTFORMWINDOW_H

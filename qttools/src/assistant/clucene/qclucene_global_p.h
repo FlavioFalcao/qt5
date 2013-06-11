@@ -3,7 +3,7 @@
 ** Copyright (C) 2003-2006 Ben van Klinken and the CLucene Team.
 ** All rights reserved.
 **
-** Portion Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Portion Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** All rights reserved.
 **
 ** This file may be used under the terms of the GNU Lesser General Public
@@ -43,8 +43,6 @@
 #else
 #   include <qt_windows.h>
 #endif
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -129,7 +127,5 @@ namespace QtCLuceneHelpers {
 using namespace QtCLuceneHelpers;
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QCLUCENE_GLOBAL_P_H

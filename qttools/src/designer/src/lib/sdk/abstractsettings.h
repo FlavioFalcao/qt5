@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
@@ -46,8 +46,6 @@
 
 #include <QtCore/QVariant>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 class QString;
@@ -67,7 +65,5 @@ public:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // ABSTRACTSETTINGS_P_H

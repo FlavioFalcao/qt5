@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
@@ -108,7 +108,7 @@ void SourceCodeView::showSourceCode(const QString &absFileName, const int lineNu
             appendHtml(tr("<i>File %1 not readable</i>").arg(absFileName));
             return;
         }
-        fileText = QString::fromLatin1(file.readAll());
+        fileText = QString::fromUtf8(file.readAll());
         fileHash.insert(absFileName, fileText);
     }
 

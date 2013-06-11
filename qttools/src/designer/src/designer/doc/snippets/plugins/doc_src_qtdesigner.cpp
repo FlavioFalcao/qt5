@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -230,6 +230,7 @@ QObject *AGeneralExtensionFactory::createExtension(QObject *object,
 class MyCustomWidgets: public QObject, public QDesignerCustomWidgetCollectionInterface
 {
     Q_OBJECT
+    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QDesignerCustomWidgetCollectionInterface")
     Q_INTERFACES(QDesignerCustomWidgetCollectionInterface)
 
 public:
@@ -256,13 +257,11 @@ QList<QDesignerCustomWidgetInterface*> MyCustomWidgets::customWidgets() const
 {
     return widgets;
 }
-
-Q_EXPORT_PLUGIN2(customwidgetsplugin, MyCustomWidgets)
 //! [13]
 
 
 //! [14]
-Q_EXPORT_PLUGIN2(customwidgetplugin, MyCustomWidget)
+Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QDesignerCustomWidgetInterface")
 //! [14]
 
 

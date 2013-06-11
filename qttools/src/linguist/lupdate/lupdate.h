@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
@@ -44,12 +44,14 @@
 
 #include "qglobal.h"
 
+#include <QByteArray>
 #include <QList>
+#include <QString>
+#include <QHash>
 
 QT_BEGIN_NAMESPACE
 
 class ConversionData;
-class QString;
 class QStringList;
 class Translator;
 class TranslatorMessage;
@@ -65,7 +67,8 @@ enum UpdateOption {
     AbsoluteLocations = 256,
     RelativeLocations = 512,
     NoLocations = 1024,
-    NoUiLines = 2048
+    NoUiLines = 2048,
+    SourceIsUtf16 = 4096
 };
 
 Q_DECLARE_FLAGS(UpdateOptions, UpdateOption)
@@ -75,7 +78,6 @@ Translator merge(
     const Translator &tor, const Translator &virginTor, const QList<Translator> &aliens,
     UpdateOptions options, QString &err);
 
-void fetchtrInlinedCpp(const QString &in, Translator &translator, const QString &context);
 void loadCPP(Translator &translator, const QStringList &filenames, ConversionData &cd);
 bool loadJava(Translator &translator, const QString &filename, ConversionData &cd);
 bool loadUI(Translator &translator, const QString &filename, ConversionData &cd);
@@ -85,6 +87,68 @@ bool loadQScript(Translator &translator, const QString &filename, ConversionData
 bool loadQml(Translator &translator, const QString &filename, ConversionData &cd);
 #endif
 
+#define LUPDATE_FOR_EACH_TR_FUNCTION(UNARY_MACRO) \
+    /* from cpp.cpp */ \
+    UNARY_MACRO(Q_DECLARE_TR_FUNCTIONS) \
+    UNARY_MACRO(QT_TR_NOOP) \
+    UNARY_MACRO(QT_TRID_NOOP) \
+    UNARY_MACRO(QT_TRANSLATE_NOOP) \
+    UNARY_MACRO(QT_TRANSLATE_NOOP3) \
+    UNARY_MACRO(QT_TR_NOOP_UTF8) \
+    UNARY_MACRO(QT_TRANSLATE_NOOP_UTF8) \
+    UNARY_MACRO(QT_TRANSLATE_NOOP3_UTF8) \
+    UNARY_MACRO(findMessage) /* QTranslator::findMessage() has the same parameters as QApplication::translate() */ \
+    UNARY_MACRO(qtTrId) \
+    UNARY_MACRO(TR) \
+    UNARY_MACRO(Tr) \
+    UNARY_MACRO(tr) \
+    UNARY_MACRO(trUtf8) \
+    UNARY_MACRO(translate) \
+    /* from qdeclarative.cpp: */ \
+    UNARY_MACRO(qsTr) \
+    UNARY_MACRO(qsTrId) \
+    UNARY_MACRO(qsTranslate) \
+    /*end*/
+
+
+class TrFunctionAliasManager {
+public:
+    TrFunctionAliasManager();
+    ~TrFunctionAliasManager();
+
+    enum TrFunction {
+        // need to uglify names b/c most of the names are themselves macros:
+#define MAKE_ENTRY(F) Function_##F,
+        LUPDATE_FOR_EACH_TR_FUNCTION(MAKE_ENTRY)
+#undef MAKE_ENTRY
+        NumTrFunctions
+    };
+
+    enum Operation { AddAlias, SetAlias };
+
+    int trFunctionByName(const QByteArray &trFunctionByName) const;
+    int trFunctionByName(const QString &trFunctionName) const
+    { return trFunctionByName(trFunctionName.toLatin1()); }
+
+    void modifyAlias(int trFunction, const QByteArray &alias, Operation op);
+
+    bool isAliasFor(const QByteArray &identifier, TrFunction trFunction) const
+    { return m_trFunctionAliases[trFunction].contains(identifier); }
+    bool isAliasFor(const QString &identifier, TrFunction trFunction) const
+    { return isAliasFor(identifier.toLatin1(), trFunction); }
+
+    QStringList availableFunctionsWithAliases() const;
+
+private:
+    void ensureTrFunctionHashUpdated() const;
+
+private:
+    QList<QByteArray> m_trFunctionAliases[NumTrFunctions];
+    mutable QHash<QByteArray,TrFunction> m_nameToTrFunctionMap;
+};
+
 QT_END_NAMESPACE
+
+extern QT_PREPEND_NAMESPACE(TrFunctionAliasManager) trFunctionAliasManager;
 
 #endif

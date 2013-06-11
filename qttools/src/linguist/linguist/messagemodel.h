@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
@@ -257,7 +257,6 @@ private:
     QLocale::Language m_sourceLanguage;
     QLocale::Country m_country;
     QLocale::Country m_sourceCountry;
-    QByteArray m_codecName;
     bool m_relativeLocations;
     Translator::ExtraData m_extra;
 
