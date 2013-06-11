@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -235,8 +235,8 @@ public:
     QQmlMetaObject metaObjectForType(int) const;
     QQmlPropertyCache *propertyCacheForType(int);
     QQmlPropertyCache *rawPropertyCacheForType(int);
-    void registerCompositeType(QQmlCompiledData *);
-    void unregisterCompositeType(QQmlCompiledData *);
+    void registerInternalCompositeType(QQmlCompiledData *);
+    void unregisterInternalCompositeType(QQmlCompiledData *);
 
     bool isTypeLoaded(const QUrl &url) const;
     bool isScriptLoaded(const QUrl &url) const;

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -27,16 +27,14 @@
 
 /*!
     \page qtquick-qtquicktest.html
-    \inqmlmodule QtQuick 2
-    \title QtQuickTest Reference Documentation
-    \keyword QtQuickTest Reference Documentation
+    \title Qt Quick Test Reference Documentation
     \brief unit testing framework for QML
 
     \section1 Introduction
 
     QtQuickTest is a unit test framework for QML applications.
     Test cases are written as JavaScript functions within a TestCase
-    element:
+    type:
 
     \code
     import QtQuick 2.0
@@ -56,8 +54,8 @@
     \endcode
 
     Functions whose names start with \c{test_} are treated as test cases
-    to be executed.  See the documentation for the \l TestCase and
-    \l SignalSpy elements for more information on writing test cases.
+    to be executed. See the documentation for the \l TestCase and
+    \l SignalSpy types for more information on writing test cases.
 
     \section1 Running tests
 
@@ -69,8 +67,8 @@
     QUICK_TEST_MAIN(example)
     \endcode
 
-    Where "example" is an identifier to use to uniquely identify
-    this set of tests.  You should add \c{CONFIG += qmltestcase}.
+    Where "example" is the identifier to use to uniquely identify
+    this set of tests. You should add \c{CONFIG += qmltestcase}.
     for example:
 
     \code
@@ -81,25 +79,53 @@
     \endcode
 
     The test harness scans the specified source directory recursively
-    for "tst_*.qml" files.  If \c{QUICK_TEST_SOURCE_DIR} is not defined,
+    for "tst_*.qml" files. If \c{QUICK_TEST_SOURCE_DIR} is not defined,
     then the current directory will be scanned when the harness is run.
     Other *.qml files may appear for auxillary QML components that are
     used by the test.
 
     The \c{-input} command-line option can be set at runtime to run
-    test cases from a different directory.  This may be needed to run
+    test cases from a different directory. This may be needed to run
     tests on a target device where the compiled-in directory name refers
-    to a host.  For example:
+    to a host. For example:
 
     \code
     tst_example -input /mnt/SDCard/qmltests
     \endcode
 
+    It is also possible to run a single file using the \c{-input} option.
+    For example:
+
+    \code
+    tst_example -input data/test.qml
+    \endcode
+
+    \code
+    tst_example -input <full_path>/test.qml
+    \endcode
+
+    \note Specifying the full path to the qml test file is for example
+    needed for shadow builds.
+
     If your test case needs QML imports, then you can add them as
-    \c{-import} options to the the test program command-line by adding
+    \c{-import} options to the test program command-line by adding
     the following line to your .pro file:
 
     \code
     IMPORTPATH += $$PWD/../imports/my_module1 $$PWD/../imports/my_module2
+    \endcode
+
+    The \c{-functions} command-line option will return a list of the current
+    tests functions. It is possible to run a single test function using the name
+    of the test function as an argument. For example:
+
+    \code
+    tst_example Test_Name::function1
+    \endcode
+
+    The \c{-help} command-line option will return all the options available.
+
+    \code
+    tst_example -help
     \endcode
 */

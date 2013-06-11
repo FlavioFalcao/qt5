@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -49,8 +49,6 @@
 #include <QList>
 #include <QtGui/qguiapplication.h>
 #include <QtGui/qstylehints.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -270,7 +268,5 @@ QT_END_NAMESPACE
 QML_DECLARE_TYPE(QQuickTouchPoint)
 QML_DECLARE_TYPE(QQuickGrabGestureEvent)
 QML_DECLARE_TYPE(QQuickMultiPointTouchArea)
-
-QT_END_HEADER
 
 #endif // QQUICKMULTIPOINTTOUCHAREA_H

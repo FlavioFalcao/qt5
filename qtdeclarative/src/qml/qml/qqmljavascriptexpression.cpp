@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -77,6 +77,11 @@ void QQmlDelayedError::setErrorLocation(const QUrl &url, quint16 line, quint16 c
 void QQmlDelayedError::setErrorDescription(const QString &description)
 {
     m_error.setDescription(description);
+}
+
+void QQmlDelayedError::setErrorObject(QObject *object)
+{
+    m_error.setObject(object);
 }
 
 /*
@@ -348,6 +353,7 @@ QQmlJavaScriptExpression::evalFunction(QQmlContextData *ctxt, QObject *scope,
         error.setDescription(QLatin1String("Exception occurred during function compilation"));
         error.setLine(line);
         error.setUrl(QUrl::fromLocalFile(filename));
+        error.setObject(scope);
         v8::Local<v8::Message> message = tc.Message();
         if (!message.IsEmpty())
             QQmlExpressionPrivate::exceptionToError(message, error);
@@ -360,6 +366,7 @@ QQmlJavaScriptExpression::evalFunction(QQmlContextData *ctxt, QObject *scope,
         error.setDescription(QLatin1String("Exception occurred during function evaluation"));
         error.setLine(line);
         error.setUrl(QUrl::fromLocalFile(filename));
+        error.setObject(scope);
         v8::Local<v8::Message> message = tc.Message();
         if (!message.IsEmpty())
             QQmlExpressionPrivate::exceptionToError(message, error);
@@ -390,6 +397,7 @@ QQmlJavaScriptExpression::evalFunction(QQmlContextData *ctxt, QObject *scope,
         error.setDescription(QLatin1String("Exception occurred during function compilation"));
         error.setLine(line);
         error.setUrl(QUrl::fromLocalFile(filename));
+        error.setObject(scope);
         v8::Local<v8::Message> message = tc.Message();
         if (!message.IsEmpty())
             QQmlExpressionPrivate::exceptionToError(message, error);
@@ -402,6 +410,7 @@ QQmlJavaScriptExpression::evalFunction(QQmlContextData *ctxt, QObject *scope,
         error.setDescription(QLatin1String("Exception occurred during function evaluation"));
         error.setLine(line);
         error.setUrl(QUrl::fromLocalFile(filename));
+        error.setObject(scope);
         v8::Local<v8::Message> message = tc.Message();
         if (!message.IsEmpty())
             QQmlExpressionPrivate::exceptionToError(message, error);

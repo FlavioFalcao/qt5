@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -60,8 +60,11 @@ QAccessibleQuickWindow::QAccessibleQuickWindow(QQuickWindow *object)
 
 QQuickItem *QAccessibleQuickWindow::rootItem() const
 {
-    if (window()->contentItem())
-        return window()->contentItem()->childItems().first();
+    if (QQuickItem *ci = window()->contentItem()) {
+        const QList<QQuickItem *> &childItems = ci->childItems();
+        if (!childItems.isEmpty())
+            return childItems.first();
+    }
     return 0;
 }
 
@@ -133,7 +136,7 @@ static QQuickItem *childAt_helper(QQuickItem *item, int x, int y)
             return 0;
     }
 
-    QScopedPointer<QAccessibleInterface> accessibleInterface(QAccessible::queryAccessibleInterface(item));
+    QAccessibleInterface *accessibleInterface = QAccessible::queryAccessibleInterface(item);
     // this item has no Accessible attached property
     if (!accessibleInterface)
         return 0;

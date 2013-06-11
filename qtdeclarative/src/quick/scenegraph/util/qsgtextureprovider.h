@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -45,8 +45,6 @@
 #include <QtQuick/qsgtexture.h>
 #include <QtCore/qobject.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 class Q_QUICK_EXPORT QSGTextureProvider : public QObject
@@ -60,7 +58,5 @@ Q_SIGNALS:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif

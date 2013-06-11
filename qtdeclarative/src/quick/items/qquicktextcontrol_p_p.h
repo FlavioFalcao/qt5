@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -39,8 +39,8 @@
 **
 ****************************************************************************/
 
-#ifndef QTEXTCONTROL_P_P_H
-#define QTEXTCONTROL_P_P_H
+#ifndef QQUICKTEXTCONTROL_P_P_H
+#define QQUICKTEXTCONTROL_P_P_H
 
 //
 //  W A R N I N G
@@ -126,7 +126,7 @@ public:
     void cancelPreedit();
 #endif
 
-    QPointF trippleClickPoint;
+    QPointF tripleClickPoint;
     QPointF mousePressPos;
 
     QTextCharFormat lastCharFormat;
@@ -134,12 +134,12 @@ public:
     QTextDocument *doc;
     QTextCursor cursor;
     QTextCursor selectedWordOnDoubleClick;
-    QTextCursor selectedBlockOnTrippleClick;
+    QTextCursor selectedBlockOnTripleClick;
     QString anchorOnMousePress;
     QString linkToCopy;
 
     QBasicTimer cursorBlinkTimer;
-    QBasicTimer trippleClickTimer;
+    QBasicTimer tripleClickTimer;
 
 #ifndef QT_NO_IM
     int preeditCursor;

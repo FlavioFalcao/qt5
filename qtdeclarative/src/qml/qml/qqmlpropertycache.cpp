@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -1055,7 +1055,7 @@ QStringList QQmlPropertyCache::propertyNames() const
 struct StaticQtMetaObject : public QObject
 {
     static const QMetaObject *get()
-        { return &static_cast<StaticQtMetaObject*> (0)->staticQtMetaObject; }
+        { return &staticQtMetaObject; }
 };
 
 static int EnumType(const QMetaObject *metaobj, const QByteArray &str, int type)

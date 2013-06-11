@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -191,6 +191,7 @@ void QV8Bindings::Binding::update(QQmlPropertyPrivate::WriteFlags flags)
                 delayedError()->setErrorLocation(parent->url(), instruction->line, 0);
 
             if (hasError()) {
+                delayedError()->setErrorObject(object());
                 if (!delayedError()->addError(ep)) ep->warning(this->error(context->engine));
             } else {
                 clearError();

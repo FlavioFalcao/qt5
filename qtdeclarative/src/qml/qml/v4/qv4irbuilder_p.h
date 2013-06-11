@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -45,8 +45,6 @@
 #include <QtCore/qglobal.h>
 
 #include "qv4ir_p.h"
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -139,7 +137,9 @@ protected:
     virtual bool visit(QQmlJS::AST::StatementSourceElement *ast);
 
     // object literals
-    virtual bool visit(QQmlJS::AST::PropertyNameAndValueList *ast);
+    virtual bool visit(QQmlJS::AST::PropertyAssignmentList *ast);
+    virtual bool visit(QQmlJS::AST::PropertyNameAndValue *ast);
+    virtual bool visit(QQmlJS::AST::PropertyGetterSetter *ast);
     virtual bool visit(QQmlJS::AST::IdentifierPropertyName *ast);
     virtual bool visit(QQmlJS::AST::StringLiteralPropertyName *ast);
     virtual bool visit(QQmlJS::AST::NumericLiteralPropertyName *ast);
@@ -235,7 +235,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QV4IRBUILDER_P_H 

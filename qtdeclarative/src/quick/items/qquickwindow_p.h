@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -73,7 +73,7 @@ QT_BEGIN_NAMESPACE
 
 //Make it easy to identify and customize the root item if needed
 
-class QQuickWindowManager;
+class QSGRenderLoop;
 
 class QQuickRootItem : public QQuickItem
 {
@@ -120,6 +120,7 @@ public:
     QQuickDragGrabber dragGrabber;
 #endif
     int touchMouseId;
+    bool checkIfDoubleClicked(ulong newPressEventTimestamp);
     ulong touchMousePressTimestamp;
 
     // Mouse positions are saved in widget coordinates
@@ -162,8 +163,8 @@ public:
     };
     Q_DECLARE_FLAGS(FocusOptions, FocusOption)
 
-    void setFocusInScope(QQuickItem *scope, QQuickItem *item, FocusOptions = 0);
-    void clearFocusInScope(QQuickItem *scope, QQuickItem *item, FocusOptions = 0);
+    void setFocusInScope(QQuickItem *scope, QQuickItem *item, Qt::FocusReason reason, FocusOptions = 0);
+    void clearFocusInScope(QQuickItem *scope, QQuickItem *item, Qt::FocusReason reason, FocusOptions = 0);
     static void notifyFocusChangesRecur(QQuickItem **item, int remaining);
 
     void updateFocusItemTransform();
@@ -176,9 +177,6 @@ public:
     void renderSceneGraph(const QSize &size);
 
     bool isRenderable() const;
-
-    bool renderWithoutShowing;
-    void setRenderWithoutShowing(bool enabled);
 
     QQuickItem::UpdatePaintNodeData updatePaintNodeData;
 
@@ -199,7 +197,7 @@ public:
     QSGContext *context;
     QSGRenderer *renderer;
 
-    QQuickWindowManager *windowManager;
+    QSGRenderLoop *windowManager;
 
     QColor clearColor;
 
@@ -222,6 +220,12 @@ public:
     mutable QQuickWindowIncubationController *incubationController;
 
     static bool dragOverThreshold(qreal d, Qt::Axis axis, QMouseEvent *event);
+
+    // data property
+    static void data_append(QQmlListProperty<QObject> *, QObject *);
+    static int data_count(QQmlListProperty<QObject> *);
+    static QObject *data_at(QQmlListProperty<QObject> *, int);
+    static void data_clear(QQmlListProperty<QObject> *);
 
 private:
     static void cleanupNodesOnShutdown(QQuickItem *);

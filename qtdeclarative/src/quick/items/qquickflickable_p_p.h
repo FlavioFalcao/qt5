@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -101,7 +101,7 @@ public:
         AxisData(QQuickFlickablePrivate *fp, void (QQuickFlickablePrivate::*func)(qreal))
             : move(fp, func)
             , transitionToBounds(0)
-            , viewSize(-1), startMargin(0), endMargin(0)
+            , viewSize(-1), lastPos(0), startMargin(0), endMargin(0)
             , origin(0)
             , transitionTo(0)
             , continuousFlickVelocity(0), velocityTime(), vTime(0)

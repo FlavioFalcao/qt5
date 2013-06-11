@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -43,8 +43,6 @@
 #define QQUICKITEMVIEWTRANSITION_P_P_H
 
 #include <private/qquicktransitionmanager_p_p.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -210,7 +208,5 @@ QT_END_NAMESPACE
 
 QML_DECLARE_TYPE(QQuickViewTransitionAttached)
 QML_DECLARE_TYPEINFO(QQuickViewTransitionAttached, QML_HAS_ATTACHED_PROPERTIES)
-
-QT_END_HEADER
 
 #endif // QQUICKITEMVIEWTRANSITION_P_P_H

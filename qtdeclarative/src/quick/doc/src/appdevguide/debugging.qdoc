@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -45,7 +45,7 @@ function f(a, b) {
 \endcode
 
 The output is generated using the qDebug, qWarning, qCritical methods in C++
-(see also http://doc.qt.nokia.com/latest/debug.html#warning-and-debugging-messages).
+(see also \l {Debugging Techniques}).
 
 Setting the environment variable QML_CONSOLE_EXTENDED also prints the source
 code location of the call.
@@ -81,8 +81,8 @@ function f() {
 
 \section2 Trace
 
-\c console.trace prints the stack trace of JavaScript execution at the point where
-it was called. The stack trace info contains function name, file name, line number
+\c console.trace prints the stack trace of the JavaScript execution at the point where
+it was called. The stack trace info contains the function name, file name, line number
 and column number. The stack trace is limited to last 10 stack frames.
 
 \section2 Count
@@ -123,14 +123,6 @@ function f() {
 \c console.exception prints an error message together with the stack trace of JavaScript
 execution at the point where it is called.
 
-\section1 Debugging Transitions
-
-When a transition doesn't look quite right, it can be helpful to view it in slow
-motion to see what is happening more clearly. This functionality is supported
-in the \l{qtquick-qmlscene.html}{QML Scene} tool: to enable this,
-click on the "Debugging" menu, then "Slow Down Animations".
-
-
 \section1 Debugging module imports
 
 The \c QML_IMPORT_TRACE environment variable can be set to enable debug output
@@ -158,7 +150,7 @@ QQmlImportDatabase::resolveType "Rectangle" = "QDeclarativeRectangle"
 
 \section1 Debugging with Qt Creator
 
-\l{http://qt.nokia.com/products/developer-tools}{Qt Creator} provides built-in
+\l{http://qt-project.org/doc/qtcreator}{Qt Creator} provides built-in
 support for QML debugging. QML projects and standalone C++ applications that
 utilize QML can be debugged on desktops as well as on remote devices.
 For more information, see the Qt Creator Manual.

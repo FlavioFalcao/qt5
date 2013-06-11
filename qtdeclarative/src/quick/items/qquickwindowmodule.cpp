@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQuick module of the Qt Toolkit.
@@ -50,6 +50,8 @@ void QQuickWindowModule::defineModule()
     const char uri[] = "QtQuick.Window";
 
     qmlRegisterType<QQuickWindow>(uri, 2, 0, "Window");
+    qmlRegisterRevision<QWindow,1>(uri, 2, 1);
+    qmlRegisterType<QQuickWindow,1>(uri, 2, 1, "Window");
     qmlRegisterUncreatableType<QQuickScreen>(uri, 2, 0, "Screen", QStringLiteral("Screen can only be used via the attached property."));
 }
 

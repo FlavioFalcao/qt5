@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQuick module of the Qt Toolkit.
@@ -127,13 +127,12 @@ static const char vertexShaderCode[] =
     "#elif defined(DEFORM)\n"
     "        fTex = vPosTex.zw;\n"
     "#endif\n"
-#if !defined(Q_OS_BLACKBERRY)
     "        highp float currentSize = mix(vData.z, vData.w, t * t);\n"
+#if defined (Q_OS_BLACKBERRY)
+    "        highp float fade = 1.;\n"
 #else
-    "        highp float mixWorkaround = (vData.w - vData.z) * t * t;\n"
-    "        highp float currentSize = mixWorkaround + vData.z;\n"
-#endif
     "        lowp float fade = 1.;\n"
+#endif
     "        highp float fadeIn = min(t * 10., 1.);\n"
     "        highp float fadeOut = 1. - clamp((t - 0.75) * 4.,0., 1.);\n"
     "\n"
@@ -624,6 +623,22 @@ void fillUniformArrayFromImage(float* array, const QImage& img, int size)
     The source image to be used.
 
     If the image is a sprite animation, use the sprite property instead.
+
+    Since Qt 5.2, some default images are provided as resources to aid prototyping:
+    \table
+    \row
+    \li qrc:///particleresources/star.png
+    \li \inlineimage particles/star.png
+    \row
+    \li qrc:///particleresources/glowdot.png
+    \li \inlineimage particles/glowdot.png
+    \row
+    \li qrc:///particleresources/fuzzydot.png
+    \li \inlineimage particles/fuzzydot.png
+    \endtable
+
+    Note that the images are white and semi-transparent, to allow colorization
+    and alpha levels to have maximum effect.
 */
 /*!
     \qmlproperty list<Sprite> QtQuick.Particles2::ImageParticle::sprites
@@ -1362,6 +1377,15 @@ void QQuickImageParticle::finishBuildParticleNodes()
 #ifdef Q_OS_WIN
     if (perfLevel < Deformable) //QTBUG-24540 , point sprite 'extension' isn't working on windows.
         perfLevel = Deformable;
+#endif
+
+#ifdef Q_OS_MAC
+    // Mac OS X 10.8.3 introduced a bug in the AMD drivers, for at least the 2011 macbook pros,
+    // causing point sprites who read gl_PointCoord in the frag shader to come out as
+    // green-red blobs.
+    if (perfLevel < Deformable && strstr((char *) glGetString(GL_VENDOR), "ATI")) {
+        perfLevel = Deformable;
+    }
 #endif
 
     if (perfLevel >= Colored  && !m_color.isValid())

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -61,8 +61,6 @@
 
 #include <QtCore/QList>
 #include <QtCore/QUrl>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -519,7 +517,5 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QQmlScript::Object::ScriptBlock::Pragmas);
 QT_END_NAMESPACE
 
 Q_DECLARE_METATYPE(QQmlScript::Variant)
-
-QT_END_HEADER
 
 #endif // QQMLSCRIPT_P_H

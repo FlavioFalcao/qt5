@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -1014,6 +1014,6 @@ static bool initializeProviders()
     return true;
 }
 
-static bool initialized = initializeProviders();
+Q_CONSTRUCTOR_FUNCTION(initializeProviders)
 
 QT_END_NAMESPACE

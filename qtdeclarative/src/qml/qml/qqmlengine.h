@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -48,8 +48,6 @@
 #include <QtQml/qjsengine.h>
 #include <QtQml/qqmlerror.h>
 #include <QtQml/qqmldebug.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -144,6 +142,7 @@ public:
     static void setObjectOwnership(QObject *, ObjectOwnership);
     static ObjectOwnership objectOwnership(QObject *);
 protected:
+    QQmlEngine(QQmlEnginePrivate &dd, QObject *p);
     virtual bool event(QEvent *);
 
 Q_SIGNALS:
@@ -156,7 +155,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QQMLENGINE_H

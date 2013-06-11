@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the test suite of the Qt Toolkit.
@@ -46,8 +46,6 @@
 
 #include <QtQuick/qquickitem.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 class TestCase : public QQuickItem
@@ -88,7 +86,5 @@ Q_SIGNALS:
 QML_DECLARE_TYPE(TestCase)
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif

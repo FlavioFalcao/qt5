@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -110,7 +110,7 @@ public:
         , updateType(UpdatePaintNode)
         , mouseSelectionMode(QQuickTextInput::SelectCharacters)
         , m_layoutDirection(Qt::LayoutDirectionAuto)
-        , m_passwordCharacter(QLatin1Char('*'))
+        , m_passwordCharacter(qApp->styleHints()->passwordMaskCharacter())
         , focusOnPress(true)
         , cursorVisible(false)
         , cursorPending(false)
@@ -158,7 +158,7 @@ public:
 #endif
     void hideCursor();
     void showCursor();
-
+    void handleFocusEvent(QFocusEvent *event);
 
     struct MaskInputData {
         enum Casemode { NoCaseMode, Upper, Lower };

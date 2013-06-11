@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQuick module of the Qt Toolkit.
@@ -46,10 +46,11 @@
 #include <qpa/qplatformintegration.h>
 #include <QtGui/QGuiApplication>
 #include <QtCore/QDebug>
+#include <QtQml/private/qqmlglobal_p.h>
 
 QT_BEGIN_NAMESPACE
 
-class QQuickApplicationPrivate : public QObjectPrivate
+class QQuickApplicationPrivate : public QQmlApplicationPrivate
 {
     Q_DECLARE_PUBLIC(QQuickApplication)
 public:
@@ -70,7 +71,7 @@ private:
 */
 
 QQuickApplication::QQuickApplication(QObject *parent)
-    : QObject(*new QQuickApplicationPrivate(), parent)
+    : QQmlApplication(*new QQuickApplicationPrivate(), parent)
 {
     if (qApp) {
         qApp->installEventFilter(this);

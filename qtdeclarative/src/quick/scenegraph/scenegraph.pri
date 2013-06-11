@@ -6,6 +6,7 @@ HEADERS += \
     $$PWD/coreapi/qsggeometry.h \
     $$PWD/coreapi/qsgmaterial.h \
     $$PWD/coreapi/qsgnode.h \
+    $$PWD/coreapi/qsgnode_p.h \
     $$PWD/coreapi/qsgnodeupdater_p.h \
     $$PWD/coreapi/qsgrenderer_p.h \
     $$PWD/coreapi/qsgrendernode_p.h \
@@ -51,7 +52,6 @@ SOURCES += \
     $$PWD/util/qsgpainternode.cpp \
     $$PWD/util/qsgdistancefieldutil.cpp
 
-
 # QML / Adaptations API
 HEADERS += \
     $$PWD/qsgadaptationlayer_p.h \
@@ -65,7 +65,10 @@ HEADERS += \
     $$PWD/qsgdefaultimagenode_p.h \
     $$PWD/qsgdefaultrectanglenode_p.h \
     $$PWD/qsgflashnode_p.h \
-    $$PWD/qsgshareddistancefieldglyphcache_p.h
+    $$PWD/qsgshareddistancefieldglyphcache_p.h \
+    $$PWD/qsgrenderloop_p.h \
+    $$PWD/qsgthreadedrenderloop_p.h \
+    $$PWD/qsgwindowsrenderloop_p.h
 
 SOURCES += \
     $$PWD/qsgadaptationlayer.cpp \
@@ -79,11 +82,7 @@ SOURCES += \
     $$PWD/qsgdefaultimagenode.cpp \
     $$PWD/qsgdefaultrectanglenode.cpp \
     $$PWD/qsgflashnode.cpp \
-    $$PWD/qsgshareddistancefieldglyphcache.cpp
-
-
-
-
-
-
-
+    $$PWD/qsgshareddistancefieldglyphcache.cpp \
+    $$PWD/qsgrenderloop.cpp \
+    $$PWD/qsgthreadedrenderloop.cpp \
+    $$PWD/qsgwindowsrenderloop.cpp

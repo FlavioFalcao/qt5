@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -46,8 +46,6 @@
 #include <private/qv8engine_p.h>
 #include <QtCore/QThread>
 #include <QtGui/QImage>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -206,7 +204,5 @@ private:
 QT_END_NAMESPACE
 
 QML_DECLARE_TYPE(QQuickCanvasItem)
-
-QT_END_HEADER
 
 #endif //QQUICKCANVASITEM_P_H

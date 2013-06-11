@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -62,9 +62,8 @@
 #include <private/qv8domerrors_p.h>
 #include <QtCore/qnumeric.h>
 #include <private/qquickwindow_p.h>
-#include <private/qquickwindowmanager_p.h>
 
-#if defined(Q_OS_QNX) || defined(Q_OS_LINUX_ANDROID)
+#if defined(Q_OS_QNX) || defined(Q_OS_ANDROID)
 #include <ctype.h>
 #endif
 
@@ -283,7 +282,7 @@ QImage qt_image_convolute_filter(const QImage& src, const QVector<qreal>& weight
              for (int cx=0; cx<sides; cx++) {
                int scy = sy + cy - half;
                int scx = sx + cx - half;
-               if (scy >= 0 && scy < w && scx >= 0 && scx < h) {
+               if (scy >= 0 && scy < h && scx >= 0 && scx < w) {
                   const QRgb *sr = (const QRgb*)(src.constScanLine(scy));
                   const unsigned char* sRgb = ((const unsigned char*)&sr[scx]);
                   qreal wt = radius ? weights[0] : weights[cy*sides+cx];
@@ -714,7 +713,7 @@ static v8::Handle<v8::Value> ctx2d_shear(const v8::Arguments &args)
 
 /*!
     \qmlproperty real QtQuick2::Context2D::globalAlpha
-     Holds the the current alpha value applied to rendering operations.
+     Holds the current alpha value applied to rendering operations.
      The value must be in the range from 0.0 (fully transparent) to 1.0 (fully opque).
      The default value is 1.0.
 */
@@ -744,7 +743,7 @@ static void ctx2d_globalAlpha_set(v8::Local<v8::String>, v8::Local<v8::Value> va
 
 /*!
     \qmlproperty string QtQuick2::Context2D::globalCompositeOperation
-     Holds the the current the current composition operation, from the list below:
+     Holds the current the current composition operation, from the list below:
      \list
      \li source-atop      - A atop B. Display the source image wherever both images are opaque.
                            Display the destination image wherever the destination image is opaque but the source image is transparent.
@@ -1239,7 +1238,7 @@ static v8::Handle<v8::Value> ctx2d_createPattern(const v8::Arguments &args)
 // line styles
 /*!
     \qmlproperty string QtQuick2::Context2D::lineCap
-     Holds the the current line cap style.
+     Holds the current line cap style.
      The possible line cap styles are:
     \list
     \li butt - the end of each line has a flat edge perpendicular to the direction of the line, this is the default line cap value.
@@ -1294,7 +1293,7 @@ static void ctx2d_lineCap_set(v8::Local<v8::String>, v8::Local<v8::Value> value,
 
 /*!
     \qmlproperty string QtQuick2::Context2D::lineJoin
-     Holds the the current line join style. A join exists at any point in a subpath
+     Holds the current line join style. A join exists at any point in a subpath
      shared by two consecutive lines. When a subpath is closed, then a join also exists
      at its first point (equivalent to its last point) connecting the first and last lines in the subpath.
 
@@ -1352,7 +1351,7 @@ static void ctx2d_lineJoin_set(v8::Local<v8::String>, v8::Local<v8::Value> value
 
 /*!
     \qmlproperty real QtQuick2::Context2D::lineWidth
-     Holds the the current line width. Values that are not finite values greater than zero are ignored.
+     Holds the current line width. Values that are not finite values greater than zero are ignored.
  */
 v8::Handle<v8::Value> ctx2d_lineWidth(v8::Local<v8::String>, const v8::AccessorInfo &info)
 {
@@ -2513,7 +2512,7 @@ v8::Handle<v8::Value> ctx2d_pixelArray_indexed_set(uint32_t index, v8::Local<v8:
     QV8Context2DPixelArrayResource *r = v8_resource_cast<QV8Context2DPixelArrayResource>(info.This());
 
     const int v = value->Uint32Value();
-    if (r && index < static_cast<quint32>(r->image.width() * r->image.height() * 4) && v > 0 && v <= 255) {
+    if (r && index < static_cast<quint32>(r->image.width() * r->image.height() * 4) && v >= 0 && v <= 255) {
         const quint32 w = r->image.width();
         const quint32 row = (index / 4) / w;
         const quint32 col = (index / 4) % w;
@@ -3348,7 +3347,6 @@ QQuickContext2D::QQuickContext2D(QObject *parent)
     : QQuickCanvasContext(parent)
     , m_buffer(new QQuickContext2DCommandBuffer)
     , m_v8engine(0)
-    , m_windowManager(0)
     , m_surface(0)
     , m_glContext(0)
     , m_thread(0)
@@ -3380,7 +3378,6 @@ void QQuickContext2D::init(QQuickCanvasItem *canvasItem, const QVariantMap &args
     m_renderTarget = canvasItem->renderTarget();
 
     QQuickWindow *window = canvasItem->window();
-    m_windowManager =  QQuickWindowPrivate::get(window)->windowManager;
     m_renderStrategy = canvasItem->renderStrategy();
 
     switch (m_renderTarget) {
@@ -3460,7 +3457,7 @@ QImage QQuickContext2D::toImage(const QRectF& bounds)
     if (m_texture->thread() == QThread::currentThread())
         m_texture->grabImage(bounds);
     else if (m_renderStrategy == QQuickCanvasItem::Cooperative) {
-        qWarning() << "Pixel read back is not support in Cooperative mode, please try Theaded or Immediate mode";
+        qWarning() << "Pixel readback is not supported in Cooperative mode, please try Threaded or Immediate mode";
         return QImage();
     } else {
         QMetaObject::invokeMethod(m_texture,
@@ -3482,7 +3479,7 @@ QQuickContext2DEngineData::QQuickContext2DEngineData(QV8Engine *engine)
 
     v8::Local<v8::FunctionTemplate> ft = v8::FunctionTemplate::New();
     ft->InstanceTemplate()->SetHasExternalResource(true);
-    ft->PrototypeTemplate()->SetAccessor(v8::String::New("canvas"), ctx2d_canvas, 0, v8::External::Wrap(engine));
+    ft->PrototypeTemplate()->SetAccessor(v8::String::New("canvas"), ctx2d_canvas, 0, v8::External::New(engine));
     ft->PrototypeTemplate()->Set(v8::String::New("restore"), V8FUNCTION(ctx2d_restore, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("reset"), V8FUNCTION(ctx2d_reset, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("save"), V8FUNCTION(ctx2d_save, engine));
@@ -3493,24 +3490,24 @@ QQuickContext2DEngineData::QQuickContext2DEngineData(QV8Engine *engine)
     ft->PrototypeTemplate()->Set(v8::String::New("transform"), V8FUNCTION(ctx2d_transform, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("translate"), V8FUNCTION(ctx2d_translate, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("shear"), V8FUNCTION(ctx2d_shear, engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("globalAlpha"), ctx2d_globalAlpha, ctx2d_globalAlpha_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("globalCompositeOperation"), ctx2d_globalCompositeOperation, ctx2d_globalCompositeOperation_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("fillRule"), ctx2d_fillRule, ctx2d_fillRule_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("fillStyle"), ctx2d_fillStyle, ctx2d_fillStyle_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("strokeStyle"), ctx2d_strokeStyle, ctx2d_strokeStyle_set, v8::External::Wrap(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("globalAlpha"), ctx2d_globalAlpha, ctx2d_globalAlpha_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("globalCompositeOperation"), ctx2d_globalCompositeOperation, ctx2d_globalCompositeOperation_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("fillRule"), ctx2d_fillRule, ctx2d_fillRule_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("fillStyle"), ctx2d_fillStyle, ctx2d_fillStyle_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("strokeStyle"), ctx2d_strokeStyle, ctx2d_strokeStyle_set, v8::External::New(engine));
     ft->PrototypeTemplate()->Set(v8::String::New("createLinearGradient"), V8FUNCTION(ctx2d_createLinearGradient, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("createRadialGradient"), V8FUNCTION(ctx2d_createRadialGradient, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("createConicalGradient"), V8FUNCTION(ctx2d_createConicalGradient, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("createPattern"), V8FUNCTION(ctx2d_createPattern, engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("lineCap"), ctx2d_lineCap, ctx2d_lineCap_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("lineJoin"), ctx2d_lineJoin, ctx2d_lineJoin_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("lineWidth"), ctx2d_lineWidth, ctx2d_lineWidth_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("miterLimit"), ctx2d_miterLimit, ctx2d_miterLimit_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("shadowBlur"), ctx2d_shadowBlur, ctx2d_shadowBlur_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("shadowColor"), ctx2d_shadowColor, ctx2d_shadowColor_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("shadowOffsetX"), ctx2d_shadowOffsetX, ctx2d_shadowOffsetX_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("shadowOffsetY"), ctx2d_shadowOffsetY, ctx2d_shadowOffsetY_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("path"), ctx2d_path, ctx2d_path_set, v8::External::Wrap(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("lineCap"), ctx2d_lineCap, ctx2d_lineCap_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("lineJoin"), ctx2d_lineJoin, ctx2d_lineJoin_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("lineWidth"), ctx2d_lineWidth, ctx2d_lineWidth_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("miterLimit"), ctx2d_miterLimit, ctx2d_miterLimit_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("shadowBlur"), ctx2d_shadowBlur, ctx2d_shadowBlur_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("shadowColor"), ctx2d_shadowColor, ctx2d_shadowColor_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("shadowOffsetX"), ctx2d_shadowOffsetX, ctx2d_shadowOffsetX_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("shadowOffsetY"), ctx2d_shadowOffsetY, ctx2d_shadowOffsetY_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("path"), ctx2d_path, ctx2d_path_set, v8::External::New(engine));
     ft->PrototypeTemplate()->Set(v8::String::New("clearRect"), V8FUNCTION(ctx2d_clearRect, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("fillRect"), V8FUNCTION(ctx2d_fillRect, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("strokeRect"), V8FUNCTION(ctx2d_strokeRect, engine));
@@ -3533,9 +3530,9 @@ QQuickContext2DEngineData::QQuickContext2DEngineData(QV8Engine *engine)
     ft->PrototypeTemplate()->Set(v8::String::New("drawFocusRing"), V8FUNCTION(ctx2d_drawFocusRing, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("caretBlinkRate"), V8FUNCTION(ctx2d_caretBlinkRate, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("setCaretSelectionRect"), V8FUNCTION(ctx2d_setCaretSelectionRect, engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("font"), ctx2d_font, ctx2d_font_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("textAlign"), ctx2d_textAlign, ctx2d_textAlign_set, v8::External::Wrap(engine));
-    ft->InstanceTemplate()->SetAccessor(v8::String::New("textBaseline"), ctx2d_textBaseline, ctx2d_textBaseline_set, v8::External::Wrap(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("font"), ctx2d_font, ctx2d_font_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("textAlign"), ctx2d_textAlign, ctx2d_textAlign_set, v8::External::New(engine));
+    ft->InstanceTemplate()->SetAccessor(v8::String::New("textBaseline"), ctx2d_textBaseline, ctx2d_textBaseline_set, v8::External::New(engine));
     ft->PrototypeTemplate()->Set(v8::String::New("fillText"), V8FUNCTION(ctx2d_fillText, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("measureText"), V8FUNCTION(ctx2d_measureText, engine));
     ft->PrototypeTemplate()->Set(v8::String::New("strokeText"), V8FUNCTION(ctx2d_strokeText, engine));
@@ -3557,14 +3554,14 @@ QQuickContext2DEngineData::QQuickContext2DEngineData(QV8Engine *engine)
 
     v8::Local<v8::FunctionTemplate> ftPixelArray = v8::FunctionTemplate::New();
     ftPixelArray->InstanceTemplate()->SetHasExternalResource(true);
-    ftPixelArray->InstanceTemplate()->SetAccessor(v8::String::New("length"), ctx2d_pixelArray_length, 0, v8::External::Wrap(engine));
-    ftPixelArray->InstanceTemplate()->SetIndexedPropertyHandler(ctx2d_pixelArray_indexed, ctx2d_pixelArray_indexed_set, 0, 0, 0, v8::External::Wrap(engine));
+    ftPixelArray->InstanceTemplate()->SetAccessor(v8::String::New("length"), ctx2d_pixelArray_length, 0, v8::External::New(engine));
+    ftPixelArray->InstanceTemplate()->SetIndexedPropertyHandler(ctx2d_pixelArray_indexed, ctx2d_pixelArray_indexed_set, 0, 0, 0, v8::External::New(engine));
     constructorPixelArray = qPersistentNew(ftPixelArray->GetFunction());
 
     v8::Local<v8::FunctionTemplate> ftImageData = v8::FunctionTemplate::New();
-    ftImageData->InstanceTemplate()->SetAccessor(v8::String::New("width"), ctx2d_imageData_width, 0, v8::External::Wrap(engine));
-    ftImageData->InstanceTemplate()->SetAccessor(v8::String::New("height"), ctx2d_imageData_height, 0, v8::External::Wrap(engine));
-    ftImageData->InstanceTemplate()->SetAccessor(v8::String::New("data"), ctx2d_imageData_data, 0, v8::External::Wrap(engine));
+    ftImageData->InstanceTemplate()->SetAccessor(v8::String::New("width"), ctx2d_imageData_width, 0, v8::External::New(engine));
+    ftImageData->InstanceTemplate()->SetAccessor(v8::String::New("height"), ctx2d_imageData_height, 0, v8::External::New(engine));
+    ftImageData->InstanceTemplate()->SetAccessor(v8::String::New("data"), ctx2d_imageData_data, 0, v8::External::New(engine));
     ftImageData->InstanceTemplate()->SetInternalFieldCount(1);
     constructorImageData = qPersistentNew(ftImageData->GetFunction());
 }

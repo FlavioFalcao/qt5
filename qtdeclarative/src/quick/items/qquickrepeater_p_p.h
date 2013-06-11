@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -61,7 +61,7 @@
 QT_BEGIN_NAMESPACE
 
 class QQmlContext;
-class QQuickVisualModel;
+class QQmlInstanceModel;
 class QQuickRepeaterPrivate : public QQuickItemPrivate
 {
     Q_DECLARE_PUBLIC(QQuickRepeater)
@@ -73,12 +73,13 @@ public:
 private:
     void createItems();
 
-    QQuickVisualModel *model;
+    QPointer<QQmlInstanceModel> model;
     QVariant dataSource;
     QQmlGuard<QObject> dataSourceAsObject;
     bool ownModel : 1;
     bool inRequest : 1;
     bool dataSourceIsObject : 1;
+    bool delegateValidated : 1;
     int itemCount;
     int createFrom;
 

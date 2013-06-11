@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -60,8 +60,6 @@
 
 #include <QtCore/qbytearray.h>
 #include <QtCore/qxmlstream.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -162,7 +160,5 @@ QT_END_NAMESPACE
 
 Q_DECLARE_METATYPE(QQmlCustomParserProperty)
 Q_DECLARE_METATYPE(QQmlCustomParserNode)
-
-QT_END_HEADER
 
 #endif

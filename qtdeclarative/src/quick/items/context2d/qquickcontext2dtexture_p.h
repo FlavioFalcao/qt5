@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -52,8 +52,6 @@
 #include <QtCore/QMutex>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QThread>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -179,8 +177,6 @@ private:
     QPainter m_painter;
     QSGPlainTexture*  m_texture;
 };
-
-QT_END_HEADER
 
 QT_END_NAMESPACE
 

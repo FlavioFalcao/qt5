@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -60,9 +60,8 @@ QT_BEGIN_NAMESPACE
 
 
 
-#define QSG_RENDERER_TIMING
-#ifdef QSG_RENDERER_TIMING
-static bool qsg_render_timing = !qgetenv("QML_RENDERER_TIMING").isEmpty();
+#ifndef QSG_NO_RENDER_TIMING
+static bool qsg_render_timing = !qgetenv("QSG_RENDER_TIMING").isEmpty();
 static QTime frameTimer;
 static int preprocessTime;
 static int updatePassTime;
@@ -138,6 +137,7 @@ QSGRenderer::QSGRenderer(QSGContext *context)
     , m_clear_mode(ClearColorBuffer | ClearDepthBuffer)
     , m_current_opacity(1)
     , m_current_determinant(1)
+    , m_device_pixel_ratio(1)
     , m_current_stencil_value(0)
     , m_context(context)
     , m_root_node(0)
@@ -237,7 +237,7 @@ void QSGRenderer::renderScene(const QSGBindable &bindable)
     m_is_rendering = true;
 
 
-#ifdef QSG_RENDERER_TIMING
+#ifndef QSG_NO_RENDER_TIMING
     if (qsg_render_timing)
         frameTimer.start();
     int bindTime = 0;
@@ -248,7 +248,7 @@ void QSGRenderer::renderScene(const QSGBindable &bindable)
     preprocess();
 
     bindable.bind();
-#ifdef QSG_RENDERER_TIMING
+#ifndef QSG_NO_RENDER_TIMING
     if (qsg_render_timing)
         bindTime = frameTimer.elapsed();
 #endif
@@ -269,7 +269,7 @@ void QSGRenderer::renderScene(const QSGBindable &bindable)
 #endif
 
     render();
-#ifdef QSG_RENDERER_TIMING
+#ifndef QSG_NO_RENDER_TIMING
     if (qsg_render_timing)
         renderTime = frameTimer.elapsed();
 #endif
@@ -289,9 +289,9 @@ void QSGRenderer::renderScene(const QSGBindable &bindable)
         m_index_buffer_bound = false;
     }
 
-#ifdef QSG_RENDERER_TIMING
+#ifndef QSG_NO_RENDER_TIMING
     if (qsg_render_timing) {
-        printf(" - Breakdown of frametime: preprocess=%d, updates=%d, binding=%d, render=%d, total=%d\n",
+        printf(" - Breakdown of render time: preprocess=%d, updates=%d, binding=%d, render=%d, total=%d\n",
                preprocessTime,
                updatePassTime - preprocessTime,
                bindTime - updatePassTime,
@@ -379,7 +379,7 @@ void QSGRenderer::preprocess()
         }
     }
 
-#ifdef QSG_RENDERER_TIMING
+#ifndef QSG_NO_RENDER_TIMING
     if (qsg_render_timing)
         preprocessTime = frameTimer.elapsed();
 #endif
@@ -387,7 +387,7 @@ void QSGRenderer::preprocess()
     nodeUpdater()->setToplevelOpacity(context()->renderAlpha());
     nodeUpdater()->updateStates(m_root_node);
 
-#ifdef QSG_RENDERER_TIMING
+#ifndef QSG_NO_RENDER_TIMING
     if (qsg_render_timing)
         updatePassTime = frameTimer.elapsed();
 #endif

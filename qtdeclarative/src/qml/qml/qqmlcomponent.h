@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -48,8 +48,6 @@
 #include <QtCore/qobject.h>
 #include <QtCore/qstring.h>
 #include <QtQml/qjsvalue.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -138,7 +136,5 @@ QT_END_NAMESPACE
 Q_DECLARE_METATYPE(QQmlComponent::Status)
 QML_DECLARE_TYPE(QQmlComponent)
 QML_DECLARE_TYPEINFO(QQmlComponent, QML_HAS_ATTACHED_PROPERTIES)
-
-QT_END_HEADER
 
 #endif // QQMLCOMPONENT_H

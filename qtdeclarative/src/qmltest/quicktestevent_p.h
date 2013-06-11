@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the test suite of the Qt Toolkit.
@@ -58,6 +58,10 @@ public Q_SLOTS:
     bool keyPress(int key, int modifiers, int delay);
     bool keyRelease(int key, int modifiers, int delay);
     bool keyClick(int key, int modifiers, int delay);
+
+    bool keyPressChar(const QString &character, int modifiers, int delay);
+    bool keyReleaseChar(const QString &character, int modifiers, int delay);
+    bool keyClickChar(const QString &character, int modifiers, int delay);
 
     bool mousePress(QObject *item, qreal x, qreal y, int button,
                     int modifiers, int delay);

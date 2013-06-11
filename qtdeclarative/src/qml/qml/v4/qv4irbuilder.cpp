@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -358,7 +358,19 @@ bool QV4IRBuilder::visit(AST::StatementSourceElement *)
 }
 
 // object literals
-bool QV4IRBuilder::visit(AST::PropertyNameAndValueList *)
+bool QV4IRBuilder::visit(AST::PropertyAssignmentList *)
+{
+    Q_ASSERT(!"unreachable");
+    return false;
+}
+
+bool QV4IRBuilder::visit(AST::PropertyNameAndValue *)
+{
+    Q_ASSERT(!"unreachable");
+    return false;
+}
+
+bool QV4IRBuilder::visit(AST::PropertyGetterSetter *)
 {
     Q_ASSERT(!"unreachable");
     return false;

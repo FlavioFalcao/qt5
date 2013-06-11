@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -39,13 +39,11 @@
 **
 ****************************************************************************/
 
-#ifndef SOLIDRECTNODE_H
-#define SOLIDRECTNODE_H
+#ifndef QSGSIMPLERECTNODE_H
+#define QSGSIMPLERECTNODE_H
 
 #include <QtQuick/qsgnode.h>
 #include <QtQuick/qsgflatcolormaterial.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -69,7 +67,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // SOLIDRECTNODE_H

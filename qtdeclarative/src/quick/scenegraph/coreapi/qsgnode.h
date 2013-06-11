@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -39,15 +39,13 @@
 **
 ****************************************************************************/
 
-#ifndef NODE_H
-#define NODE_H
+#ifndef QSGNODE_H
+#define QSGNODE_H
 
 #include <QtQuick/qsggeometry.h>
 #include <QtGui/QMatrix4x4>
 
 #include <float.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -60,6 +58,9 @@ class QSGRootNode;
 class QSGGeometryNode;
 class QSGTransformNode;
 class QSGClipNode;
+class QSGNodePrivate;
+class QSGBasicGeometryNodePrivate;
+class QSGGeometryNodePrivate;
 
 class Q_QUICK_EXPORT QSGNode
 {
@@ -151,6 +152,7 @@ public:
 
 protected:
     QSGNode(NodeType type);
+    QSGNode(QSGNodePrivate &dd, NodeType type);
 
 private:
     friend class QSGRootNode;
@@ -169,7 +171,8 @@ private:
     Flags m_nodeFlags;
     DirtyState m_dirtyState;
 
-    void *m_reserved;
+protected:
+    QScopedPointer<QSGNodePrivate> d_ptr;
 };
 
 class Q_QUICK_EXPORT QSGBasicGeometryNode : public QSGNode
@@ -186,6 +189,7 @@ public:
 
 protected:
     QSGBasicGeometryNode(NodeType type);
+    QSGBasicGeometryNode(QSGBasicGeometryNodePrivate &dd, NodeType type);
 
 private:
     friend class QSGNodeUpdater;
@@ -219,6 +223,9 @@ public:
 
     void setInheritedOpacity(qreal opacity);
     qreal inheritedOpacity() const { return m_opacity; }
+
+protected:
+    QSGGeometryNode(QSGGeometryNodePrivate &dd);
 
 private:
     friend class QSGNodeUpdater;
@@ -335,6 +342,4 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QSGNode::Flags)
 
 QT_END_NAMESPACE
 
-QT_END_HEADER
-
-#endif // NODE_H
+#endif // QSGNODE_H

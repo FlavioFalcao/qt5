@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -42,7 +42,7 @@ to be arranged in a regular layout.
 \section1 Positioners
 
 A set of standard positioners are provided in the basic set of Qt Quick
-graphical elements:
+graphical types:
 
 \generatelist{related}
 

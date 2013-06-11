@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -57,8 +57,6 @@
 // We mean it.
 //
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -72,8 +70,6 @@ public:
     ~QQmlDebugServer();
 
     static QQmlDebugServer *instance();
-
-    void setConnection(QQmlDebugServerConnection *connection);
 
     bool hasDebuggingClient() const;
     bool blockingMode() const;
@@ -103,7 +99,5 @@ public:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QQMLDEBUGSERVICE_H

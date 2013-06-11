@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -45,8 +45,6 @@
 #include "qquickimplicitsizeitem_p.h"
 #include <QtGui/qtextoption.h>
 #include <QtGui/qvalidator.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -334,9 +332,9 @@ protected:
 #endif
     void mouseUngrabEvent();
     bool event(QEvent *e);
+    void focusOutEvent(QFocusEvent *event);
     void focusInEvent(QFocusEvent *event);
     void timerEvent(QTimerEvent *event);
-    virtual void itemChange(ItemChange, const ItemChangeData &);
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data);
 
 public Q_SLOTS:
@@ -414,7 +412,5 @@ QML_DECLARE_TYPE(QQuickIntValidator)
 QML_DECLARE_TYPE(QQuickDoubleValidator)
 QML_DECLARE_TYPE(QRegExpValidator)
 #endif
-
-QT_END_HEADER
 
 #endif // QQUICKTEXTINPUT_P_H

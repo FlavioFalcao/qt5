@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the test suite of the Qt Toolkit.
@@ -80,6 +80,36 @@ bool QuickTestEvent::keyClick(int key, int modifiers, int delay)
     if (!window)
         return false;
     QTest::keyClick(window, Qt::Key(key), Qt::KeyboardModifiers(modifiers), delay);
+    return true;
+}
+
+bool QuickTestEvent::keyPressChar(const QString &character, int modifiers, int delay)
+{
+    QTEST_ASSERT(character.length() == 1);
+    QWindow *window = eventWindow();
+    if (!window)
+        return false;
+    QTest::keyPress(window, character[0].toLatin1(), Qt::KeyboardModifiers(modifiers), delay);
+    return true;
+}
+
+bool QuickTestEvent::keyReleaseChar(const QString &character, int modifiers, int delay)
+{
+    QTEST_ASSERT(character.length() == 1);
+    QWindow *window = eventWindow();
+    if (!window)
+        return false;
+    QTest::keyRelease(window, character[0].toLatin1(), Qt::KeyboardModifiers(modifiers), delay);
+    return true;
+}
+
+bool QuickTestEvent::keyClickChar(const QString &character, int modifiers, int delay)
+{
+    QTEST_ASSERT(character.length() == 1);
+    QWindow *window = eventWindow();
+    if (!window)
+        return false;
+    QTest::keyClick(window, character[0].toLatin1(), Qt::KeyboardModifiers(modifiers), delay);
     return true;
 }
 

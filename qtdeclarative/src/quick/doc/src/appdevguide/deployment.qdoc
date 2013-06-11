@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -28,13 +28,13 @@
 /*!
 \page qtquick-deployment.html
 \title Deploying QML Applications
-\brief process of deploying QML applications
+\brief Deploying QML applications
 
 
 
 QML documents are loaded and executed by the QML runtime. This includes the
-Declarative UI engine along with the built-in QML elements and plugin modules,
-and it also provides access to third-party QML elements and modules.
+Declarative UI engine along with the built-in QML types and plugin modules,
+and it also provides access to third-party QML types and modules.
 
 Applications that use QML need to invoke the QML runtime in order to
 execute QML documents. This can be done by creating a QQuickView
@@ -60,7 +60,8 @@ QQmlEngine by either:
 \section2 Deploying with QQuickView
 
 QQuickView is a QWindow-based class that is able to load QML files.
-For example, if there is a QML file, \c application.qml, like this:
+For example, if there is a QML file, \c application.qml, it will
+look like this:
 
 \qml
     import QtQuick 2.0
@@ -130,7 +131,7 @@ loaded as a QQmlComponent instance rather than placed into a view:
 
 QGuiApplication can be replaced by a QCoreApplication in the code above in case you are not
 using any graphical items from Qt Quick. This allows using QML as a language without any
-dependencies to the Qt Gui module.
+dependencies to the \l {Qt GUI} module.
 
 See \l{qtqml-cppintegration-data.html}{qtqml-cppintegration-exposecppattributes.html}{Exposing Attributes of C++ Types to QML}
 for more information about using QQmlEngine, QQmlContext and QQmlComponent, as well
@@ -189,23 +190,23 @@ project
 The \c main.qml and \c background.png files will be packaged as resource files. This is
 done in the \c example.qrc resource collection file:
 
-\quotefile qml/qtbinding/resources/example.qrc
+\snippet ../src/qml/doc/snippets/qml/qtbinding/resources/example.qdoc 0
 
 Since \c background.png is a resource file, \c main.qml can refer to it using the relative
 path specified in \c example.qrc:
 
-\snippet qml/qtbinding/resources/main.qml 0
+\snippet ../src/qml/doc/snippets/qml/qtbinding/resources/main.qml 0
 
 To allow QML to locate resource files correctly, the \c main.cpp loads the main QML
 file, \c main.qml, as a resource file using the \c qrc scheme:
 
-\snippet qml/qtbinding/resources/main.cpp 0
+\snippet ../src/qml/doc/snippets/qml/qtbinding/resources/main.cpp 0
 
-Finally \c project.pro uses the RESOURCES variable to indicate that \c example.qrc should
+Finally, \c project.pro uses the RESOURCES variable to indicate that \c example.qrc should
 be used to build the application resources:
 
-\quotefile qml/qtbinding/resources/resources.pro
+\quotefile ../src/qml/doc/snippets/qml/qtbinding/resources/resources.pro
 
 See \l {The Qt Resource System} for more information.
 
-
+*/

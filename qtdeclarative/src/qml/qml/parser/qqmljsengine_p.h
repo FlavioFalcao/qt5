@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -57,8 +57,8 @@
 #include "qqmljsastfwd_p.h"
 #include "qqmljsmemorypool_p.h"
 
-#include <QString>
-#include <QSet>
+#include <QtCore/qstring.h>
+#include <QtCore/qset.h>
 
 QT_QML_BEGIN_NAMESPACE
 

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the test suite of the Qt Toolkit.
@@ -344,7 +344,7 @@ int quick_test_main(int argc, char **argv, const char *name, const char *sourceD
                 rootobj.setWindowShown(true);
             if (!rootobj.hasQuit && rootobj.hasTestCase())
                 eventLoop.exec();
-            // view->hide(); Causes a crash in Qt3D due to deletion of the GL context, see QTBUG-27696
+            // view->hide(); Causes a crash in Qt 3D due to deletion of the GL context, see QTBUG-27696
         }
     }
 

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -303,7 +303,7 @@ class Q_AUTOTEST_EXPORT QQuickAnimationPropertyUpdater : public QQuickBulkValueU
 {
 public:
     QQuickAnimationPropertyUpdater() : interpolatorType(0), interpolator(0), prevInterpolatorType(0), reverse(false), fromSourced(false), fromDefined(false), wasDeleted(0) {}
-    ~QQuickAnimationPropertyUpdater() { if (wasDeleted) *wasDeleted = true; }
+    ~QQuickAnimationPropertyUpdater();
 
     void setValue(qreal v);
 

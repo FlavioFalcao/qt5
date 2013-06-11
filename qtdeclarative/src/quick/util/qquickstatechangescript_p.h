@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -45,8 +45,6 @@
 #include "qquickstate_p.h"
 #include <qqmlscriptstring.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 class QQuickStateChangeScriptPrivate;
@@ -79,7 +77,5 @@ public:
 QT_END_NAMESPACE
 
 QML_DECLARE_TYPE(QQuickStateChangeScript)
-
-QT_END_HEADER
 
 #endif // QQUICKSTATEOPERATIONS_H

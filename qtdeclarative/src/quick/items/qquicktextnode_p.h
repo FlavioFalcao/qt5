@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -49,6 +49,7 @@
 #include <QtGui/qcolor.h>
 #include <QtGui/qtextlayout.h>
 #include <QtCore/qvarlengtharray.h>
+#include <QtCore/qscopedpointer.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -61,6 +62,8 @@ class QRawFont;
 class QSGSimpleRectNode;
 class QSGClipNode;
 class QSGTexture;
+
+class QQuickTextNodeEngine;
 
 class QQuickTextNode : public QSGTransformNode
 {
@@ -104,13 +107,17 @@ public:
     void setUseNativeRenderer(bool on) { m_useNativeRenderer = on; }
 
 private:
-    void mergeFormats(QTextLayout *textLayout, QVarLengthArray<QTextLayout::FormatRange> *mergedFormats);
+    void initEngine(const QColor &textColor, const QColor &selectedTextColor, const QColor &selectionColor, const QColor& anchorColor = QColor()
+            , const QPointF &position = QPointF());
 
     QSGContext *m_context;
     QSGSimpleRectNode *m_cursorNode;
     QList<QSGTexture *> m_textures;
     QQuickItem *m_ownerElement;
     bool m_useNativeRenderer;
+    QScopedPointer<QQuickTextNodeEngine> m_engine;
+
+    friend class QQuickTextEdit;
 };
 
 QT_END_NAMESPACE

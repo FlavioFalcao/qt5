@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -84,7 +84,7 @@ QT_BEGIN_NAMESPACE
     }
     \endcode
 
-    The QtQuick 1.0 version of this class is named QDeclarativeParserStatus.
+    The \l {Qt Quick 1} version of this class is named QDeclarativeParserStatus.
 */
 
 /*! \internal */

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -112,7 +112,7 @@ property.write(24);
 qWarning() << "Pixel size should now be 24:" << property.read().toInt();
 \endcode
 
-The QtQuick 1 version of this class was named QDeclarativeProperty.
+The \l {Qt Quick 1} version of this class was named QDeclarativeProperty.
 */
 
 /*!
@@ -1555,10 +1555,10 @@ bool QQmlPropertyPrivate::writeBinding(QObject *object,
             // we explicitly disallow this case to avoid confusion.  Users can still store one
             // in an array in a var property if they need to, but the common case is user error.
             expression->delayedError()->setErrorDescription(QLatin1String("Invalid use of Qt.binding() in a binding declaration."));
+            expression->delayedError()->setErrorObject(object);
             return false;
         }
 
-        typedef QQmlVMEMetaObject VMEMO;
         QQmlVMEMetaObject *vmemo = QQmlVMEMetaObject::get(object);
         Q_ASSERT(vmemo);
         vmemo->setVMEProperty(core.coreIndex, result);
@@ -1571,6 +1571,7 @@ bool QQmlPropertyPrivate::writeBinding(QObject *object,
         if (!result.IsEmpty() && result->IsFunction()
                 && !result->ToObject()->GetHiddenValue(v8engine->bindingFlagKey()).IsEmpty()) {
             expression->delayedError()->setErrorDescription(QLatin1String("Invalid use of Qt.binding() in a binding declaration."));
+            expression->delayedError()->setErrorObject(object);
             return false;
         }
         writeValueProperty(object, core, QVariant::fromValue(v8engine->scriptValueFromInternal(result)), context, flags);
@@ -1581,12 +1582,14 @@ bool QQmlPropertyPrivate::writeBinding(QObject *object,
         else
             errorStr += QLatin1String(QMetaType::typeName(type));
         expression->delayedError()->setErrorDescription(errorStr);
+        expression->delayedError()->setErrorObject(object);
         return false;
     } else if (result->IsFunction()) {
         if (!result->ToObject()->GetHiddenValue(v8engine->bindingFlagKey()).IsEmpty())
             expression->delayedError()->setErrorDescription(QLatin1String("Invalid use of Qt.binding() in a binding declaration."));
         else
             expression->delayedError()->setErrorDescription(QLatin1String("Unable to assign a function to a property of any type other than var."));
+        expression->delayedError()->setErrorObject(object);
         return false;
     } else if (!writeValueProperty(object, core, value, context, flags)) {
 
@@ -1619,6 +1622,7 @@ bool QQmlPropertyPrivate::writeBinding(QObject *object,
                                                         QLatin1String(valueType) +
                                                         QLatin1String(" to ") +
                                                         QLatin1String(propertyType));
+        expression->delayedError()->setErrorObject(object);
         return false;
     }
 

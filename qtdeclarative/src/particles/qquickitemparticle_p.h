@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQuick module of the Qt Toolkit.
@@ -45,8 +45,6 @@
 #include <QPointer>
 #include <QSet>
 #include <private/qquickanimation_p_p.h>
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 class QQuickVisualDataModel;
@@ -137,5 +135,4 @@ QT_END_NAMESPACE
 
 QML_DECLARE_TYPEINFO(QQuickItemParticle, QML_HAS_ATTACHED_PROPERTIES)
 
-QT_END_HEADER
 #endif // ITEMPARTICLE_H

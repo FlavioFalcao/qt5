@@ -1,7 +1,7 @@
 
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -338,6 +338,9 @@ void QSGDefaultRectangleNode::update()
         updateGeometry();
         m_dirty_geometry = false;
     }
+    m_material.setFlag(QSGMaterial::Blending, (m_gradient_stops.size() > 0 && !m_gradient_is_opaque)
+                                               || m_color.alpha() < 255
+                                               || (m_pen_width > 0 && m_border_color.alpha() < 255));
 }
 
 void QSGDefaultRectangleNode::updateGeometry()

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -40,6 +40,7 @@
 ****************************************************************************/
 
 #include "qsgnode.h"
+#include "qsgnode_p.h"
 #include "qsgrenderer_p.h"
 #include "qsgnodeupdater_p.h"
 #include "qsgmaterial.h"
@@ -49,6 +50,7 @@
 QT_BEGIN_NAMESPACE
 
 #ifndef QT_NO_DEBUG
+static bool qsg_leak_check = !qgetenv("QML_LEAK_CHECK").isEmpty();
 static int qt_node_count = 0;
 
 static void qt_print_node_count()
@@ -59,10 +61,19 @@ static void qt_print_node_count()
 #endif
 
 /*!
+    \group qtquick-scenegraph-nodes
+    \title Qt Quick Scene Graph Node classes
+    \brief Nodes that can be used as part of the scene graph.
+
+    This page lists the nodes in \l {Qt Quick}'s \l {scene graph}{Qt Quick Scene Graph}.
+ */
+
+/*!
     \class QSGNode
     \brief The QSGNode class is the base class for all nodes in the scene graph.
 
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-nodes
 
     The QSGNode class can be used as a child container. Children are added with
     the appendChildNode(), prependChildNode(), insertChildNodeBefore() and
@@ -257,16 +268,38 @@ QSGNode::QSGNode(NodeType type)
 }
 
 /*!
+ * Constructs a new node with the given node type.
+ *
+ * \internal
+ */
+QSGNode::QSGNode(QSGNodePrivate &dd, NodeType type)
+    : m_parent(0)
+    , m_type(type)
+    , m_firstChild(0)
+    , m_lastChild(0)
+    , m_nextSibling(0)
+    , m_previousSibling(0)
+    , m_subtreeRenderableCount(type == GeometryNodeType || type == RenderNodeType ? 1 : 0)
+    , m_nodeFlags(OwnedByParent)
+    , m_dirtyState(0)
+    , d_ptr(&dd)
+{
+    init();
+}
+
+/*!
  * \internal
  */
 void QSGNode::init()
 {
 #ifndef QT_NO_DEBUG
-    ++qt_node_count;
-    static bool atexit_registered = false;
-    if (!atexit_registered) {
-        atexit(qt_print_node_count);
-        atexit_registered = true;
+    if (qsg_leak_check) {
+        ++qt_node_count;
+        static bool atexit_registered = false;
+        if (!atexit_registered) {
+            atexit(qt_print_node_count);
+            atexit_registered = true;
+        }
     }
 #endif
 }
@@ -280,9 +313,11 @@ void QSGNode::init()
 QSGNode::~QSGNode()
 {
 #ifndef QT_NO_DEBUG
-    --qt_node_count;
-    if (qt_node_count < 0)
-        qDebug("Node destroyed after qt_print_node_count() was called.");
+    if (qsg_leak_check) {
+        --qt_node_count;
+        if (qt_node_count < 0)
+            qDebug("Node destroyed after qt_print_node_count() was called.");
+    }
 #endif
     destroy();
 }
@@ -664,6 +699,18 @@ QSGBasicGeometryNode::QSGBasicGeometryNode(NodeType type)
 
 
 /*!
+    \internal
+ */
+QSGBasicGeometryNode::QSGBasicGeometryNode(QSGBasicGeometryNodePrivate &dd, NodeType type)
+    : QSGNode(dd, type)
+    , m_geometry(0)
+    , m_matrix(0)
+    , m_clip_list(0)
+{
+}
+
+
+/*!
     Deletes this QSGBasicGeometryNode.
 
     If the node has the flag QSGNode::OwnsGeometry set, it will also delete the
@@ -739,6 +786,7 @@ void QSGBasicGeometryNode::setGeometry(QSGGeometry *geometry)
     \brief The QSGGeometryNode class is used for all rendered content in the scene graph.
 
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-nodes
 
     The QSGGeometryNode consists of geometry and material. The geometry defines the mesh,
     the vertices and their structure, to be drawn. The Material defines how the shape is
@@ -784,6 +832,19 @@ void QSGBasicGeometryNode::setGeometry(QSGGeometry *geometry)
 
 QSGGeometryNode::QSGGeometryNode()
     : QSGBasicGeometryNode(GeometryNodeType)
+    , m_render_order(0)
+    , m_material(0)
+    , m_opaque_material(0)
+    , m_opacity(1)
+{
+}
+
+
+/*!
+    \internal
+ */
+QSGGeometryNode::QSGGeometryNode(QSGGeometryNodePrivate &dd)
+    : QSGBasicGeometryNode(dd, GeometryNodeType)
     , m_render_order(0)
     , m_material(0)
     , m_opaque_material(0)
@@ -964,6 +1025,7 @@ void QSGGeometryNode::setInheritedOpacity(qreal opacity)
     \brief The QSGClipNode class implements the clipping functionality in the scene graph.
 
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-nodes
 
     Clipping applies to the node's subtree and can be nested. Multiple clip nodes will be
     accumulated by intersecting all their geometries. The accumulation happens
@@ -1052,6 +1114,7 @@ void QSGClipNode::setClipRect(const QRectF &rect)
     \brief The QSGTransformNode class implements transformations in the scene graph
 
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-nodes
 
     Transformations apply the node's subtree and can be nested. Multiple transform nodes
     will be accumulated by intersecting all their matrices. The accumulation happens
@@ -1188,6 +1251,7 @@ void QSGRootNode::notifyNodeChange(QSGNode *node, DirtyState state)
     \brief The QSGOpacityNode class is used to change opacity of nodes.
 
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-nodes
 
     Opacity applies to its subtree and can be nested. Multiple opacity nodes
     will be accumulated by multiplying their opacity. The accumulation happens

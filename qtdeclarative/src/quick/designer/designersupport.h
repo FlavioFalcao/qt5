@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -58,8 +58,6 @@
 #include <QtCore/QtGlobal>
 #include <QtCore/QHash>
 #include <QtCore/QRectF>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -127,6 +125,7 @@ public:
     static QQuickItem *anchorCenterInTargetItem(QQuickItem *item);
     static QPair<QString, QObject*> anchorLineTarget(QQuickItem *item, const QString &name, QQmlContext *context);
     static void resetAnchor(QQuickItem *item, const QString &name);
+    static void emitComponentCompleteSignalForAttachedProperty(QQuickItem *item);
 
 
     static QList<QObject*> statesForItem(QQuickItem *item);
@@ -147,6 +146,9 @@ public:
     static void activateDesignerWindowManager();
     static void activateDesignerMode();
 
+    static void disableComponentComplete();
+    static void enableComponentComplete();
+
     static void createOpenGLContext(QQuickWindow *window);
 
     static void polishItems(QQuickWindow *window);
@@ -156,7 +158,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // DESIGNERSUPPORT_H

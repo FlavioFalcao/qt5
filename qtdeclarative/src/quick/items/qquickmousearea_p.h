@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -45,8 +45,6 @@
 #include "qquickitem.h"
 #include <private/qtquickglobal_p.h>
 #include <QtCore/qstringlist.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -125,7 +123,7 @@ private:
 
 class QQuickMouseAreaPrivate;
 class QQuickWheelEvent;
-// used in QtLocation
+// used in Qt Location
 class Q_QUICK_PRIVATE_EXPORT QQuickMouseArea : public QQuickItem
 {
     Q_OBJECT
@@ -251,7 +249,5 @@ QML_DECLARE_TYPE(QQuickDrag)
 QML_DECLARE_TYPEINFO(QQuickDrag, QML_HAS_ATTACHED_PROPERTIES)
 #endif
 QML_DECLARE_TYPE(QQuickMouseArea)
-
-QT_END_HEADER
 
 #endif // QQUICKMOUSEAREA_P_H

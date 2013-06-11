@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -40,6 +40,7 @@
 ****************************************************************************/
 
 #include "qqmlextensionplugin.h"
+#include "qqmlextensionplugin_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -76,7 +77,7 @@ QT_BEGIN_NAMESPACE
     as a new QML element. It provides the current time through \c hour and \c minute 
     properties, like this:
 
-    \snippet plugins/plugin.cpp 0
+    \snippet qml/plugins/plugin.cpp 0
     \dots
 
     To make this class available as a QML type, create a plugin that registers
@@ -84,7 +85,7 @@ QT_BEGIN_NAMESPACE
     module will be named \c TimeExample (as defined in the project
     file further below).
 
-    \snippet plugins/plugin.cpp plugin
+    \snippet qml/plugins/plugin.cpp plugin
 
     This registers the \c TimeModel class with the 1.0 version of this 
     plugin library, as a QML type called \c Time. The Q_ASSERT statement 
@@ -108,19 +109,19 @@ QT_BEGIN_NAMESPACE
     should be bundled with the plugin, so it needs to be specified in the \c qmldir
     file:
 
-    \quotefile plugins/imports/TimeExample/qmldir
+    \quotefile qml/plugins/imports/TimeExample/qmldir
 
     Once the project is built and installed, the new \c Time element can be 
     used by any QML component that imports the \c TimeExample module:
 
-    \snippet plugins/plugins.qml 0
+    \snippet qml/plugins/plugins.qml 0
 
     The full source code is available in the \l {qml/plugins}{plugins example}.
 
     The \l {Writing QML Extensions with C++} tutorial also contains a chapter
     on creating QML plugins.
 
-    Note that the QtQuick 1 version is called QDeclarativeExtensionPlugin.
+    Note that the \l {Qt Quick 1} version is called QDeclarativeExtensionPlugin.
 
     \sa QQmlEngine::importPlugin(), {How to Create Qt Plugins}
 */
@@ -144,7 +145,7 @@ QT_BEGIN_NAMESPACE
     explicitly.
 */
 QQmlExtensionPlugin::QQmlExtensionPlugin(QObject *parent)
-    : QObject(parent)
+    : QObject(*(new QQmlExtensionPluginPrivate), parent)
 {
 }
 
@@ -153,6 +154,12 @@ QQmlExtensionPlugin::QQmlExtensionPlugin(QObject *parent)
  */
 QQmlExtensionPlugin::~QQmlExtensionPlugin()
 {
+}
+
+QUrl QQmlExtensionPlugin::baseUrl() const
+{
+    Q_D(const QQmlExtensionPlugin);
+    return d->baseUrl;
 }
 
 /*!

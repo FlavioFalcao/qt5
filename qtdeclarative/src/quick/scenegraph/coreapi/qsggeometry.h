@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt scene graph research project.
@@ -44,9 +44,7 @@
 
 #include <QtQuick/qtquickglobal.h>
 #include <QtGui/qopengl.h>
-#include <QRectF>
-
-QT_BEGIN_HEADER
+#include <QtCore/QRectF>
 
 QT_BEGIN_NAMESPACE
 
@@ -294,7 +292,5 @@ int QSGGeometry::sizeOfIndex() const
 }
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QSGGEOMETRY_H

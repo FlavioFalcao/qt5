@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -352,13 +352,7 @@ bool Minify::parse(int startToken)
                 if (isIdentChar(lastChar))
                     assembled += QLatin1Char(' ');
 
-                foreach (const QChar &ch, identifier) {
-                    if (isIdentChar(ch))
-                        assembled += ch;
-                    else {
-                        escape(ch, &assembled);
-                    }
-                }
+                assembled += identifier;
 
             } else if (yytoken == T_STRING_LITERAL || yytoken == T_MULTILINE_STRING_LITERAL) {
                 assembled += QLatin1Char('"');

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -151,7 +151,7 @@ QQuickStateOperation::QQuickStateOperation(QObjectPrivate &dd, QObject *parent)
     not allowed.
 
     \sa {declarative/animation/states}{states example}, {Qt Quick States}{Qt Quick States},
-    {Animation and Transitions in Qt Quick}{Transitions}, QtQml
+    {Animation and Transitions in Qt Quick}{Transitions}, {Qt QML}
 */
 QQuickState::QQuickState(QObject *parent)
 : QObject(*(new QQuickStatePrivate), parent)

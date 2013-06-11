@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -465,6 +465,8 @@ private:
     QList<TypeDataCallback *> m_callbacks;
 
     QQmlScript::Import *m_implicitImport;
+    bool m_implicitImportLoaded;
+    bool loadImplicitImport();
 };
 
 // QQmlScriptData instances are created, uninitialized, by the loader in the 

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the Qt scene graph research project.
@@ -284,7 +284,7 @@ const QSGGeometry::AttributeSet &QSGGeometry::defaultAttributes_ColoredPoint2D()
     setIndexDataPattern() functions. Whether this hint is respected or
     not is implementation specific.
 
-    \sa QSGGeometryNode, {Custom Geometry Example}
+    \sa QSGGeometryNode, {Scene Graph - Custom Geometry}
 
  */
 

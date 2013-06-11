@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -793,6 +793,7 @@ static void throwException(int id, QQmlDelayedError *error,
         error->setErrorDescription(QLatin1String("TypeError: Result of expression is not an object"));
     else
         error->setErrorDescription(description);
+    error->setErrorObject(context->contextObject);
     if (id != 0xFF) {
         quint32 e = *((quint32 *)(program->data() + program->exceptionDataOffset) + id);
         error->setErrorLocation(context->url, (e >> 16), (e & 0xFFFF));

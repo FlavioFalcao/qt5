@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -53,8 +53,6 @@
 #include <QtCore/qeasingcurve.h>
 #include "private/qabstractanimationjob_p.h"
 #include <QtGui/qcolor.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -459,7 +457,5 @@ QML_DECLARE_TYPE(QQuickSequentialAnimation)
 QML_DECLARE_TYPE(QQuickParallelAnimation)
 QML_DECLARE_TYPE(QQuickVector3dAnimation)
 QML_DECLARE_TYPE(QQuickRotationAnimation)
-
-QT_END_HEADER
 
 #endif // QQUICKANIMATION_H

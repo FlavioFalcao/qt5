@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -50,7 +50,7 @@
 #include <QtQuick/private/qsgtexture_p.h>
 #include <QtQuick/private/qsgflashnode_p.h>
 
-#include <private/qquickwindowmanager_p.h>
+#include <private/qsgrenderloop_p.h>
 
 #include <private/qguiapplication_p.h>
 #include <QtGui/QInputMethod>
@@ -72,13 +72,18 @@
 
 QT_BEGIN_NAMESPACE
 
+extern Q_GUI_EXPORT QImage qt_gl_read_framebuffer(const QSize &size, bool alpha_format, bool include_alpha);
+
 void QQuickWindowPrivate::updateFocusItemTransform()
 {
     Q_Q(QQuickWindow);
 #ifndef QT_NO_IM
     QQuickItem *focus = q->activeFocusItem();
-    if (focus && qApp->focusObject() == focus)
-        qApp->inputMethod()->setInputItemTransform(QQuickItemPrivate::get(focus)->itemToWindowTransform());
+    if (focus && qApp->focusObject() == focus) {
+        QQuickItemPrivate *focusPrivate = QQuickItemPrivate::get(focus);
+        qApp->inputMethod()->setInputItemTransform(focusPrivate->itemToWindowTransform());
+        qApp->inputMethod()->setInputItemRectangle(QRectF(0, 0, focusPrivate->width, focusPrivate->height));
+    }
 #endif
 }
 
@@ -146,8 +151,6 @@ private:
 /*!
     Returns an accessibility interface for this window, or 0 if such an
     interface cannot be created.
-
-    \warning The caller is responsible for deleting the returned interface.
 */
 QAccessibleInterface *QQuickWindow::accessibleRoot() const
 {
@@ -204,8 +207,6 @@ void QQuickWindow::exposeEvent(QExposeEvent *)
 /*! \reimp */
 void QQuickWindow::resizeEvent(QResizeEvent *)
 {
-    Q_D(QQuickWindow);
-    d->windowManager->resize(this, size());
 }
 
 /*! \reimp */
@@ -221,17 +222,17 @@ void QQuickWindow::hideEvent(QHideEvent *)
 }
 
 /*! \reimp */
-void QQuickWindow::focusOutEvent(QFocusEvent *)
+void QQuickWindow::focusOutEvent(QFocusEvent *ev)
 {
     Q_D(QQuickWindow);
-    d->contentItem->setFocus(false);
+    d->contentItem->setFocus(false, ev->reason());
 }
 
 /*! \reimp */
-void QQuickWindow::focusInEvent(QFocusEvent *)
+void QQuickWindow::focusInEvent(QFocusEvent *ev)
 {
     Q_D(QQuickWindow);
-    d->contentItem->setFocus(true);
+    d->contentItem->setFocus(true, ev->reason());
     d->updateFocusItemTransform();
 }
 
@@ -256,29 +257,6 @@ void QQuickWindowPrivate::polishItems()
 
     updateFocusItemTransform();
 }
-
-/**
- * This parameter enables that this window can be rendered without
- * being shown on screen. This feature is very limited in what it supports.
- *
- * For this feature to be useful one needs to hook into beforeRender()
- * and set the render target.
- *
- */
-void QQuickWindowPrivate::setRenderWithoutShowing(bool render)
-{
-    if (render == renderWithoutShowing)
-        return;
-
-    Q_Q(QQuickWindow);
-    renderWithoutShowing = render;
-
-    if (render)
-        windowManager->show(q);
-    else
-        windowManager->hide(q);
-}
-
 
 /*!
  * Schedules the window to render another frame.
@@ -345,6 +323,7 @@ void QQuickWindowPrivate::renderSceneGraph(const QSize &size)
         renderer->setViewportRect(QRect(QPoint(0, 0), size * devicePixelRatio));
     }
     renderer->setProjectionMatrixToRect(QRect(QPoint(0, 0), size));
+    renderer->setDevicePixelRatio(q->devicePixelRatio());
 
     context->renderNextFrame(renderer, fboId);
     emit q->afterRendering();
@@ -359,15 +338,14 @@ QQuickWindowPrivate::QQuickWindowPrivate()
 #endif
     , touchMouseId(-1)
     , touchMousePressTimestamp(0)
-    , renderWithoutShowing(false)
     , dirtyItemList(0)
     , context(0)
     , renderer(0)
     , windowManager(0)
     , clearColor(Qt::white)
     , clearBeforeRendering(true)
-    , persistentGLContext(false)
-    , persistentSceneGraph(false)
+    , persistentGLContext(true)
+    , persistentSceneGraph(true)
     , lastWheelEventAccepted(false)
     , renderTarget(0)
     , renderTargetId(0)
@@ -392,13 +370,7 @@ void QQuickWindowPrivate::init(QQuickWindow *c)
     contentItemPrivate->windowRefCount = 1;
     contentItemPrivate->flags |= QQuickItem::ItemIsFocusScope;
 
-    // In the absence of a focus in event on some platforms assume the window will
-    // be activated immediately and set focus on the contentItem
-    // ### Remove when QTBUG-22415 is resolved.
-    //It is important that this call happens after the contentItem has a window..
-    contentItem->setFocus(true);
-
-    windowManager = QQuickWindowManager::instance();
+    windowManager = QSGRenderLoop::instance();
     context = windowManager->sceneGraphContext();
     q->setSurfaceType(QWindow::OpenGLSurface);
     q->setFormat(context->defaultSurfaceFormat());
@@ -406,6 +378,8 @@ void QQuickWindowPrivate::init(QQuickWindow *c)
     QObject::connect(context, SIGNAL(initialized()), q, SIGNAL(sceneGraphInitialized()), Qt::DirectConnection);
     QObject::connect(context, SIGNAL(invalidated()), q, SIGNAL(sceneGraphInvalidated()), Qt::DirectConnection);
     QObject::connect(context, SIGNAL(invalidated()), q, SLOT(cleanupSceneGraph()), Qt::DirectConnection);
+
+    QObject::connect(q, SIGNAL(focusObjectChanged(QObject*)), q, SIGNAL(activeFocusItemChanged()));
 }
 
 /*!
@@ -416,7 +390,10 @@ void QQuickWindowPrivate::init(QQuickWindow *c)
 QQmlListProperty<QObject> QQuickWindowPrivate::data()
 {
     initContentItem();
-    return QQuickItemPrivate::get(contentItem)->data();
+    return QQmlListProperty<QObject>(q_func(), 0, QQuickWindowPrivate::data_append,
+                                             QQuickWindowPrivate::data_count,
+                                             QQuickWindowPrivate::data_at,
+                                             QQuickWindowPrivate::data_clear);
 }
 
 void QQuickWindowPrivate::initContentItem()
@@ -447,6 +424,29 @@ static QMouseEvent *touchToMouseEvent(QEvent::Type type, const QTouchEvent::Touc
     return me;
 }
 
+bool QQuickWindowPrivate::checkIfDoubleClicked(ulong newPressEventTimestamp)
+{
+    bool doubleClicked;
+
+    if (touchMousePressTimestamp == 0) {
+        // just initialize the variable
+        touchMousePressTimestamp = newPressEventTimestamp;
+        doubleClicked = false;
+    } else {
+        ulong timeBetweenPresses = newPressEventTimestamp - touchMousePressTimestamp;
+        ulong doubleClickInterval = static_cast<ulong>(qApp->styleHints()->
+                mouseDoubleClickInterval());
+        doubleClicked = timeBetweenPresses < doubleClickInterval;
+        if (doubleClicked) {
+            touchMousePressTimestamp = 0;
+        } else {
+            touchMousePressTimestamp = newPressEventTimestamp;
+        }
+    }
+
+    return doubleClicked;
+}
+
 bool QQuickWindowPrivate::translateTouchToMouse(QQuickItem *item, QTouchEvent *event)
 {
     Q_Q(QQuickWindow);
@@ -463,9 +463,6 @@ bool QQuickWindowPrivate::translateTouchToMouse(QQuickItem *item, QTouchEvent *e
             if (!item->contains(pos))
                 break;
 
-            bool doubleClick = event->timestamp() - touchMousePressTimestamp
-                            < static_cast<ulong>(qApp->styleHints()->mouseDoubleClickInterval());
-            touchMousePressTimestamp = event->timestamp();
             // Store the id already here and restore it to -1 if the event does not get
             // accepted. Cannot defer setting the new value because otherwise if the event
             // handler spins the event loop all subsequent moves and releases get lost.
@@ -489,8 +486,7 @@ bool QQuickWindowPrivate::translateTouchToMouse(QQuickItem *item, QTouchEvent *e
                     item->ungrabMouse();
             }
 
-            if (doubleClick && mousePress->isAccepted()) {
-                touchMousePressTimestamp = 0;
+            if (mousePress->isAccepted() && checkIfDoubleClicked(event->timestamp())) {
                 QScopedPointer<QMouseEvent> mouseDoubleClick(touchToMouseEvent(QEvent::MouseButtonDblClick, p, event, item));
                 q->sendEvent(item, mouseDoubleClick.data());
                 event->setAccepted(mouseDoubleClick->isAccepted());
@@ -592,7 +588,12 @@ void QQuickWindowPrivate::translateTouchEvent(QTouchEvent *touchEvent)
     touchEvent->setTouchPoints(touchPoints);
 }
 
-void QQuickWindowPrivate::setFocusInScope(QQuickItem *scope, QQuickItem *item, FocusOptions options)
+/*!
+Set the focus inside \a scope to be \a item.
+If the scope contains the active focus item, it will be changed to \a item.
+Calls notifyFocusChangesRecur for all changed items.
+*/
+void QQuickWindowPrivate::setFocusInScope(QQuickItem *scope, QQuickItem *item, Qt::FocusReason reason, FocusOptions options)
 {
     Q_Q(QQuickWindow);
 
@@ -611,13 +612,13 @@ void QQuickWindowPrivate::setFocusInScope(QQuickItem *scope, QQuickItem *item, F
     QQuickItemPrivate *scopePrivate = scope ? QQuickItemPrivate::get(scope) : 0;
     QQuickItemPrivate *itemPrivate = QQuickItemPrivate::get(item);
 
-    QQuickItem *oldActiveFocusItem = 0;
     QQuickItem *newActiveFocusItem = 0;
 
     QVarLengthArray<QQuickItem *, 20> changed;
 
     // Does this change the active focus?
     if (item == contentItem || (scopePrivate->activeFocus && item->isEnabled())) {
+        QQuickItem *oldActiveFocusItem = 0;
         oldActiveFocusItem = activeFocusItem;
         newActiveFocusItem = item;
         while (newActiveFocusItem->isFocusScope()
@@ -632,7 +633,7 @@ void QQuickWindowPrivate::setFocusInScope(QQuickItem *scope, QQuickItem *item, F
 #endif
 
             activeFocusItem = 0;
-            QFocusEvent event(QEvent::FocusOut, Qt::OtherFocusReason);
+            QFocusEvent event(QEvent::FocusOut, reason);
             q->sendEvent(oldActiveFocusItem, &event);
 
             QQuickItem *afi = oldActiveFocusItem;
@@ -657,10 +658,10 @@ void QQuickWindowPrivate::setFocusInScope(QQuickItem *scope, QQuickItem *item, F
     }
 
     if (!(options & DontChangeFocusProperty)) {
-//        if (item != contentItem || QGuiApplication::focusWindow() == q) {    // QTBUG-22415
+        if (item != contentItem || QGuiApplication::focusWindow() == q) {
             itemPrivate->focus = true;
             changed << item;
-//        }
+        }
     }
 
     if (newActiveFocusItem && contentItem->hasFocus()) {
@@ -677,8 +678,9 @@ void QQuickWindowPrivate::setFocusInScope(QQuickItem *scope, QQuickItem *item, F
             }
             afi = afi->parentItem();
         }
+        updateFocusItemTransform();
 
-        QFocusEvent event(QEvent::FocusIn, Qt::OtherFocusReason);
+        QFocusEvent event(QEvent::FocusIn, reason);
         q->sendEvent(newActiveFocusItem, &event);
     }
 
@@ -688,7 +690,7 @@ void QQuickWindowPrivate::setFocusInScope(QQuickItem *scope, QQuickItem *item, F
         notifyFocusChangesRecur(changed.data(), changed.count() - 1);
 }
 
-void QQuickWindowPrivate::clearFocusInScope(QQuickItem *scope, QQuickItem *item, FocusOptions options)
+void QQuickWindowPrivate::clearFocusInScope(QQuickItem *scope, QQuickItem *item, Qt::FocusReason reason, FocusOptions options)
 {
     Q_Q(QQuickWindow);
 
@@ -728,7 +730,7 @@ void QQuickWindowPrivate::clearFocusInScope(QQuickItem *scope, QQuickItem *item,
 #endif
 
         activeFocusItem = 0;
-        QFocusEvent event(QEvent::FocusOut, Qt::OtherFocusReason);
+        QFocusEvent event(QEvent::FocusOut, reason);
         q->sendEvent(oldActiveFocusItem, &event);
 
         QQuickItem *afi = oldActiveFocusItem;
@@ -758,8 +760,9 @@ void QQuickWindowPrivate::clearFocusInScope(QQuickItem *scope, QQuickItem *item,
     if (newActiveFocusItem) {
         Q_ASSERT(newActiveFocusItem == scope);
         activeFocusItem = scope;
+        updateFocusItemTransform();
 
-        QFocusEvent event(QEvent::FocusIn, Qt::OtherFocusReason);
+        QFocusEvent event(QEvent::FocusIn, reason);
         q->sendEvent(newActiveFocusItem, &event);
     }
 
@@ -814,15 +817,29 @@ void QQuickWindowPrivate::cleanup(QSGNode *n)
     \ingroup qtquick-visual
     \brief Creates a new top-level window
 
-    The Window object creates a new top-level window for a QtQuick scene. It automatically sets up the
-    window for use with QtQuick 2.0 graphical types.
+    The Window object creates a new top-level window for a Qt Quick scene. It automatically sets up the
+    window for use with \c {QtQuick 2.x} graphical types.
 
     To use this type, you will need to import the module with the following line:
     \code
-    import QtQuick.Window 2.0
+    import QtQuick.Window 2.1
     \endcode
 
-    Restricting this import will allow you to have a QML environment without access to window system features.
+    Omitting this import will allow you to have a QML environment without
+    access to window system features.
+
+    A Window can be declared inside an Item or inside another Window; in that
+    case the inner Window will automatically become "transient for" the outer
+    Window: that is, most platforms will show it centered upon the outer window
+    by default, and there may be other platform-dependent behaviors, depending
+    also on the \l flags. If the nested window is intended to be a dialog in
+    your application, you should also set \l flags to Qt.Dialog, because some
+    window managers will not provide the centering behavior without that flag.
+    You can also declare multiple windows inside a top-level \l QtObject, in which
+    case the windows will have no transient relationship.
+
+    Alternatively you can set or bind \l x and \l y to position the Window
+    explicitly on the screen.
 */
 /*!
     \class QQuickWindow
@@ -840,87 +857,63 @@ void QQuickWindowPrivate::cleanup(QSGNode *n)
 
     For easily displaying a scene from a QML file, see \l{QQuickView}.
 
-    \section1 Scene Graph and Rendering
 
-    The QQuickWindow uses a scene graph on top of OpenGL to render. This scene graph is disconnected
-    from the QML scene and potentially lives in another thread, depending on the platform
-    implementation. Since the rendering scene graph lives independently from the QML scene, it can
-    also be completely released without affecting the state of the QML scene.
 
-    The sceneGraphInitialized() signal is emitted on the rendering thread before the QML scene is
-    rendered to the screen for the first time. If the rendering scene graph has been released
-    the signal will be emitted again before the next frame is rendered.
+    \section1 Rendering
 
-    The rendering of each frame is broken down into the following
-    steps, in the given order:
+    QQuickWindow uses a scene graph on top of OpenGL to
+    render. This scene graph is disconnected from the QML scene and
+    potentially lives in another thread, depending on the platform
+    implementation. Since the rendering scene graph lives
+    independently from the QML scene, it can also be completely
+    released without affecting the state of the QML scene.
 
-    \list 1
+    The sceneGraphInitialized() signal is emitted on the rendering
+    thread before the QML scene is rendered to the screen for the
+    first time. If the rendering scene graph has been released, the
+    signal will be emitted again before the next frame is rendered.
 
-    \li The QQuickWindow::beforeSynchronizing() signal is emitted.
-    Applications can make direct connections (Qt::DirectConnection)
-    to this signal to do any preparation required before calls to
-    QQuickItem::updatePaintNode().
 
-    \li Synchronization of the QML state into the scene graph. This is
-    done by calling the QQuickItem::updatePaintNode() function on all
-    items that have changed since the previous frame. When a dedicated
-    rendering thread is used, the GUI thread is blocked during this
-    synchroniation. This is the only time the QML items and the nodes
-    in the scene graph interact.
+    \section2 Integration with OpenGL
 
-    \li The window to be rendered is made current using
-    QOpenGLContext::makeCurrent().
+    It is possible to integrate OpenGL calls directly into the
+    QQuickWindow using the same OpenGL context as the Qt Quick Scene
+    Graph. This is done by connecting to the
+    QQuickWindow::beforeRendering() or QQuickWindow::afterRendering()
+    signal.
 
-    \li The QQuickWindow::beforeRendering() signal is
-    emitted. Applications can make direct connections
-    (Qt::DirectConnection) to this signal to use custom OpenGL calls
-    which will then stack visually beneath the QML scene.
+    \note When using QQuickWindow::beforeRendering(), make sure to
+    disable clearing before rendering with
+    QQuickWindow::setClearBeforeRendering().
 
-    \li Items that have specified QSGNode::UsesPreprocess, will have their
-    QSGNode::preprocess() function invoked.
 
-    \li The QQuickWindow is cleared according to what is specified
-    using QQuickWindow::setClearBeforeRendering() and
-    QQuickWindow::setClearColor().
+    \section2 Exposure and Visibility
 
-    \li The scene graph is rendered.
+    When a QQuickWindow instance is deliberately hidden with hide() or
+    setVisible(false), it will stop rendering and its scene graph and
+    OpenGL context might be released. The sceneGraphInvalidated()
+    signal will be emitted when this happens.
 
-    \li The QQuickWindow::afterRendering() signal is
-    emitted. Applications can make direct connections
-    (Qt::DirectConnection) to this signal to use custom OpenGL calls
-    which will then stack visually over the QML scene.
+    \warning It is crucial that OpenGL operations and interaction with
+    the scene graph happens exclusively on the rendering thread,
+    primarily during the updatePaintNode() phase.
 
-    \li The rendered frame is swapped and QQuickWindow::frameSwapped()
-    is emitted.
-
-    \endlist
-
-    All of the above happen on the rendering thread, when applicable.
-
-    While the scene graph is being rendered on the rendering thread, the GUI will process animations
-    for the next frame. This means that as long as users are not using scene graph API
-    directly, the added complexity of a rendering thread can be completely ignored.
-
-    When a QQuickWindow is programatically hidden with hide() or setVisible(false), it will
-    stop rendering and its scene graph and OpenGL context might be released. The
-    sceneGraphInvalidated() signal will be emitted when this happens.
-
-    \warning It is crucial that OpenGL operations and interaction with the scene graph happens
-    exclusively on the rendering thread, primarily during the updatePaintNode() phase.
-
-    \warning As signals related to rendering might be emitted from the rendering thread,
-    connections should be made using Qt::DirectConnection
+    \warning As signals related to rendering might be emitted from the
+    rendering thread, connections should be made using
+    Qt::DirectConnection.
 
 
     \section2 Resource Management
 
-    QML will typically try to cache images, scene graph nodes, etc to improve performance, but in
-    some low-memory scenarios it might be required to aggressively release these resources. The
-    releaseResources() can be used to force clean up of certain resources. Calling releaseResources()
-    may result in the entire scene graph and its OpenGL context being deleted. The
+    QML will try to cache images and scene graph nodes to
+    improve performance, but in some low-memory scenarios it might be
+    required to aggressively release these resources. The
+    releaseResources() can be used to force the clean up of certain
+    resources. Calling releaseResources() may result in the entire
+    scene graph and its OpenGL context being deleted. The
     sceneGraphInvalidated() signal will be emitted when this happens.
 
-    \sa {OpenGL Under QML Example}
+    \sa {Scene Graph - OpenGL Under QML}
 
 */
 
@@ -933,6 +926,8 @@ QQuickWindow::QQuickWindow(QWindow *parent)
     Q_D(QQuickWindow);
     d->init(this);
 }
+
+
 
 /*!
     \internal
@@ -977,20 +972,32 @@ QQuickWindow::~QQuickWindow()
 void QQuickWindow::releaseResources()
 {
     Q_D(QQuickWindow);
-    d->windowManager->releaseResources();
+    d->windowManager->releaseResources(this);
     QQuickPixmap::purgeCache();
 }
 
 
 
 /*!
-    Sets whether the OpenGL context can be released as a part of a call to
-    releaseResources() to \a persistent.
+    Sets whether the OpenGL context can be released to \a
+    persistent. The default value is true.
 
-    The OpenGL context might still be released when the user makes an explicit
-    call to hide().
+    The OpenGL context can be released to free up graphics resources
+    when the window is obscured, hidden or not rendering. When this
+    happens is implementation specific.
 
-    \sa setPersistentSceneGraph()
+    The QOpenGLContext::aboutToBeDestroyed() signal is emitted from
+    the QQuickWindow::openglContext() when the OpenGL context is about
+    to be released.  The QQuickWindow::sceneGraphInitialized() signal
+    is emitted when a new OpenGL context is created for this
+    window. Make a Qt::DirectConnection to these signals to be
+    notified.
+
+    The OpenGL context is still released when the last QQuickWindow is
+    deleted.
+
+    \sa setPersistentSceneGraph(),
+    QOpenGLContext::aboutToBeDestroyed(), sceneGraphInitialized()
  */
 
 void QQuickWindow::setPersistentOpenGLContext(bool persistent)
@@ -1000,9 +1007,13 @@ void QQuickWindow::setPersistentOpenGLContext(bool persistent)
 }
 
 
+
 /*!
-    Returns whether the OpenGL context can be released as a part of a call to
-    releaseResources().
+    Returns whether the OpenGL context can be released during the
+    lifetime of the QQuickWindow.
+
+    \note This is a hint. When and how this happens is implementation
+    specific.
  */
 
 bool QQuickWindow::isPersistentOpenGLContext() const
@@ -1014,13 +1025,24 @@ bool QQuickWindow::isPersistentOpenGLContext() const
 
 
 /*!
-    Sets whether the scene graph nodes and resources can be released as a
-    part of a call to releaseResources() to \a persistent.
+    Sets whether the scene graph nodes and resources can be released
+    to \a persistent.  The default value is true.
 
-    The scene graph nodes and resources might still be released when the user
-    makes an explicit call to hide().
+    The scene graph nodes and resources can be released to free up
+    graphics resources when the window is obscured, hidden or not
+    rendering. When this happens is implementation specific.
 
-    \sa setPersistentOpenGLContext()
+    The QQuickWindow::sceneGraphInvalidated() signal is emitted when
+    cleanup occurs. The QQuickWindow::sceneGraphInitialized() signal
+    is emitted when a new scene graph is recreated for this
+    window. Make a Qt::DirectConnection to these signals to be
+    notified.
+
+    The scene graph nodes and resources are still released when the
+    last QQuickWindow is deleted.
+
+    \sa setPersistentOpenGLContext(),
+    sceneGraphInvalidated(), sceneGraphInitialized()
  */
 
 void QQuickWindow::setPersistentSceneGraph(bool persistent)
@@ -1032,8 +1054,11 @@ void QQuickWindow::setPersistentSceneGraph(bool persistent)
 
 
 /*!
-    Returns whether the scene graph nodes and resources can be released as a part
-    of a call to releaseResources().
+    Returns whether the scene graph nodes and resources can be
+    released during the lifetime of this QQuickWindow.
+
+    \note This is a hint. When and how this happens is implementation
+    specific.
  */
 
 bool QQuickWindow::isPersistentSceneGraph() const
@@ -1062,7 +1087,10 @@ QQuickItem *QQuickWindow::contentItem() const
 }
 
 /*!
-  Returns the item which currently has active focus.
+    \property QQuickWindow::activeFocusItem
+
+    \brief The item which currently has active focus or \c null if there is
+    no item with active focus.
 */
 QQuickItem *QQuickWindow::activeFocusItem() const
 {
@@ -1134,8 +1162,6 @@ bool QQuickWindow::event(QEvent *e)
     case QEvent::Leave:
         d->clearHover();
         d->lastMousePosition = QPoint();
-        if (d->mouseGrabberItem)
-            d->mouseGrabberItem->ungrabMouse();
         break;
 #ifndef QT_NO_DRAGANDDROP
     case QEvent::DragEnter:
@@ -1153,6 +1179,8 @@ bool QQuickWindow::event(QEvent *e)
         if (d->activeFocusItem)
             qGuiApp->inputMethod()->commit();
 #endif
+        if (d->mouseGrabberItem)
+            d->mouseGrabberItem->ungrabMouse();
         break;
     default:
         break;
@@ -1165,6 +1193,12 @@ bool QQuickWindow::event(QEvent *e)
 void QQuickWindow::keyPressEvent(QKeyEvent *e)
 {
     Q_D(QQuickWindow);
+
+#ifndef QT_NO_SHORTCUT
+    // Try looking for a Shortcut before sending key events
+    if (QGuiApplicationPrivate::instance()->shortcutMap.tryShortcutEvent(focusObject(), e))
+        return;
+#endif
 
     if (d->activeFocusItem)
         sendEvent(d->activeFocusItem, e);
@@ -1223,7 +1257,7 @@ bool QQuickWindowPrivate::deliverInitialMousePressEvent(QQuickItem *item, QMouse
             event->setAccepted(me->isAccepted());
             if (me->isAccepted())
                 return true;
-            if (mouseGrabberItem && !event->buttons())
+            if (mouseGrabberItem)
                 mouseGrabberItem->ungrabMouse();
         }
     }
@@ -1999,16 +2033,68 @@ bool QQuickWindowPrivate::dragOverThreshold(qreal d, Qt::Axis axis, QMouseEvent 
     return overThreshold;
 }
 
+/*!
+    \qmlproperty list<Object> QtQuick.Window2::Window::data
+    \default
+
+    The data property allows you to freely mix visual children, resources
+    and other Windows in a Window.
+
+    If you assign another Window to the data list, the nested window will
+    become "transient for" the outer Window.
+
+    If you assign an \l Item to the data list, it becomes a child of the
+    Window's \l contentItem, so that it appears inside the window. The item's
+    parent will be the window's contentItem, which is the root of the Item
+    ownership tree within that Window.
+
+    If you assign any other object type, it is added as a resource.
+
+    It should not generally be necessary to refer to the \c data property,
+    as it is the default property for Window and thus all child items are
+    automatically assigned to this property.
+
+    \sa QWindow::transientParent()
+ */
+
+void QQuickWindowPrivate::data_append(QQmlListProperty<QObject> *property, QObject *o)
+{
+    if (!o)
+        return;
+    QQuickWindow *that = static_cast<QQuickWindow *>(property->object);
+    if (QQuickWindow *window = qmlobject_cast<QQuickWindow *>(o))
+        window->setTransientParent(that);
+    QQmlListProperty<QObject> itemProperty = QQuickItemPrivate::get(that->contentItem())->data();
+    itemProperty.append(&itemProperty, o);
+}
+
+int QQuickWindowPrivate::data_count(QQmlListProperty<QObject> *property)
+{
+    QQuickWindow *win = static_cast<QQuickWindow*>(property->object);
+    if (!win || !win->contentItem() || !QQuickItemPrivate::get(win->contentItem())->data().count)
+        return 0;
+    QQmlListProperty<QObject> itemProperty = QQuickItemPrivate::get(win->contentItem())->data();
+    return itemProperty.count(&itemProperty);
+}
+
+QObject *QQuickWindowPrivate::data_at(QQmlListProperty<QObject> *property, int i)
+{
+    QQuickWindow *win = static_cast<QQuickWindow*>(property->object);
+    QQmlListProperty<QObject> itemProperty = QQuickItemPrivate::get(win->contentItem())->data();
+    return itemProperty.at(&itemProperty, i);
+}
+
+void QQuickWindowPrivate::data_clear(QQmlListProperty<QObject> *property)
+{
+    QQuickWindow *win = static_cast<QQuickWindow*>(property->object);
+    QQmlListProperty<QObject> itemProperty = QQuickItemPrivate::get(win->contentItem())->data();
+    itemProperty.clear(&itemProperty);
+}
+
 bool QQuickWindowPrivate::isRenderable() const
 {
-    const QQuickWindow *q = q_func();
-    QRect geom = q->geometry();
-    if (geom.width() <= 0 || geom.height() <= 0)
-        return false;
-    // Change to be applied after the visibility property is integrated in qtbase:
-//    return visibility != QWindow::Hidden || (renderWithoutShowing && platformWindow);
-    // Temporary version which is implementation-agnostic but slightly less efficient:
-    return q->isVisible() || (renderWithoutShowing && platformWindow);
+    Q_Q(const QQuickWindow);
+    return q->isExposed() && q->isVisible() && q->geometry().isValid();
 }
 
 /*!
@@ -2418,6 +2504,13 @@ void QQuickWindow::cleanupSceneGraph()
     d->renderer = 0;
 }
 
+void QQuickWindow::setTransientParent_helper(QQuickWindow *window)
+{
+    setTransientParent(window);
+    disconnect(sender(), SIGNAL(windowChanged(QQuickWindow*)),
+               this, SLOT(setTransientParent_helper(QQuickWindow*)));
+}
+
 /*!
     Returns the opengl context used for rendering.
 
@@ -2562,7 +2655,10 @@ QOpenGLFramebufferObject *QQuickWindow::renderTarget() const
 /*!
     Grabs the contents of the window and returns it as an image.
 
-    This function might not work if the window is not visible.
+    It is possible to call the grabWindow() function when the window is not
+    visible. This requires that the window is \l{QWindow::create} {created}
+    and has a valid size and that no other QQuickWindow instances are rendering
+    in the same process.
 
     \warning Calling this function will cause performance problems.
 
@@ -2571,6 +2667,36 @@ QOpenGLFramebufferObject *QQuickWindow::renderTarget() const
 QImage QQuickWindow::grabWindow()
 {
     Q_D(QQuickWindow);
+    if (!isVisible()) {
+
+        if (d->context->isReady()) {
+            qWarning("QQuickWindow::grabWindow: scene graph already in use");
+            return QImage();
+        }
+
+        if (!handle() || !size().isValid()) {
+            qWarning("QQuickWindow::grabWindow: window must be created and have a valid size");
+            return QImage();
+        }
+
+        QOpenGLContext context;
+        context.setFormat(requestedFormat());
+        context.create();
+        context.makeCurrent(this);
+        d->context->initialize(&context);
+
+        d->polishItems();
+        d->syncSceneGraph();
+        d->renderSceneGraph(size());
+
+        QImage image = qt_gl_read_framebuffer(size(), false, false);
+        d->cleanupNodesOnShutdown();
+        d->context->invalidate();
+        context.doneCurrent();
+
+        return image;
+    }
+
     return d->windowManager->grab(this);
 }
 
@@ -2788,6 +2914,14 @@ void QQuickWindow::setColor(const QColor &color)
     if (color == d->clearColor)
         return;
 
+    if (color.alpha() != d->clearColor.alpha()) {
+        QSurfaceFormat fmt = format();
+        if (color.alpha() < 255)
+            fmt.setAlphaBufferSize(8);
+        else
+            fmt.setAlphaBufferSize(-1);
+        setFormat(fmt);
+    }
     d->clearColor = color;
     emit colorChanged(color);
     d->dirtyItem(contentItem());
@@ -2810,13 +2944,142 @@ QColor QQuickWindow::color() const
  */
 
 /*!
-    \qmlproperty string QtQuick.Window2::Window::modality
+    \qmlproperty Qt::WindowModality QtQuick.Window2::Window::modality
 
     The modality of the window.
 
     A modal window prevents other windows from receiving input events.
     Possible values are Qt.NonModal (the default), Qt.WindowModal,
     and Qt.ApplicationModal.
+ */
+
+/*!
+    \qmlproperty Qt::WindowFlags QtQuick.Window2::Window::flags
+
+    The window flags of the window.
+
+    The window flags control the window's appearance in the windowing system,
+    whether it's a dialog, popup, or a regular window, and whether it should
+    have a title bar, etc.
+
+    The flags which you read from this property might differ from the ones
+    that you set if the requested flags could not be fulfilled.
+ */
+
+/*!
+    \qmlproperty int QtQuick.Window2::Window::x
+    \qmlproperty int QtQuick.Window2::Window::y
+    \qmlproperty int QtQuick.Window2::Window::width
+    \qmlproperty int QtQuick.Window2::Window::height
+
+    Defines the window's position and size.
+
+    The (x,y) position is relative to the \l Screen if there is only one,
+    or to the virtual desktop (arrangement of multiple screens).
+
+    \qml
+    Window { x: 100; y: 100; width: 100; height: 100 }
+    \endqml
+
+    \image screen-and-window-dimensions.jpg
+ */
+
+/*!
+    \qmlproperty int QtQuick.Window2::Window::minimumWidth
+    \qmlproperty int QtQuick.Window2::Window::minimumHeight
+    \since Qt 5.1
+
+    Defines the window's minimum size.
+
+    This is a hint to the window manager to prevent resizing below the specified
+    width and height.
+ */
+
+/*!
+    \qmlproperty int QtQuick.Window2::Window::maximumWidth
+    \qmlproperty int QtQuick.Window2::Window::maximumHeight
+    \since Qt 5.1
+
+    Defines the window's maximum size.
+
+    This is a hint to the window manager to prevent resizing above the specified
+    width and height.
+ */
+
+/*!
+    \qmlproperty bool QtQuick.Window2::Window::visible
+
+    Whether the window is visible on the screen.
+
+    Setting visible to false is the same as setting \l visibility to Hidden.
+
+    \sa visibility
+ */
+
+/*!
+    \qmlproperty QWindow::Visibility QtQuick.Window2::Window::visibility
+
+    The screen-occupation state of the window.
+
+    Visibility is whether the window should appear in the windowing system as
+    normal, minimized, maximized, fullscreen or hidden.
+
+    To set the visibility to AutomaticVisibility means to give the window a
+    default visible state, which might be fullscreen or windowed depending on
+    the platform. However when reading the visibility property you will always
+    get the actual state, never AutomaticVisibility.
+
+    When a window is not visible its visibility is Hidden, and setting
+    visibility to Hidden is the same as setting \l visible to false.
+
+    \sa visible
+    \since Qt 5.1
+ */
+
+/*!
+    \qmlproperty Qt::ScreenOrientation QtQuick.Window2::Window::contentOrientation
+
+    This is a hint to the window manager in case it needs to display
+    additional content like popups, dialogs, status bars, or similar
+    in relation to the window.
+
+    The recommended orientation is \l Screen.orientation, but
+    an application doesn't have to support all possible orientations,
+    and thus can opt to ignore the current screen orientation.
+
+    The difference between the window and the content orientation
+    determines how much to rotate the content by.
+
+    The default value is Qt::PrimaryOrientation.
+
+    \sa Screen
+
+    \since Qt 5.1
+ */
+
+/*!
+    \qmlproperty real QtQuick.Window2::Window::opacity
+
+    The opacity of the window.
+
+    If the windowing system supports window opacity, this can be used to fade the
+    window in and out, or to make it semitransparent.
+
+    A value of 1.0 or above is treated as fully opaque, whereas a value of 0.0 or below
+    is treated as fully transparent. Values inbetween represent varying levels of
+    translucency between the two extremes.
+
+    The default value is 1.0.
+
+    \since Qt 5.1
+ */
+
+/*!
+    \qmlproperty Item QtQuick.Window2::Window::activeFocusItem
+    \since Qt 5.1
+
+    The item which currently has active focus or \c null if there is
+    no item with active focus.
  */
 
 #include "moc_qquickwindow.cpp"

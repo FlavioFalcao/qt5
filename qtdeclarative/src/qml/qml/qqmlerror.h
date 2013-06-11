@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -47,8 +47,6 @@
 #include <QtCore/qurl.h>
 #include <QtCore/qstring.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 
@@ -72,6 +70,8 @@ public:
     void setLine(int);
     int column() const;
     void setColumn(int);
+    QObject *object() const;
+    void setObject(QObject *);
 
     QString toString() const;
 private:
@@ -83,7 +83,5 @@ QDebug Q_QML_EXPORT operator<<(QDebug debug, const QQmlError &error);
 Q_DECLARE_TYPEINFO(QQmlError, Q_MOVABLE_TYPE);
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QQMLERROR_H

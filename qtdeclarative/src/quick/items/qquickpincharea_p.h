@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtSG module of the Qt Toolkit.
@@ -43,8 +43,6 @@
 #define QQUICKPINCHAREA_H
 
 #include "qquickitem.h"
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -300,8 +298,6 @@ QT_END_NAMESPACE
 QML_DECLARE_TYPE(QQuickPinch)
 QML_DECLARE_TYPE(QQuickPinchEvent)
 QML_DECLARE_TYPE(QQuickPinchArea)
-
-QT_END_HEADER
 
 #endif // QQUICKPINCHAREA_H
 

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -157,7 +157,7 @@ QQuickTextureFactory *QSGContext::createTextureFactoryFromImage(const QImage &im
     specific window manager.
  */
 
-QQuickWindowManager *QSGContext::createWindowManager()
+QSGRenderLoop *QSGContext::createWindowManager()
 {
     QSGAdaptionPluginData *plugin = contextFactory();
     if (plugin->factory)

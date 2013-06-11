@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -46,6 +46,7 @@
     building custom materials for the scene graph.
 
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-materials
 
     Where the QSGMaterial and QSGMaterialShader API requires a bit of
     boilerplate code to create a functioning material, the
@@ -141,7 +142,7 @@
     the unique QSGSimpleMaterialShader implementation must be
     instantiated with a unique C++ type.
 
-    \sa {Simple Material Example}
+    \sa {Scene Graph - Simple Material}
  */
 
 /*!
@@ -221,6 +222,7 @@
     \class QSGSimpleMaterial
 
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-materials
 
     \brief The QSGSimpleMaterial class is a template generated class
     used to store the state used with a QSGSimpleMateralShader.

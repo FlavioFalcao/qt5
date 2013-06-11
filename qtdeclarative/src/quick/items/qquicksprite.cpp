@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQuick module of the Qt Toolkit.
@@ -254,8 +254,15 @@ int QQuickSprite::variedDuration() const //Deals with precedence when multiple d
 void QQuickSprite::startImageLoading()
 {
     m_pix.clear(this);
-    if (!m_source.isEmpty())
-        m_pix.load(qmlEngine(this), m_source);
+    if (!m_source.isEmpty()) {
+        QQmlEngine *e = qmlEngine(this);
+        if (!e) { //If not created in QML, you must set the QObject parent to the QML element so this can work
+            e = qmlEngine(parent());
+            if (!e)
+                qWarning() << "QQuickSprite: Cannot find QQmlEngine - this class is only for use in QML and may not work";
+        }
+        m_pix.load(e, m_source);
+    }
 }
 
 QT_END_NAMESPACE

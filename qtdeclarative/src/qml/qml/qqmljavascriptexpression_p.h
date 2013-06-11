@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -84,6 +84,7 @@ public:
     void setMessage(v8::Handle<v8::Message> message);
     void setErrorLocation(const QUrl &url, quint16 line, quint16 column);
     void setErrorDescription(const QString &description);
+    void setErrorObject(QObject *object);
 
 private:
     void convertMessageToError(QQmlEngine *engine) const;

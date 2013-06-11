@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -61,7 +61,7 @@ public:
     ~QTcpServerConnection();
 
     void setServer(QQmlDebugServer *server);
-    void setPort(int port, bool bock, const QString &hostaddress);
+    void setPortRange(int portFrom, int portTo, bool bock, const QString &hostaddress);
 
     bool isConnected() const;
     void send(const QList<QByteArray> &messages);

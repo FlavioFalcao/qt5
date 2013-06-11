@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -62,8 +62,6 @@
 #include <QtGui/qtextdocumentfragment.h>
 #include <QtGui/qclipboard.h>
 #include <QtCore/qmimedata.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -140,6 +138,7 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void textChanged();
+    void contentsChange(int from, int charsRemoved, int charsAdded);
     void undoAvailable(bool b);
     void redoAvailable(bool b);
     void currentCharFormatChanged(const QTextCharFormat &format);
@@ -195,7 +194,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QQuickTextControl_H

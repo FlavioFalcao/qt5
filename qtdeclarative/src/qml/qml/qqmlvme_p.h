@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -140,6 +140,10 @@ public:
     QObject *execute(QList<QQmlError> *errors, const Interrupt & = Interrupt());
     QQmlContextData *complete(const Interrupt & = Interrupt());
 
+    static void enableComponentComplete();
+    static void disableComponentComplete();
+    static bool componentCompleteEnabled();
+
 private:
     friend class QQmlVMEGuard;
 
@@ -179,6 +183,8 @@ private:
 
     static void blank(QFiniteStack<QQmlParserStatus *> &);
     static void blank(QFiniteStack<QQmlAbstractBinding *> &);
+
+    static bool s_enableComponentComplete;
 };
 
 // Used to check that a QQmlVME that is interrupted mid-execution

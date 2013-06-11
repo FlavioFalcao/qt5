@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -48,8 +48,6 @@
 #include <QtQuick/private/qquickstate_p.h>
 
 #include <QtQml/qqmlscriptstring.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -212,8 +210,6 @@ QT_END_NAMESPACE
 QML_DECLARE_TYPE(QQuickParentChange)
 QML_DECLARE_TYPE(QQuickAnchorSet)
 QML_DECLARE_TYPE(QQuickAnchorChanges)
-
-QT_END_HEADER
 
 #endif // QQUICKSTATEOPERATIONS_P_H
 

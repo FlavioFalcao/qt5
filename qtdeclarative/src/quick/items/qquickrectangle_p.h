@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -47,8 +47,6 @@
 #include <QtGui/qbrush.h>
 
 #include <private/qtquickglobal_p.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -177,7 +175,5 @@ QML_DECLARE_TYPE(QQuickPen)
 QML_DECLARE_TYPE(QQuickGradientStop)
 QML_DECLARE_TYPE(QQuickGradient)
 QML_DECLARE_TYPE(QQuickRectangle)
-
-QT_END_HEADER
 
 #endif // QQUICKRECTANGLE_P_H

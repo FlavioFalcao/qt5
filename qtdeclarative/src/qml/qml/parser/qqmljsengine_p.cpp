@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -42,15 +42,15 @@
 #include "qqmljsengine_p.h"
 #include "qqmljsglobal_p.h"
 
-#include <qnumeric.h>
-#include <QHash>
-#include <QDebug>
+#include <QtCore/qnumeric.h>
+#include <QtCore/qhash.h>
+#include <QtCore/qdebug.h>
 
 QT_QML_BEGIN_NAMESPACE
 
 namespace QQmlJS {
 
-static int toDigit(char c)
+static inline int toDigit(char c)
 {
     if ((c >= '0') && (c <= '9'))
         return c - '0';

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -46,8 +46,6 @@
 
 #include <QtCore/qobject.h>
 #include <QPalette>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -114,7 +112,5 @@ private:
 QT_END_NAMESPACE
 
 QML_DECLARE_TYPE(QQuickSystemPalette)
-
-QT_END_HEADER
 
 #endif // QQUICKSYSTEMPALETTE_H

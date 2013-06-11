@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -62,7 +62,7 @@ public:
     void referenceGlyphs(const QSet<glyph_t> &glyphs);
     void releaseGlyphs(const QSet<glyph_t> &glyphs);
 
-    bool useWorkaroundBrokenFBOReadback() const;
+    bool useWorkaround() const;
     int maxTextureSize() const;
 
     void setMaxTextureCount(int max) { m_maxTextureCount = max; }

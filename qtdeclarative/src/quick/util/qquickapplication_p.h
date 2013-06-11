@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQuick module of the Qt Toolkit.
@@ -44,15 +44,14 @@
 
 #include <QtCore/QObject>
 #include <qqml.h>
+#include <QtQml/private/qqmlglobal_p.h>
 #include <private/qtquickglobal_p.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
 
 class QQuickApplicationPrivate;
-class Q_AUTOTEST_EXPORT QQuickApplication : public QObject
+class Q_AUTOTEST_EXPORT QQuickApplication : public QQmlApplication
 {
     Q_OBJECT
     Q_PROPERTY(bool active READ active NOTIFY activeChanged)
@@ -80,7 +79,5 @@ private:
 QT_END_NAMESPACE
 
 QML_DECLARE_TYPE(QQuickApplication)
-
-QT_END_HEADER
 
 #endif // QQUICKAPPLICATION_P_H

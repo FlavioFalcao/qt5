@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -48,8 +48,6 @@
 #include <QtCore/qsharedpointer.h>
 #include <QtCore/qobject.h>
 #include <QtQml/qjsvalue.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -136,7 +134,5 @@ inline QVariant qjsvalue_cast<QVariant>(const QJSValue &value)
 }
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QJSENGINE_H

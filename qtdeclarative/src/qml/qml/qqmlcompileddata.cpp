@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -105,7 +105,7 @@ void QQmlCompiledData::destroy()
 QQmlCompiledData::~QQmlCompiledData()
 {
     if (isRegisteredWithEngine)
-        QQmlEnginePrivate::get(engine)->unregisterCompositeType(this);
+        QQmlEnginePrivate::get(engine)->unregisterInternalCompositeType(this);
 
     clear();
 

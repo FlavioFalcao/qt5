@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -494,7 +494,7 @@ void QQuickViewPrivate::setRootObject(QObject *obj)
                    << "loaded has 'import QtQuick 1.0' or 'import Qt 4.7', this error will occur." << endl
                    << endl
                    << "To load files with 'import QtQuick 1.0' or 'import Qt 4.7', use the" << endl
-                   << "QQuickView class in the qtquick1 module." << endl;
+                   << "QDeclarativeView class in the Qt Quick 1 module." << endl;
         delete obj;
         root = 0;
     }

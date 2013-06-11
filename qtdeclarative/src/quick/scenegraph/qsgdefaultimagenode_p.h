@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -40,13 +40,11 @@
 ****************************************************************************/
 
 
-#ifndef DEFAULT_PIXMAPNODE_H
-#define DEFAULT_PIXMAPNODE_H
+#ifndef QSGDEFAULTIMAGENODE_P_H
+#define QSGDEFAULTIMAGENODE_P_H
 
 #include <private/qsgadaptationlayer_p.h>
 #include <QtQuick/qsgtexturematerial.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -102,7 +100,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif

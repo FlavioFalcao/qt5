@@ -2,14 +2,18 @@ TEMPLATE = subdirs
 
 SUBDIRS += \
     folderlistmodel \
-    localstorage
+    localstorage \
+    models
 
-!isEmpty(QT.quick.name) {
+qtHaveModule(quick) {
     SUBDIRS += \
         qtquick2 \
         particles \
         window \
+        dialogs \
         testlib
 }
 
-contains(QT_CONFIG, xmlpatterns) : SUBDIRS += xmllistmodel
+qtHaveModule(xmlpatterns) : SUBDIRS += xmllistmodel
+
+qtHaveModule(widgets) : SUBDIRS += widgets

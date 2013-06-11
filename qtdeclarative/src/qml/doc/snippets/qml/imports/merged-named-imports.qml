@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
@@ -39,9 +39,16 @@
 ****************************************************************************/
 
 //! [imports]
-import QtQuick 2.0 as Nokia
-import Ovi 1.0 as Nokia
+import QtQuick 2.0 as Project
+import QtMultimedia 5.0 as Project
+
+Project.Rectangle {
+    width: 100; height: 50
+
+    Project.Audio {
+        source: "music.wav"
+        autoPlay: true
+    }
+}
 //! [imports]
 
-Item {
-}

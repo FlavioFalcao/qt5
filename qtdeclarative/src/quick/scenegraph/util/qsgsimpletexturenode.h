@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -46,9 +46,9 @@
 #include <QtQuick/qsggeometry.h>
 #include <QtQuick/qsgtexturematerial.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
+
+class QSGSimpleTextureNodePrivate;
 
 class Q_QUICK_EXPORT QSGSimpleTextureNode : public QSGGeometryNode
 {
@@ -65,16 +65,28 @@ public:
     void setFiltering(QSGTexture::Filtering filtering);
     QSGTexture::Filtering filtering() const;
 
+    enum TextureCoordinatesTransformFlag {
+        NoTransform        = 0x00,
+        MirrorHorizontally = 0x01,
+        MirrorVertically   = 0x02
+    };
+    Q_DECLARE_FLAGS(TextureCoordinatesTransformMode, TextureCoordinatesTransformFlag)
+
+    void setTextureCoordinatesTransform(TextureCoordinatesTransformMode mode);
+    TextureCoordinatesTransformMode textureCoordinatesTransform() const;
+
 private:
     QSGGeometry m_geometry;
     QSGOpaqueTextureMaterial m_opaque_material;
     QSGTextureMaterial m_material;
 
     QRectF m_rect;
+
+    Q_DECLARE_PRIVATE(QSGSimpleTextureNode)
 };
 
-QT_END_NAMESPACE
+Q_DECLARE_OPERATORS_FOR_FLAGS(QSGSimpleTextureNode::TextureCoordinatesTransformMode)
 
-QT_END_HEADER
+QT_END_NAMESPACE
 
 #endif // QSGSIMPLETEXTURENODE_H

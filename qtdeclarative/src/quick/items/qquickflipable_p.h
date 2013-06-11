@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -48,8 +48,6 @@
 #include <QtGui/qvector3d.h>
 #include <QtCore/qobject.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 class QQuickFlipablePrivate;
@@ -95,7 +93,5 @@ private:
 QT_END_NAMESPACE
 
 QML_DECLARE_TYPE(QQuickFlipable)
-
-QT_END_HEADER
 
 #endif // QQUICKFLIPABLE_P_H

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -45,7 +45,7 @@ Rectangle {
 //![0]
     Text {
             textFormat: Text.RichText
-            text: "The main website is at <a href=\"http://qt.nokia.com\">Nokia Qt DF</a>."
+            text: "See the <a href=\"http://qt-project.org\">Qt Project website</a>."
             onLinkActivated: console.log(link + " link activated")
     }
 //![0]

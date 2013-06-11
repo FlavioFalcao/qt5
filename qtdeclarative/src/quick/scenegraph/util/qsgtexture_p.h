@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -112,6 +112,7 @@ protected:
     uint m_dirty_bind_options : 1;
     uint m_owns_texture : 1;
     uint m_mipmaps_generated : 1;
+    uint m_retain_image: 1;
 };
 
 QT_END_NAMESPACE

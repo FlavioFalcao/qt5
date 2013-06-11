@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -67,6 +67,9 @@ class QQuickPathPrivate : public QObjectPrivate
     Q_DECLARE_PUBLIC(QQuickPath)
 
 public:
+    static QQuickPathPrivate* get(QQuickPath *path) { return path->d_func(); }
+    static const QQuickPathPrivate* get(const QQuickPath *path) { return path->d_func(); }
+
     QQuickPathPrivate() : pathLength(0), closed(false), componentComplete(true) { }
 
     QPainterPath _path;

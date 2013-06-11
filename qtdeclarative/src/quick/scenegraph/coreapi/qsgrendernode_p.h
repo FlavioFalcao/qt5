@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -56,8 +56,6 @@
 #include "qsgnode.h"
 #include <private/qtquickglobal_p.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 
 class Q_QUICK_PRIVATE_EXPORT QSGRenderNode : public QSGNode
@@ -109,7 +107,5 @@ private:
 Q_DECLARE_OPERATORS_FOR_FLAGS(QSGRenderNode::StateFlags)
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif

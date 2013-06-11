@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -44,8 +44,6 @@
 
 #include "qquickcontext2d_p.h"
 #include <QOpenGLFramebufferObject>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -103,8 +101,6 @@ public:
 private:
     QImage m_image;
 };
-QT_END_HEADER
-
 QT_END_NAMESPACE
 
 #endif // QQUICKCONTEXT2DTILE_P_H

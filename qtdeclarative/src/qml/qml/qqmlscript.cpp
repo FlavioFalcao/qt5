@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -651,7 +651,7 @@ QString ProcessAST::asString(AST::UiQualifiedId *node) const
     QString s;
 
     for (AST::UiQualifiedId *it = node; it; it = it->next) {
-        s.append(it->name.toString());
+        s.append(it->name);
 
         if (it->next)
             s.append(QLatin1Char('.'));

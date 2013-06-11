@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -129,7 +129,7 @@ QT_BEGIN_NAMESPACE
 
     See the PropertyAction documentation for more details.
 
-    \sa {declarative/animation/states}{states example}, {Qt Quick States}{Qt Quick States}, QtQml
+    \sa {declarative/animation/states}{states example}, {Qt Quick States}{Qt Quick States}, {Qt QML}
 */
 
 /*!

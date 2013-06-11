@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -55,8 +55,6 @@
 
 #include <QtCore/qglobal.h>
 
-QT_BEGIN_HEADER
-
 QT_BEGIN_NAMESPACE
 // From DOM-Level-3-Core spec
 // http://www.w3.org/TR/DOM-Level-3-Core/core.html
@@ -88,7 +86,5 @@ class QV8Engine;
 void qt_add_domexceptions(QV8Engine *engine);
 
 QT_END_NAMESPACE
-
-QT_END_HEADER
 
 #endif // QV8DOMERRORS_P_H

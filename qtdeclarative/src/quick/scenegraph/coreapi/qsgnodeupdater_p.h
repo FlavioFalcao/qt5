@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -39,13 +39,11 @@
 **
 ****************************************************************************/
 
-#ifndef NODEUPDATER_P_H
-#define NODEUPDATER_P_H
+#ifndef QSGNODEUPDATER_P_H
+#define QSGNODEUPDATER_P_H
 
 #include <private/qtquickglobal_p.h>
 #include <QtGui/private/qdatabuffer_p.h>
-
-QT_BEGIN_HEADER
 
 QT_BEGIN_NAMESPACE
 
@@ -96,6 +94,4 @@ protected:
 
 QT_END_NAMESPACE
 
-QT_END_HEADER
-
-#endif // NODEUPDATER_P_H
+#endif

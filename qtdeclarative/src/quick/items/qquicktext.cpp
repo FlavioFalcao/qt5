@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -312,6 +312,9 @@ qreal QQuickTextPrivate::getImplicitHeight() const
     not require advanced features such as transformation of the text. Using such features in
     combination with the NativeRendering render type will lend poor and sometimes pixelated
     results.
+
+    On HighDpi "retina" displays and mobile and embedded platforms, this property is ignored
+    and QtRendering is always used.
 */
 QQuickText::RenderType QQuickText::renderType() const
 {
@@ -527,10 +530,13 @@ void QQuickTextPrivate::updateSize()
         }
         if (internalWidthUpdate)
             return;
-        if (wrapMode != QQuickText::NoWrap && q->widthValid())
+
+        extra->doc->setPageSize(QSizeF());
+        if (q->widthValid() && (wrapMode != QQuickText::NoWrap || extra->doc->idealWidth() < q->width()))
             extra->doc->setTextWidth(q->width());
         else
             extra->doc->setTextWidth(extra->doc->idealWidth()); // ### Text does not align if width is not set (QTextDoc bug)
+
         widthExceeded = extra->doc->textWidth() < extra->doc->idealWidth();
         QSizeF dsize = extra->doc->size();
         layedOutTextRect = QRectF(QPointF(0,0), dsize);
@@ -1329,10 +1335,10 @@ QQuickText::~QQuickText()
     \snippet qml/text/onLinkActivated.qml 0
 
     The example code will display the text
-    "The main website is at \l{http://qt.nokia.com}{Nokia Qt DF}."
+    "See the \l{http://qt-project.org}{Qt Project website}."
 
     Clicking on the highlighted link will output
-    \tt{http://qt.nokia.com link activated} to the console.
+    \tt{http://qt-project.org link activated} to the console.
 */
 
 /*!
@@ -2231,7 +2237,7 @@ QSGNode *QQuickText::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data
         node = static_cast<QQuickTextNode *>(oldNode);
     }
 
-    node->setUseNativeRenderer(d->renderType == NativeRendering);
+    node->setUseNativeRenderer(d->renderType == NativeRendering && d->window->devicePixelRatio() <= 1);
     node->deleteContent();
     node->setMatrix(QMatrix4x4());
 

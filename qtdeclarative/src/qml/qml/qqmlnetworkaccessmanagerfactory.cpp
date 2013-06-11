@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -80,7 +80,7 @@ QT_BEGIN_NAMESPACE
     For more information about signals and threads, see
     \l {Threads and QObjects} and \l {Signals and Slots Across Threads}.
 
-    The QtQuick 1 version of this class is named QDeclarativeNetworkAccessManagerFactory.
+    The \l {Qt Quick 1} version of this class is named QDeclarativeNetworkAccessManagerFactory.
 
     \sa {qml/networkaccessmanagerfactory}{NetworkAccessManagerFactory example}
 */

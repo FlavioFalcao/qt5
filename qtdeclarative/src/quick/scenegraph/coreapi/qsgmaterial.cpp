@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtQml module of the Qt Toolkit.
@@ -44,12 +44,25 @@
 
 QT_BEGIN_NAMESPACE
 
+#ifndef QT_NO_DEBUG
+static bool qsg_leak_check = !qgetenv("QML_LEAK_CHECK").isEmpty();
+#endif
+
+/*!
+    \group qtquick-scenegraph-materials
+    \title Qt Quick Scene Graph Material Classes
+    \brief classes used to define materials in the Qt Quick Scene Graph.
+
+    This page lists the material classes in \l {Qt Quick}'s
+    \l {scene graph}{Qt Quick Scene Graph}.
+ */
 
 /*!
     \class QSGMaterialShader
     \brief The QSGMaterialShader class represents an OpenGL shader program
     in the renderer.
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-materials
 
     The QSGMaterialShader API is very low-level. A more convenient API, which
     provides almost all the same features, is available through
@@ -403,6 +416,12 @@ QMatrix4x4 QSGMaterialShader::RenderState::combinedMatrix() const
     return static_cast<const QSGRenderer *>(m_data)->currentCombinedMatrix();
 }
 
+float QSGMaterialShader::RenderState::devicePixelRatio() const
+{
+    Q_ASSERT(m_data);
+    return static_cast<const QSGRenderer *>(m_data)->devicePixelRatio();
+}
+
 
 
 /*!
@@ -427,6 +446,16 @@ QMatrix4x4 QSGMaterialShader::RenderState::modelViewMatrix() const
 {
     Q_ASSERT(m_data);
     return static_cast<const QSGRenderer *>(m_data)->currentModelViewMatrix();
+}
+
+/*!
+    Returns the projection matrix.
+ */
+
+QMatrix4x4 QSGMaterialShader::RenderState::projectionMatrix() const
+{
+    Q_ASSERT(m_data);
+    return static_cast<const QSGRenderer *>(m_data)->currentProjectionMatrix();
 }
 
 
@@ -479,6 +508,7 @@ static void qt_print_material_count()
     \class QSGMaterialType
     \brief The QSGMaterialType class is used as a unique type token in combination with QSGMaterial.
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-materials
 
     It serves no purpose outside the QSGMaterial::type() function.
  */
@@ -487,6 +517,7 @@ static void qt_print_material_count()
     \class QSGMaterial
     \brief The QSGMaterial class encapsulates rendering state for a shader program.
     \inmodule QtQuick
+    \ingroup qtquick-scenegraph-materials
 
     The QSGMaterial API is very low-level. A more convenient API, which
     provides almost all the same features, is available through
@@ -527,11 +558,13 @@ QSGMaterial::QSGMaterial()
     : m_flags(0)
 {
 #ifndef QT_NO_DEBUG
-    ++qt_material_count;
-    static bool atexit_registered = false;
-    if (!atexit_registered) {
-        atexit(qt_print_material_count);
-        atexit_registered = true;
+    if (qsg_leak_check) {
+        ++qt_material_count;
+        static bool atexit_registered = false;
+        if (!atexit_registered) {
+            atexit(qt_print_material_count);
+            atexit_registered = true;
+        }
     }
 #endif
 }
@@ -544,9 +577,11 @@ QSGMaterial::QSGMaterial()
 QSGMaterial::~QSGMaterial()
 {
 #ifndef QT_NO_DEBUG
-    --qt_material_count;
-    if (qt_material_count < 0)
-        qDebug("Material destroyed after qt_print_material_count() was called.");
+    if (qsg_leak_check) {
+        --qt_material_count;
+        if (qt_material_count < 0)
+            qDebug("Material destroyed after qt_print_material_count() was called.");
+    }
 #endif
 }
 
